@@ -58,9 +58,7 @@
       <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
-    <section style="margin-bottom: var(--space-6);" data-setup-sequence></section>
-
-    <div class="empty-state" data-requires-no-connection>
+<div class="empty-state" data-requires-no-connection>
       <h3>Connect a folder to get started</h3>
       <p>Modelling runs against the Excel workbook in your connected folder.</p>
       <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
@@ -79,11 +77,15 @@
           <p data-pooled-count style="font-size:0.85rem;"></p>
           <div class="form-grid" style="max-width: 480px;">
             <div>
-              <label for="mc-phase">Assessment</label>
-              <select id="mc-phase" data-mc-phase>
-                <option value="pre">Pre-mitigation</option>
-                <option value="post">Post-mitigation</option>
-              </select>
+              <label>Assessment</label>
+              <div style="display:flex; gap: var(--space-4); margin-top: 8px;">
+                <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none; font-size:0.9rem;">
+                  <input type="checkbox" data-mc-phase-checkbox value="pre"> Pre-mitigation
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none; font-size:0.9rem;">
+                  <input type="checkbox" data-mc-phase-checkbox value="post" checked> Post-mitigation
+                </label>
+              </div>
             </div>
             <div>
               <label for="mc-trials">Simulations</label>

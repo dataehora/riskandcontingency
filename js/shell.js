@@ -51,7 +51,7 @@ function renderConnectionUi(state) {
   if (label) {
     const text =
       state.status === "connected" && state.folderName
-        ? `Connected: ${state.folderName}`
+        ? `Connected to Folder: ${state.folderName}`
         : STATUS_LABEL[state.status] ?? state.status;
     label.textContent = text;
     pill?.setAttribute("aria-label", text);
