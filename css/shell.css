@@ -1,0 +1,168 @@
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  background: var(--color-primary);
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.app-header-inner {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-on-primary);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  flex: none;
+}
+
+.app-brand:hover {
+  text-decoration: none;
+  opacity: 0.92;
+}
+
+.app-brand-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: var(--color-accent);
+  color: #2a1e05;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.78rem;
+  flex: none;
+}
+
+.app-nav {
+  display: flex;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.app-nav a {
+  color: rgba(244, 246, 248, 0.72);
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-nav a:hover {
+  color: var(--color-text-on-primary);
+  text-decoration: none;
+  background: rgba(244, 246, 248, 0.08);
+}
+
+.app-nav a[aria-current="page"] {
+  color: var(--color-text-on-primary);
+  background: rgba(244, 246, 248, 0.14);
+}
+
+.app-header-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-nav-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid rgba(244, 246, 248, 0.3);
+  color: var(--color-text-on-primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.app-main {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-8);
+}
+
+.page-header {
+  margin-bottom: var(--space-6);
+}
+
+.page-header p {
+  max-width: 60ch;
+}
+
+.app-footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--color-text-subtle);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 860px) {
+  .app-header-inner {
+    gap: var(--space-3);
+    padding: 0 var(--space-3);
+  }
+
+  .app-brand {
+    font-size: 0.9rem;
+  }
+
+  .app-header-actions {
+    gap: var(--space-2);
+  }
+
+  .status-pill [data-connection-label] {
+    display: none;
+  }
+
+  .status-pill {
+    padding: 6px;
+  }
+
+  .app-header-actions .btn-sm {
+    padding: 6px 10px;
+    font-size: 0.76rem;
+  }
+
+  .app-nav-toggle {
+    display: inline-flex;
+  }
+
+  .app-nav {
+    position: absolute;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    background: var(--color-primary);
+    flex-direction: column;
+    padding: var(--space-2);
+    border-bottom: 2px solid var(--color-accent);
+    display: none;
+  }
+
+  .app-nav.is-open {
+    display: flex;
+  }
+
+  .app-header-inner {
+    position: relative;
+  }
+}

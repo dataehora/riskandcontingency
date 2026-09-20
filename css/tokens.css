@@ -1,0 +1,84 @@
+:root {
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-surface-alt: #eef0f3;
+  --color-border: #d8dce1;
+  --color-border-strong: #b7bec7;
+  --color-text: #1c2530;
+  --color-text-muted: #5b6572;
+  --color-text-subtle: #8a93a0;
+  --color-text-on-primary: #f4f6f8;
+
+  --color-primary: #16324f;
+  --color-primary-hover: #0f2438;
+  --color-primary-alt: #1f4266;
+  --color-accent: #b8862e;
+  --color-accent-hover: #9c7126;
+  --color-accent-bg: #f7eedc;
+
+  --color-risk-low: #2e7d4f;
+  --color-risk-low-bg: #e6f2ea;
+  --color-risk-medium: #a5760a;
+  --color-risk-medium-bg: #fbf1de;
+  --color-risk-high: #b3372c;
+  --color-risk-high-bg: #f7e4e1;
+
+  --color-success: #2e7d4f;
+  --color-danger: #b3372c;
+  --color-warning: #a5760a;
+  --color-info: #2b5c8a;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-sm: 0 1px 2px rgba(20, 30, 45, 0.07);
+  --shadow-md: 0 2px 10px rgba(20, 30, 45, 0.10);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --header-height: 60px;
+  --content-max-width: 1280px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #10161f;
+    --color-surface: #161e29;
+    --color-surface-alt: #1c2530;
+    --color-border: #2a3441;
+    --color-border-strong: #3c4756;
+    --color-text: #e6e9ed;
+    --color-text-muted: #a7b0bc;
+    --color-text-subtle: #7a8492;
+    --color-text-on-primary: #f4f6f8;
+
+    --color-primary: #1f4266;
+    --color-primary-hover: #2b5680;
+    --color-primary-alt: #2b5680;
+    --color-accent: #d9a94a;
+    --color-accent-hover: #e6bb63;
+    --color-accent-bg: rgba(217, 169, 74, 0.14);
+
+    --color-risk-low: #4caf7d;
+    --color-risk-low-bg: rgba(46, 125, 79, 0.18);
+    --color-risk-medium: #d9a94a;
+    --color-risk-medium-bg: rgba(165, 118, 10, 0.2);
+    --color-risk-high: #e2695c;
+    --color-risk-high-bg: rgba(179, 55, 44, 0.2);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.45);
+  }
+}

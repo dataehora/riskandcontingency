@@ -4,15 +4,90 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Risk and Contingency</title>
-  <meta name="description" content="Web-based project risk and contingency management.">
+  <meta name="description" content="Web-based project risk and contingency management, working directly against an Excel risk register on your own machine.">
   <link rel="canonical" href="https://riskandcontingency.com/">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/shell.css">
 </head>
-<body>
-  <main>
-    <h1>Risk and Contingency</h1>
-    <p>Web-based project risk and contingency management.</p>
-    <span class="badge">Under construction</span>
+<body data-page="home">
+  <header class="app-header">
+    <div class="app-header-inner">
+      <a class="app-brand" href="/index.html">
+        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
+        Risk &amp; Contingency
+      </a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary">
+        <a href="/index.html" data-nav="home">Home</a>
+        <a href="/working-space.html" data-nav="working-space">Working Space</a>
+        <a href="/reporting.html" data-nav="reporting">Reporting</a>
+        <a href="/configuration.html" data-nav="configuration">Configuration</a>
+      </nav>
+      <div class="app-header-actions">
+        <span class="status-pill" data-connection-pill data-state="checking">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span data-connection-label>Checking&hellip;</span>
+        </span>
+        <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="page-header">
+      <span class="eyebrow">Risk &amp; Contingency Management</span>
+      <h1>A project risk register that lives on your machine, not in someone else's cloud</h1>
+      <p>Record, assess and respond to project risks under a Risk Breakdown Structure, calculate EMV pre- and post‑mitigation, and report on exposure — all reading and writing directly to an Excel workbook in a folder you choose. No accounts, no server, no uploads.</p>
+    </div>
+
+    <div id="unsupported-notice" class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
+      <span aria-hidden="true">&#9888;&#65039;</span>
+      <div>
+        <strong>Folder connection isn't available in this browser.</strong>
+        <p style="margin: 4px 0 0;">This tool reads and writes your risk register directly on disk using the File System Access API, currently supported in Chrome, Edge and Opera. Open this page in one of those browsers to connect a folder.</p>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom: var(--space-6);" data-requires-no-connection>
+      <h2 style="margin-bottom: var(--space-2);">Connect your risk register folder</h2>
+      <p>Choose a folder on this device to store your project workbooks. The app will read the Excel risk register from it, and write every change straight back — the folder is your single source of truth.</p>
+      <button class="btn btn-primary" type="button" data-connection-action>Connect folder</button>
+    </section>
+
+    <section class="card" style="margin-bottom: var(--space-6);" data-requires-connection hidden>
+      <h2 style="margin-bottom: var(--space-2);">Folder connected</h2>
+      <p>Your risk register folder is connected. Head to Working Space to create or edit risk records, or Configuration to set up your Risk Breakdown Structure, impact areas and risk owners.</p>
+    </section>
+
+    <div class="card-grid" style="margin-bottom: var(--space-6);">
+      <div class="card">
+        <span class="eyebrow">01 &middot; Working Space</span>
+        <h3>Create and manage risk records</h3>
+        <p>Log risks against the Risk Breakdown Structure with owner, cause, description and effects; assess pre- and post‑mitigation likelihood and impact as single point, uniform or triangular ranges; plan mitigating and contingency responses.</p>
+        <a class="btn btn-secondary btn-sm" href="/working-space.html">Open Working Space &rarr;</a>
+      </div>
+      <div class="card">
+        <span class="eyebrow">02 &middot; Reporting</span>
+        <h3>Rank and report exposure</h3>
+        <p>List every risk record and rank the top risks by EMV, maximum cost impact, schedule exposure or maximum schedule impact.</p>
+        <a class="btn btn-secondary btn-sm" href="/reporting.html">Open Reporting &rarr;</a>
+      </div>
+      <div class="card">
+        <span class="eyebrow">03 &middot; Configuration</span>
+        <h3>Set up projects and reference data</h3>
+        <p>Define the Risk Breakdown Structure per project, impact areas, and the list of risk owners used across the Working Space.</p>
+        <a class="btn btn-secondary btn-sm" href="/configuration.html">Open Configuration &rarr;</a>
+      </div>
+    </div>
   </main>
+
+  <footer class="app-footer">
+    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+  </footer>
+
+  <script type="module" src="/js/shell.js"></script>
 </body>
 </html>

@@ -1,0 +1,99 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0 0 var(--space-3);
+  color: var(--color-text);
+}
+
+h1 {
+  font-size: 1.9rem;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.35rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+}
+
+a {
+  color: var(--color-primary-alt);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul,
+ol {
+  margin: 0 0 var(--space-3);
+  padding-left: 1.25em;
+  color: var(--color-text-muted);
+}
+
+.eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: var(--space-2);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Several components below set their own `display` (flex/inline-flex),
+   which ties in CSS specificity with the UA stylesheet's [hidden] rule and
+   can win the cascade by load order — so `hidden` silently stops hiding
+   things. Force it explicitly rather than relying on selector order. */
+[hidden] {
+  display: none !important;
+}
