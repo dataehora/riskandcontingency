@@ -248,6 +248,28 @@
   color: inherit;
 }
 
+/* Conflict banner (js/conflict-banner.js) — a save was blocked because
+   the file changed on disk since this tab loaded it. */
+.conflict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--color-risk-high-bg);
+  border: 1px solid var(--color-risk-high);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  font-size: 0.88rem;
+}
+
+.conflict-banner strong {
+  color: var(--color-risk-high);
+}
+
+.conflict-banner p {
+  color: var(--color-text);
+}
+
 /* Update-available banner (js/version-check.js) */
 .update-banner {
   position: fixed;

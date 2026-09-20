@@ -24,6 +24,7 @@ modelling.html                    Monte Carlo simulation of Total Cost (Regular 
 reporting.html                    Risk Reporting: list & top-N exposure ranking (not built yet)
 contingency.html                  Available budget vs. Monte Carlo results
 configuration.html                RBS / impact area / owner / QHSE level setup
+about.html                        Description + FAQ (incl. the single-editor / conflict-detection design)
 css/                               Design system (tokens, base, components, shell)
 js/shell.js                       Shared nav + connection-status wiring
 js/theme.js                       Dark/light toggle
