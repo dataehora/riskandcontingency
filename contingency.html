@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Modelling — Risk and Contingency</title>
-  <meta name="description" content="Run the risk model across the risk register.">
-  <link rel="canonical" href="https://riskandcontingency.com/modelling.html">
+  <title>Contingency — Risk and Contingency</title>
+  <meta name="description" content="Compare available budget to the Monte Carlo modelled cost distribution.">
+  <link rel="canonical" href="https://riskandcontingency.com/contingency.html">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/shell.css">
 </head>
-<body data-page="modelling">
+<body data-page="contingency">
   <header class="app-header">
     <div class="app-header-inner">
       <a class="app-brand" href="/index.html">
@@ -48,9 +48,9 @@
 
   <main class="app-main">
     <div class="page-header">
-      <span class="eyebrow">Modelling</span>
-      <h1>Run the risk model</h1>
-      <p>Step 4 of the setup sequence — Monte Carlo simulation of Total Cost across every Regular Pooled Record risk, weighted by Likelihood.</p>
+      <span class="eyebrow">Contingency</span>
+      <h1>Available budget vs. modelled cost</h1>
+      <p>Enter the budget available for risk, and compare it against the Monte Carlo cost distribution from Modelling.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
@@ -62,53 +62,58 @@
 
     <div class="empty-state" data-requires-no-connection>
       <h3>Connect a folder to get started</h3>
-      <p>Modelling runs against the Excel workbook in your connected folder.</p>
+      <p>Contingency compares against results stored in the Excel workbook in your connected folder.</p>
       <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
     </div>
 
     <div data-requires-connection hidden>
-      <div class="notice notice-warning" data-step-locked-notice="3" hidden style="margin-bottom: var(--space-5);">
+      <div class="notice notice-warning" data-step-locked-notice="4" hidden style="margin-bottom: var(--space-5);">
         <span aria-hidden="true">&#9888;&#65039;</span>
-        <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before running the model. <a data-missing-step-link href="#">Go there &rarr;</a></p>
+        <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before comparing budget to modelled cost. <a data-missing-step-link href="#">Go there &rarr;</a></p>
       </div>
 
-      <div data-requires-step="3" hidden>
+      <div data-requires-step="4" hidden>
         <div class="card" style="margin-bottom: var(--space-5);">
-          <h3>Run Monte Carlo simulation</h3>
-          <p>Simulates the Total Cost (Direct Cost + Knock On) of every <strong>Regular Pooled Record</strong> risk, weighted by its assessed Likelihood, across many trials to produce a cost distribution.</p>
-          <p data-pooled-count style="font-size:0.85rem;"></p>
-          <div class="form-grid" style="max-width: 480px;">
+          <h3>Available budget</h3>
+          <p>Saved automatically to your risk register folder.</p>
+          <div class="form-grid" style="max-width: 320px;">
             <div>
-              <label for="mc-phase">Assessment</label>
-              <select id="mc-phase" data-mc-phase>
-                <option value="pre">Pre-mitigation</option>
-                <option value="post">Post-mitigation</option>
-              </select>
-            </div>
-            <div>
-              <label for="mc-trials">Simulations</label>
-              <select id="mc-trials" data-mc-trials>
-                <option value="1000">1,000</option>
-                <option value="5000" selected>5,000</option>
-                <option value="10000">10,000</option>
-              </select>
+              <label for="budget-input">Available Budget</label>
+              <input id="budget-input" type="number" step="any" data-budget-input placeholder="e.g. 100000">
             </div>
           </div>
-          <button class="btn btn-primary" type="button" data-run-simulation style="margin-top: var(--space-4);">Run simulation</button>
-          <p class="dist-feedback" data-mc-empty-notice hidden style="margin-top: var(--space-3);">No Regular Pooled Record risks yet — add or change a risk record's Record Type in the Risk Register to include it in modelling.</p>
         </div>
 
-        <div data-mc-results hidden>
+        <div data-contingency-results hidden>
           <div class="card" style="margin-bottom: var(--space-5);">
             <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap: var(--space-2);">
-              <h3 style="margin-bottom:0;">Results</h3>
-              <span style="font-size:0.8rem; color: var(--color-text-subtle);" data-mc-run-meta></span>
+              <h3 style="margin-bottom:0;">Budget vs. modelled cost</h3>
+              <span style="font-size:0.8rem; color: var(--color-text-subtle);" data-contingency-run-meta></span>
             </div>
-            <div data-mc-chart style="margin-top: var(--space-4);"></div>
+            <div class="assessment-summary">
+              <div class="stat-tile">
+                <div class="stat-label">Available Budget</div>
+                <div class="stat-value" data-contingency-budget>—</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-label">Confidence Covered</div>
+                <div class="stat-value" data-contingency-confidence>—</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-label">Headroom at P50</div>
+                <div class="stat-value" data-contingency-headroom>—</div>
+              </div>
+            </div>
+            <div data-contingency-chart style="margin-top: var(--space-4);"></div>
             <div style="overflow-x:auto; margin-top: var(--space-5);">
-              <table class="data-table" data-mc-table></table>
+              <table class="data-table" data-contingency-table></table>
             </div>
           </div>
+        </div>
+
+        <div class="empty-state" data-contingency-no-budget>
+          <h3>Enter a budget to compare</h3>
+          <p>Once you enter an available budget above, it'll be compared against the last Monte Carlo run automatically.</p>
         </div>
       </div>
     </div>
@@ -122,6 +127,6 @@
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>
-  <script type="module" src="/js/pages/modelling.js"></script>
+  <script type="module" src="/js/pages/contingency.js"></script>
 </body>
 </html>

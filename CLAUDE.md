@@ -53,12 +53,14 @@ and one storage layer — no SPA framework, no router, no bundler.
 
 **Pages** (flat, root-level, no build step so no pretty-URL routing):
 `index.html` (home/dashboard), `risk-register.html` (renamed from
-working-space.html 2026-09-20), `modelling.html`, `reporting.html`,
-`configuration.html`. Nav order: Home, Risk Register, Modelling,
-Reporting, Configuration. Each page repeats the same header/footer
-markup (no templating available) and loads the same four stylesheets
-from `css/`, plus a small inline no-flash theme script in `<head>`,
-`js/vendor/xlsx.full.min.js`, and its `type="module"` scripts.
+working-space.html 2026-09-20), `modelling.html`, `reporting.html`
+(nav label "Risk Reporting" since 2026-09-20, filename unchanged),
+`contingency.html`, `configuration.html`. Nav order: Home, Risk
+Register, Modelling, Risk Reporting, Contingency, Configuration. Each
+page repeats the same header/footer markup (no templating available)
+and loads the same four stylesheets from `css/`, plus a small inline
+no-flash theme script in `<head>`, `js/vendor/xlsx.full.min.js`, and its
+`type="module"` scripts.
 
 **Design system** (`css/`): `tokens.css` (CSS custom properties — color,
 spacing, type), `base.css` (reset + typography), `components.css`
@@ -224,10 +226,32 @@ single series), using `--color-primary-alt` (already dark-mode-themed
 in `tokens.css`) for the line, with a hover crosshair+tooltip and the
 percentile table always shown alongside as the accessible/tabular
 fallback. Every run persists `lastModelledAt`/`lastModelledTrials`/
-`lastModelledResultsJson` (the phase + full summary, as JSON) to the
-workbook's `Settings` sheet via `updateSettings()` — this is what marks
-setup-sequence step 4 done, and what the Contingency page (not yet
-built) should read rather than re-running the simulation.
+`lastModelledResultsJson` to the workbook's `Settings` sheet via
+`updateSettings()` — this marks setup-sequence step 4 done, and is what
+the Contingency page reads rather than re-running the simulation.
+`lastModelledResultsJson` holds `{ phase, summary, curve }`: `curve` is
+`curvePoints(sorted, 200).map(p => p.value)` — the **subsampled** ≤200
+values, not the raw trials array. This matters: an xlsx cell caps out
+around 32,767 characters, and 10,000 raw trial numbers as JSON would
+exceed that. `js/charts/s-curve.js` (shared by Modelling and
+Contingency) re-derives cumulative % from array *position*, so feeding
+it these 200 already-sorted, evenly-spaced values reproduces the same
+curve shape without needing the full trial data.
+
+**Contingency page** (`contingency.html`, `js/pages/contingency.js`):
+gated behind setup-sequence step 4 (reuses
+`[data-requires-step="4"]`/`[data-step-locked-notice="4"]` — a Monte
+Carlo run must exist). A single "Available Budget" number input,
+persisted to `settings.availableBudget` on `change` (blur/Enter, not
+per-keystroke). Once both a budget and a stored Monte Carlo run exist,
+shows: the S-curve with the budget as a second (red,
+`--color-danger`) reference line distinct from the median crosshair;
+a "Confidence Covered" reading — the highest of P05–P50 the budget
+meets or exceeds, walking `PERCENTILE_STEPS` ascending (there's no
+percentile above P50 to report against, by the user's own spec, so a
+budget above the modelled max just says "covers full modelled range"
+rather than inventing a number); and a comparison table (modelled cost
+/ covered? / headroom) for Min, each P05–P50, and Max.
 
 **Testing note**: the whole connected-state flow (Configuration CRUD,
 Risk Register save/edit/delete, EMV) was verified end-to-end in-browser
@@ -248,9 +272,10 @@ form + validation + EMV + response actions (done); 4) dark mode + setup
 sequence + Modelling tab scaffold (done); 5) assessment model v2 —
 Likelihood as %, Total Cost/Direct Cost/Knock On grouping, QHSE,
 declared Max fields, layout (done, 2026-09-20); 6) Monte Carlo modelling
-engine + S-curve + percentile table (done, 2026-09-20); 7) Risk
-Reporting (list + top-N ranking) — not started; 8) Contingency
-(available budget vs. Monte Carlo results) — not started.
+engine + S-curve + percentile table (done, 2026-09-20); 7) Contingency
+page + Risk Reporting nav rename (done, 2026-09-20); 8) Risk Reporting
+itself (list + top-N ranking of EMV/Max Total Cost/Schedule Exposure/
+Max Schedule) — not started, still the one empty-state page left.
 
 ## Local dev server
 
