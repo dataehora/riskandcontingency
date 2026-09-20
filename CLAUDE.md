@@ -7,6 +7,9 @@ leftover from an earlier GitHub Pages setup and has no effect on
 Cloudflare Pages). Repo: `dataehora/riskandcontingency`.
 See [README.md](README.md) for the user-facing description and repo
 layout — this file is developer/agent context that doesn't belong there.
+See [PROGRESS.md](PROGRESS.md) for the session-by-session status log
+(what's built, what's not, decisions made) — start there to pick the
+project back up; come here for the technical "how things work" detail.
 
 ## Status
 
