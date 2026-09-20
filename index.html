@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Risk and Contingency</title>
   <meta name="description" content="Web-based project risk and contingency management, working directly against an Excel risk register on your own machine.">
@@ -21,7 +22,8 @@
       <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
       <nav class="app-nav" aria-label="Primary">
         <a href="/index.html" data-nav="home">Home</a>
-        <a href="/working-space.html" data-nav="working-space">Working Space</a>
+        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling">Modelling</a>
         <a href="/reporting.html" data-nav="reporting">Reporting</a>
         <a href="/configuration.html" data-nav="configuration">Configuration</a>
       </nav>
@@ -32,6 +34,13 @@
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
         <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode">
+          <input type="checkbox" data-theme-toggle class="visually-hidden">
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+          <span class="visually-hidden">Toggle dark mode</span>
+        </label>
       </div>
     </div>
   </header>
@@ -59,26 +68,34 @@
 
     <section class="card" style="margin-bottom: var(--space-6);" data-requires-connection hidden>
       <h2 style="margin-bottom: var(--space-2);">Folder connected</h2>
-      <p>Your risk register folder is connected. Head to Working Space to create or edit risk records, or Configuration to set up your Risk Breakdown Structure, impact areas and risk owners.</p>
+      <p>Your risk register folder is connected. Head to the Risk Register to create or edit risk records, or Configuration to set up your Risk Breakdown Structure, impact areas and risk owners.</p>
     </section>
+
+    <section style="margin-bottom: var(--space-6);" data-setup-sequence></section>
 
     <div class="card-grid" style="margin-bottom: var(--space-6);">
       <div class="card">
-        <span class="eyebrow">01 &middot; Working Space</span>
+        <span class="eyebrow">01 &middot; Risk Register</span>
         <h3>Create and manage risk records</h3>
-        <p>Log risks against the Risk Breakdown Structure with owner, cause, description and effects; assess pre- and post‑mitigation likelihood and impact as single point, uniform or triangular ranges; plan mitigating and contingency responses.</p>
-        <a class="btn btn-secondary btn-sm" href="/working-space.html">Open Working Space &rarr;</a>
+        <p>Log risks against the Risk Breakdown Structure with owner, cause, description and effects; assess pre- and post‑mitigation likelihood, cost, knock-on and schedule impact as single point, uniform or triangular ranges; plan response actions.</p>
+        <a class="btn btn-secondary btn-sm" href="/risk-register.html">Open Risk Register &rarr;</a>
       </div>
       <div class="card">
-        <span class="eyebrow">02 &middot; Reporting</span>
+        <span class="eyebrow">02 &middot; Modelling</span>
+        <h3>Run the risk model</h3>
+        <p>Once your risk register has records, run the model to roll up EMV and exposure across the register.</p>
+        <a class="btn btn-secondary btn-sm" href="/modelling.html">Open Modelling &rarr;</a>
+      </div>
+      <div class="card">
+        <span class="eyebrow">03 &middot; Reporting</span>
         <h3>Rank and report exposure</h3>
         <p>List every risk record and rank the top risks by EMV, maximum cost impact, schedule exposure or maximum schedule impact.</p>
         <a class="btn btn-secondary btn-sm" href="/reporting.html">Open Reporting &rarr;</a>
       </div>
       <div class="card">
-        <span class="eyebrow">03 &middot; Configuration</span>
+        <span class="eyebrow">04 &middot; Configuration</span>
         <h3>Set up projects and reference data</h3>
-        <p>Define the Risk Breakdown Structure per project, impact areas, and the list of risk owners used across the Working Space.</p>
+        <p>Define the Risk Breakdown Structure per project, impact areas, and the list of risk owners used across the Risk Register.</p>
         <a class="btn btn-secondary btn-sm" href="/configuration.html">Open Configuration &rarr;</a>
       </div>
     </div>
@@ -88,6 +105,9 @@
     Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
   </footer>
 
+  <script src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/setup-sequence.js"></script>
 </body>
 </html>

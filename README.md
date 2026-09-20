@@ -18,12 +18,17 @@ current build status and architecture.
 
 ```
 index.html                        Home / dashboard
-working-space.html                Risk record creation & management
-reporting.html                    Risk list & top-N exposure ranking
-configuration.html                Project / RBS / owner setup
+risk-register.html                Risk record creation & management
+modelling.html                    Run the risk model (tab scaffolded, engine not built yet)
+reporting.html                    Risk list & top-N exposure ranking (not built yet)
+configuration.html                RBS / impact area / owner setup
 css/                               Design system (tokens, base, components, shell)
 js/shell.js                       Shared nav + connection-status wiring
-js/storage/                       File System Access folder connection + IndexedDB
+js/theme.js                       Dark/light toggle
+js/setup-sequence.js              4-step setup stepper + per-page gating
+js/storage/                       File System Access folder connection, .xlsx read/write, register state
+js/pages/                         Per-page UI logic (configuration.js, risk-register.js)
+js/vendor/                        Vendored SheetJS (xlsx.full.min.js), no CDN dependency
 CNAME, robots.txt, sitemap.xml    Crawl metadata (CNAME is a leftover
                                    from an earlier GitHub Pages setup;
                                    hosting is now Cloudflare Pages, whose

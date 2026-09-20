@@ -10,12 +10,27 @@ layout — this file is developer/agent context that doesn't belong there.
 
 ## Status
 
-Real build underway (started 2026-09-20). Landed so far: design system
-(`css/tokens.css`, `base.css`, `components.css`, `shell.css`), the app
-shell/navigation across the 4 pages, and the File System Access folder
-connection (`js/storage/`). The three feature areas below are still
-empty-state placeholders — Working Space, Reporting and Configuration
-CRUD have not landed yet. Update this section as each area ships.
+Real build underway (started 2026-09-20). Landed so far:
+- Design system + app shell/navigation across 5 pages, dark/light theme
+  toggle (top-right, defaults to OS preference, choice persisted).
+- File System Access folder connection (`js/storage/folder-connection.js`).
+- Real `.xlsx` read/write via vendored SheetJS (`js/storage/workbook.js`,
+  `js/storage/register-store.js`) — RBS/Impact Areas/Owners and full risk
+  records with pre/post assessments and response actions all persist to
+  `risk-register.xlsx` in the connected folder.
+- **Configuration**: real CRUD for RBS, Impact Areas, Owners, plus
+  "load starter template".
+- **Risk Register** (renamed from Working Space): full create/edit/list/
+  delete for risk records — all fields, 8 distribution groups (4
+  dimensions x pre/post) with live validation and EMV, response actions
+  sub-form, 2 loadable example templates.
+- **Setup sequence**: 4-step stepper (`js/setup-sequence.js`) shown on
+  every page, gates each area behind its prerequisite and explains what's
+  missing rather than failing silently.
+
+Still empty-state placeholders: **Modelling** (new page — no simulation
+engine exists yet, only the gated tab) and **Reporting** (list + top-N
+ranking not built). Update this section as each ships.
 
 ## Stack
 
@@ -37,73 +52,148 @@ The app is a set of static, server-less pages sharing one design system
 and one storage layer — no SPA framework, no router, no bundler.
 
 **Pages** (flat, root-level, no build step so no pretty-URL routing):
-`index.html` (home/dashboard), `working-space.html`, `reporting.html`,
-`configuration.html`. Each page repeats the same header/footer markup
-(no templating available) and loads the same four stylesheets from
-`css/` plus `js/shell.js` as a `type="module"` script.
+`index.html` (home/dashboard), `risk-register.html` (renamed from
+working-space.html 2026-09-20), `modelling.html`, `reporting.html`,
+`configuration.html`. Nav order: Home, Risk Register, Modelling,
+Reporting, Configuration. Each page repeats the same header/footer
+markup (no templating available) and loads the same four stylesheets
+from `css/`, plus a small inline no-flash theme script in `<head>`,
+`js/vendor/xlsx.full.min.js`, and its `type="module"` scripts.
 
 **Design system** (`css/`): `tokens.css` (CSS custom properties — color,
-spacing, type — with a `prefers-color-scheme: dark` override block),
-`base.css` (reset + typography), `components.css` (buttons, cards,
-tables, badges, forms, empty states), `shell.css` (header/nav layout).
-Visual direction: professional risk/engineering-consulting aesthetic
-(deep navy `--color-primary`, muted gold `--color-accent`, red/amber/
-green for risk severity), loosely inspired by Oracle Primavera Cloud's
-layout conventions — not a clone, no Oracle branding/colors reused.
-Note: any element hosting both an author `display` rule (e.g. `.btn`,
-`.notice`) and the `hidden` attribute needs the global
-`[hidden] { display: none !important; }` rule in `base.css` to actually
-hide — same-specificity author rules otherwise beat the UA stylesheet.
+spacing, type), `base.css` (reset + typography), `components.css`
+(buttons, cards, tables, badges, forms, empty states, setup-sequence
+stepper, distribution-input groups), `shell.css` (header/nav/theme-
+toggle layout). Visual direction: professional risk/engineering-
+consulting aesthetic (deep navy `--color-primary`, muted gold
+`--color-accent`, red/amber/green for risk severity), loosely inspired
+by Oracle Primavera Cloud's layout conventions — not a clone, no Oracle
+branding/colors reused.
+Notes:
+- Any element hosting both an author `display` rule (e.g. `.btn`,
+  `.notice`) and the `hidden` attribute needs the global
+  `[hidden] { display: none !important; }` rule in `base.css` to
+  actually hide — same-specificity author rules otherwise beat the UA
+  stylesheet.
+- **Theme**: defaults to OS `prefers-color-scheme`; the toggle switch
+  (top-right of the header, `js/theme.js`) sets an explicit
+  `data-theme="light"|"dark"` on `<html>`, stored in `localStorage`
+  (`theme-preference`) and applied synchronously by an inline
+  head script (avoids a flash) before `theme.js` (a module, so
+  deferred) wires the switch itself. `tokens.css` defines dark tokens
+  twice — once under `@media (prefers-color-scheme: dark)` guarded by
+  `:root:not([data-theme="light"])`, once under `:root[data-theme="dark"]`
+  — so an explicit choice always wins over the OS setting.
 
-**Data storage** (`js/storage/`): the standing decision (confirmed with
-the user 2026-09-20) is the **File System Access API** — the user picks
-a folder once via `showDirectoryPicker`, and the app reads/writes an
-Excel workbook in it directly. Pure client-side, no backend, consistent
-with the no-build-step static site. Trade-off accepted: Chromium only
-(Chrome/Edge/Opera) — no Firefox/Safari; `index.html` and every area
-page show an explicit unsupported-browser notice via
-`isFileSystemAccessSupported()` rather than failing silently.
-- `idb-kv.js`: tiny IndexedDB key/value wrapper, used only to persist
-  the chosen `FileSystemDirectoryHandle` across sessions (handles are
+**Data storage** (`js/storage/`): **File System Access API** — the user
+picks a folder once via `showDirectoryPicker`, the app reads/writes a
+real `risk-register.xlsx` workbook in it directly via vendored
+[SheetJS](https://sheetjs.com) (`js/vendor/xlsx.full.min.js`,
+MIT-licensed, loaded as a plain global-exposing `<script>`, not a CDN
+dependency). Pure client-side, no backend. Trade-off accepted: Chromium
+only (Chrome/Edge/Opera) — no Firefox/Safari; every page shows an
+explicit unsupported-browser notice via `isFileSystemAccessSupported()`
+rather than failing silently.
+- `idb-kv.js`: tiny IndexedDB key/value wrapper, used to persist the
+  chosen `FileSystemDirectoryHandle` across sessions (handles are
   structured-cloneable in Chromium).
 - `folder-connection.js`: connect/reconnect/disconnect flow and
-  connection state (`checking` / `unsupported` / `disconnected` /
-  `reconnect` / `connected` / `error`), exposed via
-  `onConnectionChange(listener)`. `reconnect` exists because the
-  browser requires a fresh user gesture to re-grant permission each
-  session even when the folder handle itself is remembered.
-- `js/shell.js` wires this state to the DOM via data attributes any
-  page can use: `[data-connection-pill]`/`[data-connection-label]`
-  (status pill), `[data-connection-action]`/`[data-connection-disconnect]`
-  (buttons — supports multiple per page), `[data-requires-connection]`/
-  `[data-requires-no-connection]` (conditionally shown sections),
-  `[data-unsupported-notice]`.
-- **Not yet built**: actual `.xlsx` reading/writing. That needs a
-  vendored copy of [SheetJS](https://sheetjs.com) (MIT-licensed, kept
-  as a local file — no CDN dependency) plus the risk-record schema
-  below, planned for the PR that builds Configuration (simplest CRUD:
-  named lists) ahead of Working Space.
+  connection state (`checking`/`unsupported`/`disconnected`/
+  `reconnect`/`connected`/`error`), exposed via `onConnectionChange`.
+  `reconnect` exists because the browser requires a fresh user gesture
+  to re-grant permission each session even when the handle is remembered.
+- `workbook.js`: the `.xlsx` schema and pure logic — sheet layout
+  (`RBS`, `ImpactAreas`, `Owners`, `RiskRegister`, `Actions`),
+  `loadWorkbook`/`saveWorkbook` (via `window.XLSX`), `configTemplate()`,
+  `riskRecordTemplates()` (the 2 generic examples), distribution
+  validation (`validateDistribution`) and EMV math (`calculateAssessment`).
+  All pure/testable — no DOM, no File System Access calls.
+- `register-store.js`: in-memory register state backed by the workbook.
+  Loads on `folder-connection` reaching `connected`, re-saves the whole
+  workbook on every mutation (registers are small — whole-file rewrites
+  are simpler than incremental sheet patching). Converts between the
+  flat xlsx row shape and the nested `{pre:{...}, post:{...}, actions:[]}`
+  shape pages work with. Exposes `getRegisterState`/`onRegisterChange`
+  plus mutators (`applyConfigTemplate`, `rbsList`/`impactAreaList`/
+  `ownerList` add/remove, `saveRiskRecord`, `deleteRiskRecord`,
+  `loadRiskRecordTemplate`).
+- `js/shell.js` wires connection state to the DOM via data attributes:
+  `[data-connection-pill]`/`[data-connection-label]` (status pill),
+  `[data-connection-action]`/`[data-connection-disconnect]` (buttons —
+  supports multiple per page), `[data-requires-connection]`/
+  `[data-requires-no-connection]`, `[data-unsupported-notice]`.
+- `js/setup-sequence.js` renders the 4-step stepper into any
+  `[data-setup-sequence]` container and gates content via
+  `[data-requires-step="N"]` (shown once step N is done) /
+  `[data-step-locked-notice="N"]` (shown while locked, names the actual
+  missing prerequisite and links to it) — see "Setup sequence" below.
 
-**Domain model** (per the spec gathered 2026-09-20, not yet
-implemented): one Excel workbook per **Project**, each with its own
-Risk Breakdown Structure (RBS). A risk record carries owner, cause,
-description, effects, impact area, RBS category, and pre/post-mitigation
-likelihood & impact assessments. Each assessment is 3 input cells
-validated into exactly one of:
+**Domain model**: currently a single workbook (one active project) in
+the connected folder — no multi-project switcher yet, despite RBS being
+conceptually "per project"; add that if/when it's actually needed. A
+risk record: Risk Title, Risk Type (Threat/Opportunity), Record Type
+(Pooled/High Impact/Benchmark — fixed enum, not configurable, unlike
+RBS/Impact Areas/Owners), Description, Cause, Effect, Risk Owner,
+Impact Area, RBS Category, and **pre- and post-mitigation** assessments
+across **4 dimensions**: Likelihood (probability, 0–1), Cost Impact
+(currency), Knock On (currency), Schedule Impact (days). Each dimension
+is 3 input cells validated into exactly one of:
 - **Single point** — Most Likely (ML) only.
-- **Uniform** — Min and Max, with Max > Min.
-- **Triangular** — Min, ML, Max, strictly increasing.
-EMV is (re)calculated from the assessment on every change, pre- and
-post-mitigation. Response plans (mitigating/contingency actions) carry
-cost, action owner and due date. Reporting ranks records by EMV, max
-cost impact, schedule exposure, and max schedule impact (top-N,
-configurable N).
+- **Uniform** — Min and Max only, with Max > Min.
+- **Triangular** — Min, ML, Max, strictly increasing (min < ml < max).
+Pre-mitigation Likelihood/Cost Impact/Schedule Impact are required;
+Knock On and every post-mitigation dimension are optional.
 
-**Build sequencing** (small reviewable PRs per the workflow convention
-below): 1) shell + design system + folder connection (done); 2)
-Configuration CRUD (RBS, impact areas, owners) + SheetJS wiring; 3)
-Working Space (risk record form, assessment validation, EMV, response
-plans); 4) Reporting (list + top-N ranking).
+**Knock On + EMV — documented assumption** (2026-09-20, not explicitly
+specified by the user, follow up if it's wrong): Knock On is treated as
+an *indirect/downstream* cost impact, distinct from the direct Cost
+Impact — the "knock-on cost" convention from Primavera Risk Analysis
+(the user's own visual/domain reference). So, per assessment phase:
+`EMV = Likelihood_EV x (CostImpact_EV + KnockOn_EV)`,
+`MaxCostImpact = CostImpact_max + KnockOn_max`,
+`ScheduleExposure = Likelihood_EV x ScheduleImpact_EV`,
+`ScheduleMaxImpact = ScheduleImpact_max`.
+`_EV` = the distribution's expected value (ML for single point,
+(min+max)/2 for uniform, (min+ml+max)/3 for triangular) — see
+`calculateAssessment()` in `workbook.js`. These four are exactly the
+Reporting ranking factors from the original spec.
+
+Response actions (0+ per risk record, `Actions` sheet, FK `riskId`):
+Action Title, Action Owner, Strategy, Due Date, Cost. Strategy options
+depend on the parent record's Risk Type: Threat →
+Eliminate/Mitigate/Transfer/Monitor-Accept; Opportunity →
+Exploit/Enhance/Share/Monitor-Accept (`STRATEGIES` in
+`js/pages/risk-register.js`).
+
+**Setup sequence**: 1) select folder, 2) create config file (RBS/Impact
+Areas/Owners — "done" once any of the three has at least one entry,
+whether hand-added or from the template), 3) create risk record (at
+least one row in `RiskRegister`), 4) run modelling (not build-able yet
+— no modelling engine exists, so this step can never complete; the
+gating logic for it is in place and correct, it's just permanently
+"locked" until that engine ships). Each step's UI is gated behind the
+previous one via `[data-requires-step]`/`[data-step-locked-notice]`
+(see `setup-sequence.js` above) — never silently hidden without
+explanation.
+
+**Testing note**: the whole connected-state flow (Configuration CRUD,
+Risk Register save/edit/delete, EMV) was verified end-to-end in-browser
+using a hand-rolled fake `FileSystemDirectoryHandle` (methods on a
+class prototype so `structuredClone`/IndexedDB can clone the instance
+without hitting a `DataCloneError` on its own functions) that
+`window.showDirectoryPicker` was monkey-patched to return — real
+OS-level folder-picker UI can't be driven by browser automation. This
+caught two real bugs: the `[hidden]`/`display:flex` CSS specificity
+issue (see above) and a form-error box queried with
+`form.querySelector` when it was actually a DOM sibling of `<form>`,
+not a child (fixed to `document.querySelector`). Worth reusing this
+mock approach for any future change to the storage layer.
+
+**Build sequencing**: 1) shell + design system + folder connection
+(done); 2) Configuration CRUD + SheetJS wiring (done); 3) Risk Register
+form + validation + EMV + response actions (done); 4) dark mode + setup
+sequence + Modelling tab scaffold (done); 5) Modelling engine — not
+started; 6) Reporting (list + top-N ranking) — not started.
 
 ## Local dev server
 

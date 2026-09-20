@@ -248,6 +248,204 @@
   color: inherit;
 }
 
+/* Setup sequence stepper */
+.setup-sequence {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+}
+
+.setup-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+}
+
+.setup-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 5px 14px 5px 5px;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.setup-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  background: var(--color-border-strong);
+  color: var(--color-surface);
+  flex: none;
+}
+
+.setup-step[data-state="done"] .setup-step-index {
+  background: var(--color-risk-low);
+  color: #fff;
+}
+
+.setup-step[data-state="current"] {
+  background: var(--color-accent-bg);
+}
+
+.setup-step[data-state="current"] .setup-step-index {
+  background: var(--color-accent);
+  color: #2a1e05;
+}
+
+.setup-step[data-state="locked"] {
+  opacity: 0.6;
+}
+
+.setup-step[data-state="locked"] .setup-step-label {
+  color: var(--color-text-muted);
+}
+
+.setup-step-label {
+  color: var(--color-text);
+}
+
+.setup-step-label:hover {
+  text-decoration: underline;
+}
+
+/* Named lists (Configuration: RBS, impact areas, owners) */
+.named-list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.named-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  font-size: 0.86rem;
+}
+
+.named-list-empty {
+  color: var(--color-text-subtle);
+  font-size: 0.82rem;
+  padding: 6px 10px;
+}
+
+.named-list-form {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.named-list-form input {
+  flex: 1;
+}
+
+/* Risk record form */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.dist-group {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  background: var(--color-surface);
+}
+
+.dist-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.dist-group-header h4 {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.dist-group-unit {
+  font-size: 0.72rem;
+  color: var(--color-text-subtle);
+}
+
+.dist-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.dist-inputs label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dist-feedback {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  min-height: 1.1em;
+}
+
+.dist-feedback[data-valid="true"] {
+  color: var(--color-risk-low);
+}
+
+.dist-feedback[data-valid="false"] {
+  color: var(--color-risk-high);
+}
+
+.assessment-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 2fr 1.4fr 1.4fr 1fr 1fr auto;
+  gap: var(--space-2);
+  align-items: end;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.action-row:last-of-type {
+  border-bottom: none;
+}
+
+.action-row label {
+  font-size: 0.68rem;
+}
+
+@media (max-width: 760px) {
+  .action-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Forms (foundation for later areas) */
 label {
   display: block;

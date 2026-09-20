@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Working Space — Risk and Contingency</title>
-  <meta name="description" content="Create and manage project risk records under the Risk Breakdown Structure.">
-  <link rel="canonical" href="https://riskandcontingency.com/working-space.html">
+  <title>Modelling — Risk and Contingency</title>
+  <meta name="description" content="Run the risk model across the risk register.">
+  <link rel="canonical" href="https://riskandcontingency.com/modelling.html">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/shell.css">
 </head>
-<body data-page="working-space">
+<body data-page="modelling">
   <header class="app-header">
     <div class="app-header-inner">
       <a class="app-brand" href="/index.html">
@@ -21,7 +22,8 @@
       <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
       <nav class="app-nav" aria-label="Primary">
         <a href="/index.html" data-nav="home">Home</a>
-        <a href="/working-space.html" data-nav="working-space">Working Space</a>
+        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling">Modelling</a>
         <a href="/reporting.html" data-nav="reporting">Reporting</a>
         <a href="/configuration.html" data-nav="configuration">Configuration</a>
       </nav>
@@ -32,15 +34,22 @@
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
         <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode">
+          <input type="checkbox" data-theme-toggle class="visually-hidden">
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+          <span class="visually-hidden">Toggle dark mode</span>
+        </label>
       </div>
     </div>
   </header>
 
   <main class="app-main">
     <div class="page-header">
-      <span class="eyebrow">Working Space</span>
-      <h1>Risk records &amp; Risk Breakdown Structure</h1>
-      <p>Create risk records under your project's Risk Breakdown Structure — owner, cause, description and effects, pre/post‑mitigation likelihood and impact assessments, and response plans with EMV calculated automatically.</p>
+      <span class="eyebrow">Modelling</span>
+      <h1>Run the risk model</h1>
+      <p>Step 4 of the setup sequence — roll up EMV and exposure across the risk register once your records are in place.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
@@ -48,15 +57,24 @@
       <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
+    <section style="margin-bottom: var(--space-6);" data-setup-sequence></section>
+
     <div class="empty-state" data-requires-no-connection>
       <h3>Connect a folder to get started</h3>
-      <p>Risk record creation reads and writes to the Excel workbook in your connected folder.</p>
+      <p>Modelling runs against the Excel workbook in your connected folder.</p>
       <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
     </div>
 
-    <div class="empty-state" data-requires-connection hidden>
-      <h3>Risk record management is coming in the next update</h3>
-      <p>Your folder is connected. Risk record creation, RBS assignment, pre/post‑mitigation assessments and response planning will appear here next.</p>
+    <div data-requires-connection hidden>
+      <div class="notice notice-warning" data-step-locked-notice="3" hidden style="margin-bottom: var(--space-5);">
+        <span aria-hidden="true">&#9888;&#65039;</span>
+        <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before running the model. <a data-missing-step-link href="#">Go there &rarr;</a></p>
+      </div>
+
+      <div class="empty-state" data-requires-step="3" hidden>
+        <h3>Modelling is coming in a future update</h3>
+        <p>Your risk register has records ready. The modelling run itself — rolling up EMV and exposure across the register — hasn't been built yet.</p>
+      </div>
     </div>
   </main>
 
@@ -64,6 +82,9 @@
     Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
   </footer>
 
+  <script src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/setup-sequence.js"></script>
 </body>
 </html>
