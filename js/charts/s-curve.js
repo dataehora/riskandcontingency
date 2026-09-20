@@ -61,7 +61,7 @@ export function renderSCurve(container, sorted, summary, options = {}) {
     : "";
 
   container.innerHTML = `
-    <svg viewBox="0 0 ${width} ${height}" width="100%" height="auto" role="img" aria-label="Cumulative probability curve" data-sc-svg>
+    <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;" role="img" aria-label="Cumulative probability curve" data-sc-svg>
       ${yGridlines}
       <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
       <line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />

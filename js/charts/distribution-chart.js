@@ -107,7 +107,7 @@ export function renderDistributionChart(container, series) {
 
   container.innerHTML = `
     ${legendSvg}
-    <svg viewBox="0 0 ${width} ${height}" width="100%" height="auto" role="img" aria-label="Histogram and fitted normal distribution of simulated Total Cost">
+    <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;" role="img" aria-label="Histogram and fitted normal distribution of simulated Total Cost">
       ${yGridlines}
       <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
       <line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />

@@ -248,6 +248,30 @@
   color: inherit;
 }
 
+/* Update-available banner (js/version-check.js) */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-md);
+  font-size: 0.86rem;
+  max-width: calc(100vw - 32px);
+}
+
+.update-banner .btn-ghost {
+  color: var(--color-text-on-primary);
+}
+
 /* Setup sequence stepper */
 .setup-sequence {
   background: var(--color-surface);
