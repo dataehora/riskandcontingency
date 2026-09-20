@@ -33,6 +33,7 @@ js/storage/                       File System Access folder connection, .xlsx re
 js/charts/s-curve.js              Shared S-curve chart (used by Modelling + Contingency)
 js/pages/                         Per-page UI logic (configuration, risk-register, modelling, contingency)
 js/vendor/                        Vendored SheetJS (xlsx.full.min.js), no CDN dependency
+PROGRESS.md                       Session-by-session status log (what's built, what's next)
 CNAME, robots.txt, sitemap.xml    Crawl metadata (CNAME is a leftover
                                    from an earlier GitHub Pages setup;
                                    hosting is now Cloudflare Pages, whose
