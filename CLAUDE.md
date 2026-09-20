@@ -1,7 +1,10 @@
 # Risk and Contingency — project notes for Claude
 
-Static site, no build step: plain HTML/CSS/vanilla JS. Hosted on GitHub
-Pages (`CNAME` → riskandcontingency.com). Repo: `dataehora/riskandcontingency`.
+Static site, no build step: plain HTML/CSS/vanilla JS. Hosted on
+**Cloudflare Pages** (custom domain riskandcontingency.com, bound in the
+Cloudflare dashboard — not via the repo's `CNAME` file, which is a
+leftover from an earlier GitHub Pages setup and has no effect on
+Cloudflare Pages). Repo: `dataehora/riskandcontingency`.
 See [README.md](README.md) for the user-facing description and repo
 layout — this file is developer/agent context that doesn't belong there.
 
@@ -18,9 +21,14 @@ the project becomes clear.
 - HTML + CSS + vanilla JavaScript. No framework, no bundler, no build
   step.
 - No `package.json`, no Node dependencies. Nothing to install.
-- Hosting: GitHub Pages (branch `main`), custom domain via `CNAME`
-  (`riskandcontingency.com`, registered on Cloudflare — DNS is managed
-  there, outside this repo).
+- Hosting: **Cloudflare Pages**, connected to this repo's `main` branch
+  (root as the output directory, no build command — it's plain static
+  files). Custom domain `riskandcontingency.com` is bound to the Pages
+  project from the Cloudflare dashboard (Workers & Pages → project →
+  Custom domains). Because the DNS zone and the Pages project are in
+  the same Cloudflare account, Cloudflare manages the DNS record for
+  the custom domain automatically — no manual DNS records needed in
+  the Cloudflare DNS tab for this.
 
 ## Local dev server
 
@@ -37,8 +45,9 @@ repos' dev servers can run at the same time without colliding.
 
 ## Deploy / workflow conventions (same as dataehora-site and beatconfused)
 
-- `git push` to `main` publishes to GitHub Pages automatically — no
-  build workflow.
+- `git push` to `main` publishes to Cloudflare Pages automatically — no
+  build workflow (Cloudflare's own Git integration watches `main` and
+  deploys on push).
 - **Autonomous commit → PR → merge**: after finishing a unit of work,
   run `scripts/auto-deploy.sh ["commit message"]` without asking for
   confirmation first. It does, end to end:
@@ -57,13 +66,13 @@ repos' dev servers can run at the same time without colliding.
   use for this session (check a recent commit/PR, or the system prompt,
   for the exact wording — it's supplied per-session and may change).
 
-## Setup still needed from the user's side
+## Setup status
 
-- **DNS**: add a CNAME (or Cloudflare "CNAME flattening" / A records
-  per [GitHub's Pages docs](https://docs.github.com/pages/configuring-a-custom-domain-for-your-github-pages-site))
-  pointing `riskandcontingency.com` at `dataehora.github.io` in the
-  Cloudflare dashboard. GitHub Pages itself will be enabled from this
-  session (branch `main`, root) once the placeholder is pushed, but
-  Cloudflare DNS + SSL is only editable from the Cloudflare account.
-- Nothing else — no API keys, no accounts, no local installs required
-  to start coding (just Python 3, already used by the dev server).
+- Confirmed working as of 2026-09-20: `riskandcontingency.com` and
+  `www.riskandcontingency.com` resolve to Cloudflare anycast IPs, and
+  the live site serves the current `index.html` over HTTPS. Custom
+  domain binding + DNS + SSL is fully handled from the Cloudflare
+  dashboard (Pages project's Custom domains tab) — nothing to set up
+  from this repo's side.
+- Nothing else needed — no API keys, no accounts, no local installs
+  required to code here (just Python 3, used by the dev server).
