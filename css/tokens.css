@@ -52,8 +52,12 @@
   --content-max-width: 1280px;
 }
 
+/* Dark tokens apply when the OS prefers dark AND the user hasn't
+   explicitly chosen light (data-theme="light"), or when the user has
+   explicitly chosen dark (data-theme="dark") regardless of OS
+   preference. See js/theme.js for the toggle that sets data-theme. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --color-bg: #10161f;
     --color-surface: #161e29;
     --color-surface-alt: #1c2530;
@@ -81,4 +85,33 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
     --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.45);
   }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #10161f;
+  --color-surface: #161e29;
+  --color-surface-alt: #1c2530;
+  --color-border: #2a3441;
+  --color-border-strong: #3c4756;
+  --color-text: #e6e9ed;
+  --color-text-muted: #a7b0bc;
+  --color-text-subtle: #7a8492;
+  --color-text-on-primary: #f4f6f8;
+
+  --color-primary: #1f4266;
+  --color-primary-hover: #2b5680;
+  --color-primary-alt: #2b5680;
+  --color-accent: #d9a94a;
+  --color-accent-hover: #e6bb63;
+  --color-accent-bg: rgba(217, 169, 74, 0.14);
+
+  --color-risk-low: #4caf7d;
+  --color-risk-low-bg: rgba(46, 125, 79, 0.18);
+  --color-risk-medium: #d9a94a;
+  --color-risk-medium-bg: rgba(165, 118, 10, 0.2);
+  --color-risk-high: #e2695c;
+  --color-risk-high-bg: rgba(179, 55, 44, 0.2);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 2px 12px rgba(0, 0, 0, 0.45);
 }

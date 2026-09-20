@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Configuration — Risk and Contingency</title>
   <meta name="description" content="Set up the Risk Breakdown Structure, impact areas and risk owners per project.">
@@ -21,7 +22,8 @@
       <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
       <nav class="app-nav" aria-label="Primary">
         <a href="/index.html" data-nav="home">Home</a>
-        <a href="/working-space.html" data-nav="working-space">Working Space</a>
+        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling">Modelling</a>
         <a href="/reporting.html" data-nav="reporting">Reporting</a>
         <a href="/configuration.html" data-nav="configuration">Configuration</a>
       </nav>
@@ -32,6 +34,13 @@
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
         <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode">
+          <input type="checkbox" data-theme-toggle class="visually-hidden">
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+          <span class="visually-hidden">Toggle dark mode</span>
+        </label>
       </div>
     </div>
   </header>
@@ -40,7 +49,7 @@
     <div class="page-header">
       <span class="eyebrow">Configuration &amp; Data Management</span>
       <h1>Projects &amp; reference data</h1>
-      <p>Set up the Risk Breakdown Structure per project, impact areas, and the list of risk owners used across the Working Space.</p>
+      <p>Set up the Risk Breakdown Structure, impact areas, and the list of risk owners used across the Risk Register. This is step 2 of the setup sequence — it needs a connected folder first.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
@@ -48,15 +57,55 @@
       <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
+    <section style="margin-bottom: var(--space-6);" data-setup-sequence></section>
+
     <div class="empty-state" data-requires-no-connection>
       <h3>Connect a folder to get started</h3>
-      <p>Project setup is stored in the Excel workbook in your connected folder.</p>
+      <p>Configuration is stored in the Excel workbook in your connected folder.</p>
       <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
     </div>
 
-    <div class="empty-state" data-requires-connection hidden>
-      <h3>Project setup is coming in the next update</h3>
-      <p>Your folder is connected. Risk Breakdown Structure, impact area and risk owner setup will appear here next.</p>
+    <div data-requires-connection hidden>
+      <div class="empty-state" data-config-empty-state hidden>
+        <h3>No configuration yet</h3>
+        <p>Start from a template with common Risk Breakdown Structure categories, impact areas and generic owners — everything is editable afterwards.</p>
+        <button class="btn btn-primary" type="button" data-load-config-template>Load starter template</button>
+      </div>
+
+      <div data-config-content hidden>
+        <div class="card-grid">
+          <section class="card">
+            <h3>Risk Breakdown Structure</h3>
+            <p>Categories used to classify risk records.</p>
+            <ul class="named-list" data-list="rbs"></ul>
+            <form class="named-list-form" data-add-form="rbs">
+              <label class="visually-hidden" for="rbs-name">RBS category name</label>
+              <input id="rbs-name" type="text" name="name" placeholder="e.g. Design" required>
+              <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+            </form>
+          </section>
+          <section class="card">
+            <h3>Impact Areas</h3>
+            <p>CAPEX, OPEX and Revenue by default — edit as needed.</p>
+            <ul class="named-list" data-list="impactAreas"></ul>
+            <form class="named-list-form" data-add-form="impactAreas">
+              <label class="visually-hidden" for="impact-area-name">Impact area name</label>
+              <input id="impact-area-name" type="text" name="name" placeholder="e.g. CAPEX" required>
+              <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+            </form>
+          </section>
+          <section class="card">
+            <h3>Risk Owners</h3>
+            <p>People or roles who can be assigned as a risk owner.</p>
+            <ul class="named-list" data-list="owners"></ul>
+            <form class="named-list-form" data-add-form="owners">
+              <label class="visually-hidden" for="owner-name">Owner name</label>
+              <input id="owner-name" type="text" name="name" placeholder="e.g. Project Manager" required>
+              <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+            </form>
+          </section>
+        </div>
+      </div>
     </div>
   </main>
 
@@ -64,6 +113,10 @@
     Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
   </footer>
 
+  <script src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/setup-sequence.js"></script>
+  <script type="module" src="/js/pages/configuration.js"></script>
 </body>
 </html>

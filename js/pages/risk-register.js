@@ -1,0 +1,411 @@
+import {
+  getRegisterState,
+  onRegisterChange,
+  saveRiskRecord,
+  deleteRiskRecord,
+  loadRiskRecordTemplate,
+  blankRiskRecord,
+  createLocalAction,
+  validateDistribution,
+  calculateAssessment,
+  DIMENSIONS,
+} from "../storage/register-store.js";
+
+const DIMENSION_LABELS = {
+  likelihood: "Likelihood",
+  costImpact: "Cost Impact",
+  knockOn: "Knock On",
+  scheduleImpact: "Schedule Impact",
+};
+const DIMENSION_UNITS = {
+  likelihood: "probability, 0–1",
+  costImpact: "currency",
+  knockOn: "currency, indirect/downstream cost",
+  scheduleImpact: "days",
+};
+// Required in Pre-mitigation: a risk isn't really assessed without these.
+// Knock On and every Post-mitigation group are optional (a new risk may
+// not have mitigation assessed yet, or no knock-on effect at all).
+const REQUIRED_GROUPS = new Set(["pre:likelihood", "pre:costImpact", "pre:scheduleImpact"]);
+
+const STRATEGIES = {
+  Threat: ["Eliminate", "Mitigate", "Transfer", "Monitor/Accept"],
+  Opportunity: ["Exploit", "Enhance", "Share", "Monitor/Accept"],
+};
+
+let draft = null;
+let currentState = getRegisterState();
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+function fmtNumber(n) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function els() {
+  return {
+    listView: document.querySelector('[data-view="list"]'),
+    formView: document.querySelector('[data-view="form"]'),
+    recordsBody: document.querySelector("[data-records-body]"),
+    recordsTable: document.querySelector("[data-records-table]"),
+    recordsEmpty: document.querySelector("[data-records-empty]"),
+    form: document.querySelector("[data-record-form]"),
+    assessmentSections: document.querySelector("[data-assessment-sections]"),
+    actionsList: document.querySelector("[data-actions-list]"),
+  };
+}
+
+// --- List view ----------------------------------------------------------
+function renderList() {
+  const { recordsBody, recordsTable, recordsEmpty } = els();
+  if (!recordsBody) return;
+  const records = currentState.riskRecords;
+
+  if (recordsEmpty) recordsEmpty.hidden = records.length > 0;
+  if (recordsTable) recordsTable.hidden = records.length === 0;
+
+  recordsBody.innerHTML = records
+    .map(
+      (r) => `
+    <tr>
+      <td>${escapeHtml(r.id)}</td>
+      <td>${escapeHtml(r.title)}</td>
+      <td><span class="badge ${r.riskType === "Threat" ? "badge-high" : "badge-low"}">${r.riskType}</span></td>
+      <td>${escapeHtml(r.recordType)}</td>
+      <td>${escapeHtml(r.owner)}</td>
+      <td>${escapeHtml(r.impactArea)}</td>
+      <td>${fmtNumber(r.computed?.pre?.emv)}</td>
+      <td>${fmtNumber(r.computed?.post?.emv)}</td>
+      <td style="white-space:nowrap;">
+        <button type="button" class="btn btn-ghost btn-sm" data-edit-record="${r.id}">Edit</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${r.id}">Delete</button>
+      </td>
+    </tr>
+  `
+    )
+    .join("");
+}
+
+// --- Options for selects --------------------------------------------------
+// `value` is the value the select should end up showing. If it doesn't
+// match any configured item (e.g. a record's owner was later removed from
+// the Owners list, or a loaded template references a name not yet in the
+// config), it's still added as an extra option — never silently dropped,
+// since that would look like the data itself was lost.
+function populateOptions(select, items, placeholder, value) {
+  const options = items.map((i) => i.name);
+  if (value && !options.includes(value)) options.push(value);
+  select.innerHTML =
+    `<option value="">${placeholder}</option>` +
+    options.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
+  select.value = value ?? "";
+}
+
+// --- Assessment (distribution) groups -------------------------------------
+function distGroupHtml(phase, dim) {
+  const key = `${phase}:${dim}`;
+  const required = REQUIRED_GROUPS.has(key);
+  return `
+    <div class="dist-group" data-phase="${phase}" data-dim="${dim}">
+      <div class="dist-group-header">
+        <h4>${DIMENSION_LABELS[dim]}${required ? " *" : ""}</h4>
+        <span class="dist-group-unit">${DIMENSION_UNITS[dim]}</span>
+      </div>
+      <div class="dist-inputs">
+        <label>Min<input type="number" step="any" data-cell="min"></label>
+        <label>Most Likely<input type="number" step="any" data-cell="ml"></label>
+        <label>Max<input type="number" step="any" data-cell="max"></label>
+      </div>
+      <div class="dist-feedback" data-feedback></div>
+    </div>
+  `;
+}
+
+function assessmentSectionHtml(phase) {
+  const title = phase === "pre" ? "Pre-mitigation assessment" : "Post-mitigation assessment";
+  const hint =
+    phase === "pre"
+      ? "Enter Most Likely only for a single point, Min &amp; Max only for a uniform range, or Min, Most Likely &amp; Max for a triangular range."
+      : "Optional — leave blank until a response has been assessed.";
+  return `
+    <div class="card" style="margin-bottom: var(--space-5);" data-assessment-phase="${phase}">
+      <h3>${title}</h3>
+      <p>${hint}</p>
+      ${DIMENSIONS.map((dim) => distGroupHtml(phase, dim)).join("")}
+      <div class="assessment-summary">
+        <div class="stat-tile">
+          <div class="stat-label">EMV</div>
+          <div class="stat-value" data-summary="emv">—</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Max Cost Impact</div>
+          <div class="stat-value" data-summary="maxCostImpact">—</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Schedule Exposure</div>
+          <div class="stat-value" data-summary="scheduleExposure">—</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-label">Schedule Max Impact</div>
+          <div class="stat-value" data-summary="scheduleMaxImpact">—</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function readCell(input) {
+  const v = input.value.trim();
+  return v === "" ? null : Number(v);
+}
+
+function updateDistGroup(groupEl) {
+  const phase = groupEl.dataset.phase;
+  const dim = groupEl.dataset.dim;
+  const min = readCell(groupEl.querySelector('[data-cell="min"]'));
+  const ml = readCell(groupEl.querySelector('[data-cell="ml"]'));
+  const max = readCell(groupEl.querySelector('[data-cell="max"]'));
+  const result = validateDistribution({ min, ml, max });
+  const key = `${phase}:${dim}`;
+  const required = REQUIRED_GROUPS.has(key);
+
+  draft[phase][dim] = { min, ml, max, type: result.valid ? result.type : null };
+
+  const feedback = groupEl.querySelector("[data-feedback]");
+  if (result.empty) {
+    feedback.textContent = required ? "Required." : "";
+    feedback.removeAttribute("data-valid");
+  } else if (result.valid) {
+    const label = { "single-point": "Single point", uniform: "Uniform", triangular: "Triangular" }[result.type];
+    feedback.textContent = label;
+    feedback.dataset.valid = "true";
+  } else {
+    feedback.textContent = result.message;
+    feedback.dataset.valid = "false";
+  }
+
+  updateSummary(phase);
+}
+
+function updateSummary(phase) {
+  const section = document.querySelector(`[data-assessment-phase="${phase}"]`);
+  if (!section) return;
+  const computed = calculateAssessment(draft[phase]);
+  section.querySelector('[data-summary="emv"]').textContent = fmtNumber(computed.emv);
+  section.querySelector('[data-summary="maxCostImpact"]').textContent = fmtNumber(computed.maxCostImpact);
+  section.querySelector('[data-summary="scheduleExposure"]').textContent = fmtNumber(computed.scheduleExposure);
+  section.querySelector('[data-summary="scheduleMaxImpact"]').textContent = fmtNumber(computed.scheduleMaxImpact);
+}
+
+function fillDistGroup(groupEl, dist) {
+  groupEl.querySelector('[data-cell="min"]').value = dist?.min ?? "";
+  groupEl.querySelector('[data-cell="ml"]').value = dist?.ml ?? "";
+  groupEl.querySelector('[data-cell="max"]').value = dist?.max ?? "";
+  updateDistGroup(groupEl);
+}
+
+// --- Response actions ------------------------------------------------
+function actionRowHtml(action) {
+  const strategies = STRATEGIES[draft.riskType] ?? STRATEGIES.Threat;
+  return `
+    <div class="action-row" data-action-id="${action.id}">
+      <div><label>Action Title</label><input type="text" data-action-field="title" value="${escapeHtml(action.title)}"></div>
+      <div><label>Action Owner</label>
+        <select data-action-field="owner" data-options="owners"></select>
+      </div>
+      <div><label>Strategy</label>
+        <select data-action-field="strategy">
+          <option value="">Select…</option>
+          ${strategies.map((s) => `<option value="${s}" ${action.strategy === s ? "selected" : ""}>${s}</option>`).join("")}
+        </select>
+      </div>
+      <div><label>Due Date</label><input type="date" data-action-field="dueDate" value="${escapeHtml(action.dueDate)}"></div>
+      <div><label>Cost</label><input type="number" step="any" data-action-field="cost" value="${action.cost ?? 0}"></div>
+      <div><button type="button" class="btn btn-ghost btn-sm" data-remove-action="${action.id}">Remove</button></div>
+    </div>
+  `;
+}
+
+function renderActions() {
+  const { actionsList } = els();
+  if (!actionsList) return;
+  actionsList.innerHTML = draft.actions.length
+    ? draft.actions.map(actionRowHtml).join("")
+    : `<p style="color: var(--color-text-subtle); font-size: 0.85rem;">No response actions yet.</p>`;
+
+  actionsList.querySelectorAll("[data-action-field]").forEach((input) => {
+    const row = input.closest("[data-action-id]");
+    const id = row.dataset.actionId;
+    if (input.dataset.actionField === "owner") {
+      const action = draft.actions.find((a) => a.id === id);
+      populateOptions(input, currentState.owners, "Select owner…", action?.owner);
+    }
+    input.addEventListener("input", () => {
+      const action = draft.actions.find((a) => a.id === id);
+      if (!action) return;
+      const field = input.dataset.actionField;
+      action[field] = field === "cost" ? Number(input.value || 0) : input.value;
+    });
+  });
+
+  actionsList.querySelectorAll("[data-remove-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      draft.actions = draft.actions.filter((a) => a.id !== btn.dataset.removeAction);
+      renderActions();
+    });
+  });
+}
+
+// --- Form view ------------------------------------------------------
+function buildAssessmentSections() {
+  const { assessmentSections } = els();
+  assessmentSections.innerHTML = ["pre", "post"].map(assessmentSectionHtml).join("");
+  assessmentSections.querySelectorAll(".dist-group").forEach((groupEl) => {
+    groupEl.querySelectorAll("input").forEach((input) => {
+      input.addEventListener("input", () => updateDistGroup(groupEl));
+    });
+  });
+}
+
+function renderForm() {
+  const { form, formView, listView } = els();
+  listView.hidden = true;
+  formView.hidden = false;
+
+  form.querySelector('[data-field="title"]').value = draft.title;
+  form.querySelector('[data-field="riskType"]').value = draft.riskType;
+  form.querySelector('[data-field="recordType"]').value = draft.recordType;
+  form.querySelector('[data-field="description"]').value = draft.description;
+  form.querySelector('[data-field="cause"]').value = draft.cause;
+  form.querySelector('[data-field="effect"]').value = draft.effect;
+
+  populateOptions(form.querySelector('[data-field="owner"]'), currentState.owners, "Select owner…", draft.owner);
+  populateOptions(form.querySelector('[data-field="impactArea"]'), currentState.impactAreas, "Select impact area…", draft.impactArea);
+  populateOptions(form.querySelector('[data-field="rbsCategory"]'), currentState.rbs, "Select RBS category…", draft.rbsCategory);
+
+  buildAssessmentSections();
+  for (const phase of ["pre", "post"]) {
+    for (const dim of DIMENSIONS) {
+      const groupEl = document.querySelector(`.dist-group[data-phase="${phase}"][data-dim="${dim}"]`);
+      fillDistGroup(groupEl, draft[phase][dim]);
+    }
+  }
+
+  renderActions();
+}
+
+function showList() {
+  const { formView, listView } = els();
+  formView.hidden = true;
+  listView.hidden = false;
+  draft = null;
+  renderList();
+}
+
+function startNewRecord() {
+  draft = blankRiskRecord();
+  renderForm();
+}
+
+function startEditRecord(id) {
+  const record = currentState.riskRecords.find((r) => r.id === id);
+  if (!record) return;
+  draft = JSON.parse(JSON.stringify(record));
+  renderForm();
+}
+
+function formHasErrors() {
+  return !!document.querySelector('.dist-feedback[data-valid="false"]');
+}
+
+function requiredGroupsMissing() {
+  return [...REQUIRED_GROUPS].some((key) => {
+    const [phase, dim] = key.split(":");
+    const d = draft[phase][dim];
+    return d.ml === null && d.min === null && d.max === null;
+  });
+}
+
+async function submitForm(event) {
+  event.preventDefault();
+  const { form } = els();
+  draft.title = form.querySelector('[data-field="title"]').value.trim();
+  draft.riskType = form.querySelector('[data-field="riskType"]').value;
+  draft.recordType = form.querySelector('[data-field="recordType"]').value;
+  draft.description = form.querySelector('[data-field="description"]').value;
+  draft.cause = form.querySelector('[data-field="cause"]').value;
+  draft.effect = form.querySelector('[data-field="effect"]').value;
+  draft.owner = form.querySelector('[data-field="owner"]').value;
+  draft.impactArea = form.querySelector('[data-field="impactArea"]').value;
+  draft.rbsCategory = form.querySelector('[data-field="rbsCategory"]').value;
+
+  const errorBox = document.querySelector("[data-form-error]");
+  if (!draft.title) {
+    errorBox.textContent = "Risk Title is required.";
+    errorBox.hidden = false;
+    return;
+  }
+  if (requiredGroupsMissing()) {
+    errorBox.textContent =
+      "Pre-mitigation Likelihood, Cost Impact and Schedule Impact are required.";
+    errorBox.hidden = false;
+    return;
+  }
+  if (formHasErrors()) {
+    errorBox.textContent = "Fix the highlighted assessment fields before saving.";
+    errorBox.hidden = false;
+    return;
+  }
+  errorBox.hidden = true;
+
+  await saveRiskRecord(draft);
+  showList();
+}
+
+function wire() {
+  const { form } = els();
+  document.querySelector("[data-new-record]")?.addEventListener("click", startNewRecord);
+  document.querySelectorAll("[data-load-template]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await loadRiskRecordTemplate(Number(btn.dataset.loadTemplate));
+    });
+  });
+
+  document.querySelector("[data-records-body]")?.addEventListener("click", async (event) => {
+    const editBtn = event.target.closest("[data-edit-record]");
+    if (editBtn) return startEditRecord(editBtn.dataset.editRecord);
+    const delBtn = event.target.closest("[data-delete-record]");
+    if (delBtn) {
+      if (confirm("Delete this risk record? This cannot be undone.")) {
+        await deleteRiskRecord(delBtn.dataset.deleteRecord);
+      }
+    }
+  });
+
+  document.querySelectorAll("[data-cancel-form]").forEach((btn) =>
+    btn.addEventListener("click", showList)
+  );
+
+  document.querySelector("[data-add-action]")?.addEventListener("click", () => {
+    draft.actions.push(createLocalAction());
+    renderActions();
+  });
+
+  form?.addEventListener("submit", submitForm);
+
+  form?.querySelector('[data-field="riskType"]')?.addEventListener("change", (e) => {
+    draft.riskType = e.target.value;
+    renderActions();
+  });
+}
+
+onRegisterChange((state) => {
+  currentState = state;
+  if (!draft) renderList();
+});
+wire();
