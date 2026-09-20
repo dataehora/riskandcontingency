@@ -132,31 +132,56 @@ rather than failing silently.
 the connected folder — no multi-project switcher yet, despite RBS being
 conceptually "per project"; add that if/when it's actually needed. A
 risk record: Risk Title, Risk Type (Threat/Opportunity), Record Type
-(Pooled/High Impact/Benchmark — fixed enum, not configurable, unlike
-RBS/Impact Areas/Owners), Description, Cause, Effect, Risk Owner,
-Impact Area, RBS Category, and **pre- and post-mitigation** assessments
-across **4 dimensions**: Likelihood (probability, 0–1), Cost Impact
-(currency), Knock On (currency), Schedule Impact (days). Each dimension
-is 3 input cells validated into exactly one of:
-- **Single point** — Most Likely (ML) only.
-- **Uniform** — Min and Max only, with Max > Min.
-- **Triangular** — Min, ML, Max, strictly increasing (min < ml < max).
-Pre-mitigation Likelihood/Cost Impact/Schedule Impact are required;
-Knock On and every post-mitigation dimension are optional.
+(fixed enum in `RECORD_TYPES`, `workbook.js` — "Regular Pooled Record"
+[renamed from "Pooled" 2026-09-20] / High Impact / Benchmark — not
+configurable, unlike RBS/Impact Areas/Owners/QHSE Levels), Description,
+Cause, Effect, Risk Owner, Impact Area, RBS Category.
+
+**Pre- and post-mitigation assessment**, 6 groups in this order —
+Likelihood, Total Cost, Direct Cost, Knock On, Schedule, QHSE — and
+this UI grouping, not just a flat list (`js/pages/risk-register.js`):
+Likelihood on its own; Total Cost in its own accent-highlighted block
+since it's the only one EMV is calculated from; Direct Cost and Knock
+On indented inside that block (they're its components); Schedule and
+QHSE together in a separate grey box below, visually distinct because
+neither feeds EMV.
+- **Likelihood**: a %, 1–100 (changed from a 0–1 probability
+  2026-09-20) — `DIMENSION_BOUNDS` in `risk-register.js`, enforced by
+  `validateDistribution`'s optional `bounds` param in `workbook.js`.
+  Divided by 100 in `calculateAssessment` wherever it's used as a
+  probability weight.
+- **Direct Cost**, **Knock On** (currency), **Schedule** (days): each a
+  3-cell Min/ML/Max input validated into exactly one of:
+  - **Single point** — Most Likely (ML) only.
+  - **Uniform** — Min and Max only, with Max > Min.
+  - **Triangular** — Min, ML, Max, strictly increasing (min < ml < max).
+  Pre-mitigation Likelihood/Direct Cost/Schedule are required; Knock On
+  and every post-mitigation dimension are optional.
+- **Total Cost**: *not* a user input — computed live from Direct Cost +
+  Knock On (`totalCostRange()` in `workbook.js`), shown as read-only
+  Min/Expected/Max tiles plus the EMV.
+- **QHSE**: qualitative, a single select from the configurable
+  `qhseLevels` named list (Configuration page; same CRUD pattern as
+  RBS/Impact Areas/Owners), seeded from `QHSE_LEVEL_NAMES` — Negligible,
+  Minor, Medium, Major, Catastrophic. Stored as a plain string
+  (`pre_qhse`/`post_qhse` columns), no calculation feeds off it (yet).
 
 **Knock On + EMV — documented assumption** (2026-09-20, not explicitly
 specified by the user, follow up if it's wrong): Knock On is treated as
-an *indirect/downstream* cost impact, distinct from the direct Cost
-Impact — the "knock-on cost" convention from Primavera Risk Analysis
-(the user's own visual/domain reference). So, per assessment phase:
-`EMV = Likelihood_EV x (CostImpact_EV + KnockOn_EV)`,
-`MaxCostImpact = CostImpact_max + KnockOn_max`,
-`ScheduleExposure = Likelihood_EV x ScheduleImpact_EV`,
-`ScheduleMaxImpact = ScheduleImpact_max`.
+an *indirect/downstream* cost impact, distinct from Direct Cost — the
+"knock-on cost" convention from Primavera Risk Analysis (the user's own
+visual/domain reference). Per assessment phase, in `calculateAssessment()`:
+`EMV = (Likelihood/100) x (DirectCost_EV + KnockOn_EV)`,
+`MaxTotalCost = MaxDirectCost + MaxKnockOn`,
+`ScheduleExposure = (Likelihood/100) x Schedule_EV`,
+`MaxSchedule = Schedule_max`.
 `_EV` = the distribution's expected value (ML for single point,
-(min+max)/2 for uniform, (min+ml+max)/3 for triangular) — see
-`calculateAssessment()` in `workbook.js`. These four are exactly the
-Reporting ranking factors from the original spec.
+(min+max)/2 for uniform, (min+ml+max)/3 for triangular). `MaxDirectCost`/
+`MaxKnockOn`/`MaxTotalCost`/`MaxSchedule` are explicitly declared,
+computed fields on every assessment (per the user's request 2026-09-20
+that they not be implicit) — stored as their own xlsx columns
+(`{phase}_maxDirectCost` etc.) and available for Reporting/Contingency
+to read without recomputing.
 
 Response actions (0+ per risk record, `Actions` sheet, FK `riskId`):
 Action Title, Action Owner, Strategy, Due Date, Cost. Strategy options
@@ -192,8 +217,12 @@ mock approach for any future change to the storage layer.
 **Build sequencing**: 1) shell + design system + folder connection
 (done); 2) Configuration CRUD + SheetJS wiring (done); 3) Risk Register
 form + validation + EMV + response actions (done); 4) dark mode + setup
-sequence + Modelling tab scaffold (done); 5) Modelling engine — not
-started; 6) Reporting (list + top-N ranking) — not started.
+sequence + Modelling tab scaffold (done); 5) assessment model v2 —
+Likelihood as %, Total Cost/Direct Cost/Knock On grouping, QHSE,
+declared Max fields, layout (done, 2026-09-20); 6) Monte Carlo modelling
+engine — not started; 7) Risk Reporting (list + top-N ranking) — not
+started; 8) Contingency (available budget vs. Monte Carlo results) —
+not started.
 
 ## Local dev server
 

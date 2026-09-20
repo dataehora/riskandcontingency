@@ -121,11 +121,7 @@
                 </div>
                 <div>
                   <label for="f-recordType">Record Type</label>
-                  <select id="f-recordType" data-field="recordType">
-                    <option value="Pooled">Pooled</option>
-                    <option value="High Impact">High Impact</option>
-                    <option value="Benchmark">Benchmark</option>
-                  </select>
+                  <select id="f-recordType" data-field="recordType"></select>
                 </div>
                 <div>
                   <label for="f-owner">Risk Owner</label>
@@ -144,13 +140,15 @@
                 <label for="f-description">Description</label>
                 <textarea id="f-description" data-field="description" rows="2"></textarea>
               </div>
-              <div style="margin-top: var(--space-3);">
-                <label for="f-cause">Cause</label>
-                <textarea id="f-cause" data-field="cause" rows="2"></textarea>
-              </div>
-              <div style="margin-top: var(--space-3);">
-                <label for="f-effect">Effect</label>
-                <textarea id="f-effect" data-field="effect" rows="2"></textarea>
+              <div class="form-grid" style="margin-top: var(--space-3);">
+                <div>
+                  <label for="f-cause">Cause</label>
+                  <textarea id="f-cause" data-field="cause" rows="2"></textarea>
+                </div>
+                <div>
+                  <label for="f-effect">Effect</label>
+                  <textarea id="f-effect" data-field="effect" rows="2"></textarea>
+                </div>
               </div>
             </div>
 
