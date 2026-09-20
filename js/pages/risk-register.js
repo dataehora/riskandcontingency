@@ -417,9 +417,17 @@ async function submitForm(event) {
     errorBox.hidden = false;
     return;
   }
+  const saved = await saveRiskRecord(draft);
+  if (!saved) {
+    // Blocked by a conflict — the file changed on disk since this tab
+    // loaded it. Stay on the form (draft isn't lost) and point at the
+    // conflict banner rather than silently pretending it saved.
+    errorBox.textContent =
+      "This risk register changed elsewhere since you loaded it, so this save was blocked to avoid overwriting that change. Use the banner at the top of the page to reload the latest version, then re-enter this record.";
+    errorBox.hidden = false;
+    return;
+  }
   errorBox.hidden = true;
-
-  await saveRiskRecord(draft);
   showList();
 }
 

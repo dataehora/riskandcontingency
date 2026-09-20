@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About — Risk and Contingency</title>
+  <meta name="description" content="What Risk and Contingency is, and answers to common questions.">
+  <link rel="canonical" href="https://riskandcontingency.com/about.html">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/shell.css">
+</head>
+<body data-page="about">
+  <header class="app-header">
+    <div class="app-header-inner">
+      <a class="app-brand" href="/index.html">
+        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
+        Risk &amp; Contingency
+      </a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary">
+        <a href="/index.html" data-nav="home">Home</a>
+        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling">Modelling</a>
+        <a href="/reporting.html" data-nav="reporting">Risk Reporting</a>
+        <a href="/contingency.html" data-nav="contingency">Contingency</a>
+        <a href="/configuration.html" data-nav="configuration">Configuration</a>
+        <a href="/about.html" data-nav="about">About</a>
+      </nav>
+      <div class="app-header-actions">
+        <span class="status-pill" data-connection-pill data-state="checking">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span data-connection-label>Checking&hellip;</span>
+        </span>
+        <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode">
+          <input type="checkbox" data-theme-toggle class="visually-hidden">
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+          <span class="visually-hidden">Toggle dark mode</span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="page-header">
+      <span class="eyebrow">About</span>
+      <h1>About Risk &amp; Contingency</h1>
+    </div>
+
+    <section class="card" style="margin-bottom: var(--space-6);">
+      <h2>What this is</h2>
+      <p>Risk &amp; Contingency is a browser-based tool for managing a project risk register: creating and assessing risk records under a Risk Breakdown Structure, calculating EMV pre- and post-mitigation, running Monte Carlo simulation across pooled risks, and comparing an available budget to the modelled cost distribution.</p>
+      <p>It runs entirely in your browser. There is no server, no account, and no cloud storage. You choose a folder on your own machine once, and the app reads and writes a real Excel workbook (<code>risk-register.xlsx</code>) directly in that folder &mdash; the folder is the single source of truth for your data, not this website.</p>
+      <p>The six working areas: <strong>Risk Register</strong> (create and manage risk records), <strong>Modelling</strong> (Monte Carlo simulation of Total Cost), <strong>Risk Reporting</strong> (list and rank risks by exposure), <strong>Contingency</strong> (compare available budget to modelled results), and <strong>Configuration</strong> (Risk Breakdown Structure, impact areas, owners and QHSE levels).</p>
+    </section>
+
+    <section>
+      <h2 style="margin-bottom: var(--space-4);">Frequently asked questions</h2>
+
+      <div class="card" style="margin-bottom: var(--space-4);">
+        <h3>Where is my data stored? Does anything get uploaded?</h3>
+        <p>Nowhere but your own machine. When you connect a folder, the app talks directly to your operating system's file system through your browser (the File System Access API) and reads/writes an Excel workbook in that folder. Nothing is sent to a server &mdash; there isn't one. Your data lives in the <code>.xlsx</code> file, which you can open in Excel like any other spreadsheet, independent of this website.</p>
+      </div>
+
+      <div class="card" style="margin-bottom: var(--space-4);">
+        <h3>Which browsers does this work in?</h3>
+        <p>Chrome, Edge and Opera &mdash; any Chromium-based browser. The folder-connection feature (File System Access API) isn't supported in Firefox or Safari; the app detects this and shows a clear message rather than failing silently.</p>
+      </div>
+
+      <div class="card" style="margin-bottom: var(--space-4);">
+        <h3>What happens if two people (or two browser tabs) have the same file open at the same time?</h3>
+        <p>This is a single-editor-at-a-time tool, by design. Every change you make rewrites the entire workbook file from what's currently loaded in your browser tab &mdash; there's no locking and no merging between editors.</p>
+        <p>If two people (or two tabs) have the file open and both make changes, the app protects you from silently losing work: before every save, it checks whether the file has changed on disk since you loaded it. If it has, your save is blocked and a banner appears asking you to reload the latest version before continuing, rather than quietly overwriting whatever the other person saved. You'll need to redo whatever you were doing since your last load, but nothing is ever lost without you being told about it.</p>
+        <p>In practice: treat the file as owned by one editor at a time, and let each other know when you're done making changes.</p>
+      </div>
+
+      <div class="card" style="margin-bottom: var(--space-4);">
+        <h3>How is EMV (and "Knock On") calculated?</h3>
+        <p>EMV is calculated only for Total Cost, not for Schedule or QHSE. Total Cost is Direct Cost plus Knock On &mdash; Knock On is treated as an indirect or downstream cost impact distinct from Direct Cost, the same convention used in Primavera Risk Analysis. EMV = Likelihood (as a %, divided by 100) &times; Total Cost's expected value.</p>
+      </div>
+
+      <div class="card" style="margin-bottom: var(--space-4);">
+        <h3>Which risks does the Monte Carlo simulation include?</h3>
+        <p>Only risk records with Record Type set to "Regular Pooled Record." High Impact and Benchmark records are still tracked in the register and included in EMV and reporting, but they're excluded from the portfolio-level Monte Carlo simulation by design &mdash; they're meant to be considered individually rather than pooled statistically.</p>
+      </div>
+
+      <div class="card">
+        <h3>Do I need an account or an internet connection?</h3>
+        <p>No account, ever &mdash; there's nothing to sign up for. You need an internet connection to load the app itself, since it's hosted rather than installed, but once it's loaded, the actual work &mdash; creating records, running simulations, saving to your folder &mdash; happens locally in your browser.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+  </footer>
+
+  <script src="/js/vendor/xlsx.full.min.js"></script>
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/version-check.js"></script>
+  <script type="module" src="/js/conflict-banner.js"></script>
+</body>
+</html>

@@ -85,12 +85,17 @@ and one storage layer — no SPA framework, no router, no bundler.
 `index.html` (home/dashboard), `risk-register.html` (renamed from
 working-space.html 2026-09-20), `modelling.html`, `reporting.html`
 (nav label "Risk Reporting" since 2026-09-20, filename unchanged),
-`contingency.html`, `configuration.html`. Nav order: Home, Risk
-Register, Modelling, Risk Reporting, Contingency, Configuration. Each
-page repeats the same header/footer markup (no templating available)
-and loads the same four stylesheets from `css/`, plus a small inline
-no-flash theme script in `<head>`, `js/vendor/xlsx.full.min.js`, and its
-`type="module"` scripts.
+`contingency.html`, `configuration.html`, `about.html`. Nav order: Home,
+Risk Register, Modelling, Risk Reporting, Contingency, Configuration,
+About. `about.html` is the only page with no connection-gated content —
+it's a static description + FAQ, always fully visible regardless of
+folder-connection state (still shares the same header/footer/theme
+shell for consistency, and still loads `shell.js`/`theme.js`/
+`version-check.js`/`conflict-banner.js`, just not `setup-sequence.js` —
+nothing on the page needs step-gating). Each page repeats the same
+header/footer markup (no templating available) and loads the same four
+stylesheets from `css/`, plus a small inline no-flash theme script in
+`<head>`, `js/vendor/xlsx.full.min.js`, and its `type="module"` scripts.
 
 **Design system** (`css/`): `tokens.css` (CSS custom properties — color,
 spacing, type), `base.css` (reset + typography), `components.css`
@@ -168,7 +173,39 @@ rather than failing silently.
   shape pages work with. Exposes `getRegisterState`/`onRegisterChange`
   plus mutators (`applyConfigTemplate`, `rbsList`/`impactAreaList`/
   `ownerList` add/remove, `saveRiskRecord`, `deleteRiskRecord`,
-  `loadRiskRecordTemplate`).
+  `loadRiskRecordTemplate`) — **every mutator now returns `true`/`false`**
+  (2026-09-20; previously returned nothing) so callers know whether the
+  save actually happened.
+- **Concurrency / conflict detection** (2026-09-20 — this app is
+  explicitly a single-editor-at-a-time tool, documented on `about.html`;
+  this doesn't add multi-editor support, it only turns *silent* data
+  loss into a *visible, blocked* conflict): File System Access has no
+  real locking, so `register-store.js` tracks `knownFileModifiedAt`
+  (the file's `lastModified`, via `getFileLastModified()` in
+  `workbook.js`) from its last successful load or save. Every mutator
+  calls `checkConflict()` **first, before touching `state`** — if the
+  file's current mtime doesn't match what we last saw, the mutation is
+  abandoned (never applied optimistically, so the in-memory state never
+  shows a change that isn't actually on disk), `state.conflict` is set,
+  and `checkConflict()` returns `true` so the caller can react (e.g.
+  `risk-register.js`'s `submitForm` stays on the form — the draft isn't
+  lost — and shows an inline error instead of navigating away as if it
+  saved). `js/conflict-banner.js` listens for `state.conflict` and
+  injects a banner as the first child of `.app-main` on every page, with
+  a "Reload latest" button that does a full `location.reload()` — no
+  attempt at merging, since none is possible without real collaboration
+  infrastructure this app doesn't have. This is a check-then-act race
+  like any lock-free approach (the file can still change in the gap
+  between the check and the write) — acceptable given the alternative
+  (no check at all) is unconditionally worse, not because the race is
+  eliminated.
+  **Testing this**: the plain mock `FileSystemDirectoryHandle` used
+  elsewhere in this file's testing notes isn't sufficient here — its
+  `getFile()` must return a **stable** `lastModified` per stored buffer
+  (only bumped on an actual write), not `Date.now()` freshly computed on
+  every read, or every legitimate re-read looks like an external change.
+  Store `{buffer, lastModified}` pairs and pass `lastModified` into the
+  `File` constructor explicitly.
 - `js/shell.js` wires connection state to the DOM via data attributes:
   `[data-connection-pill]`/`[data-connection-label]` (status pill),
   `[data-connection-action]`/`[data-connection-disconnect]` (buttons —
@@ -372,9 +409,12 @@ page + Risk Reporting nav rename (done, 2026-09-20); 8) header
 overflow/theme-toggle-visibility fix, checkbox styling fix,
 setup-sequence Home-only + dismissible, Modelling dual-phase (Pre/Post
 checkboxes, Post default) + histogram/bell-curve chart, "Connected to
-Folder:" label (done, 2026-09-20); 9) Risk Reporting itself (list +
-top-N ranking of EMV/Max Total Cost/Schedule Exposure/Max Schedule) —
-not started, still the one empty-state page left.
+Folder:" label (done, 2026-09-20); 9) stale-cache fix (`_headers` +
+version-check banner + deploy version bump), invalid `<svg height="auto">`
+fix (done, 2026-09-20); 10) save-conflict detection + banner, About page
++ FAQ (done, 2026-09-20); 11) Risk Reporting itself (list + top-N
+ranking of EMV/Max Total Cost/Schedule Exposure/Max Schedule) — not
+started, still the one empty-state page left.
 
 ## Local dev server
 

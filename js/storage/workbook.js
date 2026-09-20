@@ -99,6 +99,18 @@ export async function fileExists(dirHandle, name) {
   }
 }
 
+// Used for optimistic-concurrency conflict detection (register-store.js):
+// null means the file doesn't exist yet (e.g. a fresh folder before the
+// first save). File System Access has no locking, so this is the only
+// signal available that someone/something else has written to the file
+// since we last read it.
+export async function getFileLastModified(dirHandle) {
+  if (!(await fileExists(dirHandle, WORKBOOK_FILENAME))) return null;
+  const fileHandle = await dirHandle.getFileHandle(WORKBOOK_FILENAME);
+  const file = await fileHandle.getFile();
+  return file.lastModified;
+}
+
 export async function loadWorkbook(dirHandle) {
   if (!(await fileExists(dirHandle, WORKBOOK_FILENAME))) {
     return emptyRegister();

@@ -6,6 +6,7 @@
 import {
   loadWorkbook,
   saveWorkbook,
+  getFileLastModified,
   configTemplate,
   riskRecordTemplates,
   validateDistribution,
@@ -22,15 +23,26 @@ import {
 
 const PHASES = ["pre", "post"];
 
-let state = {
-  status: "idle", // idle | loading | ready | error
-  rbs: [],
-  impactAreas: [],
-  owners: [],
-  qhseLevels: [],
-  riskRecords: [],
-  settings: {},
-};
+// The file's mtime as of our last successful load or save — the only
+// signal available (no real locking with File System Access) that
+// someone/something else has written to the file since. See
+// checkConflict() below.
+let knownFileModifiedAt = null;
+
+function emptyState(status) {
+  return {
+    status,
+    rbs: [],
+    impactAreas: [],
+    owners: [],
+    qhseLevels: [],
+    riskRecords: [],
+    settings: {},
+    conflict: false,
+  };
+}
+
+let state = emptyState("idle");
 
 const listeners = new Set();
 
@@ -147,6 +159,26 @@ function actionsToRows(riskRecords) {
   );
 }
 
+// Checks whether the file on disk has changed since we last read or
+// wrote it. Returns true (and flags state.conflict) if so — callers
+// must check this *before* applying an optimistic mutation, not after,
+// so a blocked save never leaves the in-memory state showing a change
+// that isn't actually on disk. This is a check-then-act race like any
+// lock-free approach (the file could still change in the gap between
+// this check and the write), but File System Access has no real
+// locking primitive, so this is the best available signal.
+async function checkConflict() {
+  const handle = getDirectoryHandle();
+  if (!handle) return false;
+  const current = await getFileLastModified(handle);
+  if (knownFileModifiedAt !== null && current !== knownFileModifiedAt) {
+    state = { ...state, conflict: true };
+    notify();
+    return true;
+  }
+  return false;
+}
+
 async function persist() {
   const handle = getDirectoryHandle();
   if (!handle) return;
@@ -159,6 +191,9 @@ async function persist() {
     actions: actionsToRows(state.riskRecords),
     settings: state.settings,
   });
+  // Our own write just changed the file's mtime — record that as
+  // "known" so it isn't mistaken for an external change next time.
+  knownFileModifiedAt = await getFileLastModified(handle);
 }
 
 async function load() {
@@ -168,6 +203,7 @@ async function load() {
   notify();
   try {
     const data = await loadWorkbook(handle);
+    knownFileModifiedAt = await getFileLastModified(handle);
     state = {
       status: "ready",
       rbs: data.rbs,
@@ -176,6 +212,7 @@ async function load() {
       qhseLevels: data.qhseLevels,
       riskRecords: data.riskRecords.map((row) => rowToRecord(row, data.actions)),
       settings: data.settings ?? {},
+      conflict: false,
     };
   } catch (err) {
     state = { ...state, status: "error" };
@@ -187,40 +224,39 @@ onConnectionChange((connection) => {
   if (connection.status === "connected") {
     load();
   } else if (state.status !== "idle") {
-    state = {
-      status: "idle",
-      rbs: [],
-      impactAreas: [],
-      owners: [],
-      qhseLevels: [],
-      riskRecords: [],
-      settings: {},
-    };
+    knownFileModifiedAt = null;
+    state = emptyState("idle");
     notify();
   }
 });
 
 // --- Config -----------------------------------------------------------
 export async function applyConfigTemplate() {
+  if (await checkConflict()) return false;
   const template = configTemplate();
   state = { ...state, ...template };
   notify();
   await persist();
+  return true;
 }
 
 function namedListMutators(key) {
   return {
     async add(name) {
+      if (await checkConflict()) return false;
       const list = state[key];
       const id = nextId(list, key.slice(0, 4));
       state = { ...state, [key]: [...list, { id, name }] };
       notify();
       await persist();
+      return true;
     },
     async remove(id) {
+      if (await checkConflict()) return false;
       state = { ...state, [key]: state[key].filter((item) => item.id !== id) };
       notify();
       await persist();
+      return true;
     },
   };
 }
@@ -232,9 +268,11 @@ export const qhseLevelList = namedListMutators("qhseLevels");
 
 // --- Settings (available budget, last modelling run) -------------------
 export async function updateSettings(patch) {
+  if (await checkConflict()) return false;
   state = { ...state, settings: { ...state.settings, ...patch } };
   notify();
   await persist();
+  return true;
 }
 
 // --- Risk records -------------------------------------------------------
@@ -280,6 +318,7 @@ function withFinalizedActionIds(actions) {
 }
 
 export async function saveRiskRecord(record) {
+  if (await checkConflict()) return false;
   const now = new Date().toISOString();
   const isNew = !record.id;
   const withComputed = (r) => ({
@@ -301,12 +340,15 @@ export async function saveRiskRecord(record) {
   }
   notify();
   await persist();
+  return true;
 }
 
 export async function deleteRiskRecord(id) {
+  if (await checkConflict()) return false;
   state = { ...state, riskRecords: state.riskRecords.filter((r) => r.id !== id) };
   notify();
   await persist();
+  return true;
 }
 
 export async function loadRiskRecordTemplate(index) {
@@ -314,12 +356,11 @@ export async function loadRiskRecordTemplate(index) {
   const template = templates[index];
   if (!template) return null;
   const record = blankRiskRecord();
-  await saveRiskRecord({
+  return saveRiskRecord({
     ...record,
     ...template,
     actions: (template.actions ?? []).map((a, i) => ({ id: `local-${i}`, ...a })),
   });
-  return true;
 }
 
 export function createLocalAction() {
