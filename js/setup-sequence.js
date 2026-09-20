@@ -24,7 +24,7 @@ export function computeStepStatus() {
       register.impactAreas.length > 0 ||
       register.owners.length > 0);
   const riskRecordDone = configDone && register.riskRecords.length > 0;
-  const modellingDone = false; // modelling engine hasn't shipped yet
+  const modellingDone = riskRecordDone && !!register.settings?.lastModelledAt;
 
   return [folderDone, configDone, riskRecordDone, modellingDone];
 }
