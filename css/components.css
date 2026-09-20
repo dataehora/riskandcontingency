@@ -207,6 +207,31 @@
   background: var(--color-surface-alt);
 }
 
+.data-table tbody tr[data-row-id] {
+  cursor: pointer;
+}
+
+.data-table th[data-sort-key] {
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th[data-sort-key]:hover {
+  text-decoration: underline;
+}
+
+/* Highlights the columns matching the Risk Register list's active
+   EMV/Cost/Schedule/QHSE toggle, in both the header and body cells. */
+.data-table th.col-highlight,
+.data-table td.col-highlight {
+  background: var(--color-accent-bg);
+}
+
+.data-table tbody tr:hover td.col-highlight {
+  background: var(--color-accent-bg);
+  filter: brightness(0.97);
+}
+
 /* Empty states */
 .empty-state {
   border: 1px dashed var(--color-border-strong);
@@ -433,6 +458,19 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-3);
+}
+
+/* Title occupies half the row, Risk Type and Record Type share the rest. */
+.title-row-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .title-row-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dist-group {

@@ -279,6 +279,44 @@ Eliminate/Mitigate/Transfer/Monitor-Accept; Opportunity →
 Exploit/Enhance/Share/Monitor-Accept (`STRATEGIES` in
 `js/pages/risk-register.js`).
 
+**Risk Register list** (2026-09-20): columns are ID, Title, Type,
+Record Type, Impact Area, Owner (this exact order — Impact Area before
+Owner), then an **EMV/Cost/Schedule/QHSE toggle** (`viewMode` in
+`js/pages/risk-register.js`, defaults to EMV) swaps in a different set
+of trailing columns, all marked `highlight: true` and rendered with the
+`.col-highlight` CSS class (both `<th>` and `<td>`) so it's visually
+obvious which part of the table matches the toggle:
+- EMV: Pre EMV, Post EMV (from the record's stored `.computed`).
+- Cost: Pre/Post Likelihood (`expectedValue()`, shown as a %) + Pre/Post
+  Total Cost Min/ML/Max (`totalCostRange()` — "ML" here is that
+  function's `ev`, a naming choice for consistency with the toggle's
+  labels, not a literal triangular-distribution ML since Total Cost is
+  derived, not a direct input).
+- Schedule: same Likelihood columns + Pre/Post Schedule Min/ML/Max —
+  these ARE the raw `scheduleImpact` input cells, shown as "—" when
+  null (e.g. a single-point distribution genuinely has no Min/Max),
+  unlike Cost's fallback-to-ML summing in `totalCostRange()`.
+- QHSE: same Likelihood columns + Pre/Post QHSE level (plain string).
+Every column (base and mode-specific) is independently sortable — click
+a `<th data-sort-key>` to sort ascending, click again for descending
+(▲/▼ shown on the active column); **switching the toggle resets the
+sort** since the old sort column's key may not exist in the new column
+set. Clicking anywhere on a row opens it for editing — the old "Edit"
+button is gone, replaced with **"Duplicate"** (`duplicateRecord()`:
+clones the record, clears `id`/`createdAt`/`updatedAt`, appends " (Copy)"
+to the title, and — important — reassigns every response action a fresh
+`local-` id via `createLocalAction()` so `saveRiskRecord` mints new
+unique Action ids rather than colliding with the original record's rows
+in the `Actions` sheet). Duplicate/Delete buttons and the row-click
+handler share one delegated listener on `tbody`; button clicks are
+checked and `return`ed on first, so they never also fire the row-click
+(no `stopPropagation()` needed).
+The Details form's Title/Risk Type/Record Type row uses
+`.title-row-grid` (`grid-template-columns: 2fr 1fr 1fr`, collapsing to
+one column under 640px) — Title is exactly half the row width, by
+request; Owner/Impact Area/RBS Category stay in the regular
+auto-fit `.form-grid` below it.
+
 **Setup sequence**: 1) select folder, 2) create config file (RBS/Impact
 Areas/Owners/QHSE Levels — "done" once any has at least one entry,
 whether hand-added or from the template), 3) create risk record (at
@@ -412,9 +450,12 @@ checkboxes, Post default) + histogram/bell-curve chart, "Connected to
 Folder:" label (done, 2026-09-20); 9) stale-cache fix (`_headers` +
 version-check banner + deploy version bump), invalid `<svg height="auto">`
 fix (done, 2026-09-20); 10) save-conflict detection + banner, About page
-+ FAQ (done, 2026-09-20); 11) Risk Reporting itself (list + top-N
-ranking of EMV/Max Total Cost/Schedule Exposure/Max Schedule) — not
-started, still the one empty-state page left.
++ FAQ (done, 2026-09-20); 11) Risk Register list: sortable columns,
+EMV/Cost/Schedule/QHSE highlighted toggle, row-click-to-edit,
+Duplicate, Title half-width form row (done, 2026-09-20); 12) Risk
+Reporting itself (list + top-N ranking of EMV/Max Total Cost/Schedule
+Exposure/Max Schedule) — not started, still the one empty-state page
+left.
 
 ## Local dev server
 

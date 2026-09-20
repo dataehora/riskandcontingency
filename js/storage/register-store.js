@@ -12,6 +12,7 @@ import {
   validateDistribution,
   calculateAssessment,
   totalCostRange,
+  expectedValue,
   nextId,
   DIMENSIONS,
 } from "./workbook.js";
@@ -374,7 +375,7 @@ export function createLocalAction() {
   };
 }
 
-export { validateDistribution, calculateAssessment, totalCostRange, DIMENSIONS, PHASES };
+export { validateDistribution, calculateAssessment, totalCostRange, expectedValue, DIMENSIONS, PHASES };
 
 // Re-run the connection check in case the folder was already connected
 // before this module loaded (module load order across scripts on a page).

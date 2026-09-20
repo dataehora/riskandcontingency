@@ -9,6 +9,7 @@ import {
   validateDistribution,
   calculateAssessment,
   totalCostRange,
+  expectedValue,
   DIMENSIONS,
 } from "../storage/register-store.js";
 import { RECORD_TYPES } from "../storage/workbook.js";
@@ -38,6 +39,15 @@ const STRATEGIES = {
 
 let draft = null;
 let currentState = getRegisterState();
+let viewMode = "emv"; // emv | cost | schedule | qhse
+let sortState = { key: null, direction: "asc" };
+
+const VIEW_MODES = [
+  { key: "emv", label: "EMV" },
+  { key: "cost", label: "Cost" },
+  { key: "schedule", label: "Schedule" },
+  { key: "qhse", label: "QHSE" },
+];
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -64,34 +74,151 @@ function els() {
 }
 
 // --- List view ----------------------------------------------------------
-function renderList() {
+const BASE_COLUMNS = [
+  { key: "id", label: "ID", sort: (r) => r.id, render: (r) => escapeHtml(r.id) },
+  { key: "title", label: "Title", sort: (r) => r.title.toLowerCase(), render: (r) => escapeHtml(r.title) },
+  {
+    key: "riskType",
+    label: "Type",
+    sort: (r) => r.riskType,
+    render: (r) => `<span class="badge ${r.riskType === "Threat" ? "badge-high" : "badge-low"}">${escapeHtml(r.riskType)}</span>`,
+  },
+  { key: "recordType", label: "Record Type", sort: (r) => r.recordType, render: (r) => escapeHtml(r.recordType) },
+  { key: "impactArea", label: "Impact Area", sort: (r) => r.impactArea, render: (r) => escapeHtml(r.impactArea) },
+  { key: "owner", label: "Owner", sort: (r) => r.owner, render: (r) => escapeHtml(r.owner) },
+];
+
+function likelihoodColumns() {
+  return [
+    {
+      key: "preLikelihood",
+      label: "Pre Likelihood",
+      highlight: true,
+      sort: (r) => expectedValue(r.pre.likelihood),
+      render: (r) => `${fmtNumber(expectedValue(r.pre.likelihood))}%`,
+    },
+    {
+      key: "postLikelihood",
+      label: "Post Likelihood",
+      highlight: true,
+      sort: (r) => expectedValue(r.post.likelihood),
+      render: (r) => `${fmtNumber(expectedValue(r.post.likelihood))}%`,
+    },
+  ];
+}
+
+function modeColumns(mode) {
+  if (mode === "cost") {
+    return [
+      ...likelihoodColumns(),
+      { key: "preCostMin", label: "Pre Min", highlight: true, sort: (r) => totalCostRange(r.pre).min, render: (r) => fmtNumber(totalCostRange(r.pre).min) },
+      { key: "preCostMl", label: "Pre ML", highlight: true, sort: (r) => totalCostRange(r.pre).ev, render: (r) => fmtNumber(totalCostRange(r.pre).ev) },
+      { key: "preCostMax", label: "Pre Max", highlight: true, sort: (r) => totalCostRange(r.pre).max, render: (r) => fmtNumber(totalCostRange(r.pre).max) },
+      { key: "postCostMin", label: "Post Min", highlight: true, sort: (r) => totalCostRange(r.post).min, render: (r) => fmtNumber(totalCostRange(r.post).min) },
+      { key: "postCostMl", label: "Post ML", highlight: true, sort: (r) => totalCostRange(r.post).ev, render: (r) => fmtNumber(totalCostRange(r.post).ev) },
+      { key: "postCostMax", label: "Post Max", highlight: true, sort: (r) => totalCostRange(r.post).max, render: (r) => fmtNumber(totalCostRange(r.post).max) },
+    ];
+  }
+  if (mode === "schedule") {
+    const dashOr = (v) => (v == null ? "—" : fmtNumber(v));
+    return [
+      ...likelihoodColumns(),
+      { key: "preSchedMin", label: "Pre Min", highlight: true, sort: (r) => r.pre.scheduleImpact.min ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.min) },
+      { key: "preSchedMl", label: "Pre ML", highlight: true, sort: (r) => r.pre.scheduleImpact.ml ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.ml) },
+      { key: "preSchedMax", label: "Pre Max", highlight: true, sort: (r) => r.pre.scheduleImpact.max ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.max) },
+      { key: "postSchedMin", label: "Post Min", highlight: true, sort: (r) => r.post.scheduleImpact.min ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.min) },
+      { key: "postSchedMl", label: "Post ML", highlight: true, sort: (r) => r.post.scheduleImpact.ml ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.ml) },
+      { key: "postSchedMax", label: "Post Max", highlight: true, sort: (r) => r.post.scheduleImpact.max ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.max) },
+    ];
+  }
+  if (mode === "qhse") {
+    return [
+      ...likelihoodColumns(),
+      { key: "preQhse", label: "Pre QHSE", highlight: true, sort: (r) => r.pre.qhse ?? "", render: (r) => escapeHtml(r.pre.qhse ?? "—") },
+      { key: "postQhse", label: "Post QHSE", highlight: true, sort: (r) => r.post.qhse ?? "", render: (r) => escapeHtml(r.post.qhse ?? "—") },
+    ];
+  }
+  // emv (default)
+  return [
+    { key: "preEmv", label: "Pre EMV", highlight: true, sort: (r) => r.computed.pre.emv, render: (r) => fmtNumber(r.computed.pre.emv) },
+    { key: "postEmv", label: "Post EMV", highlight: true, sort: (r) => r.computed.post.emv, render: (r) => fmtNumber(r.computed.post.emv) },
+  ];
+}
+
+function currentColumns() {
+  return [...BASE_COLUMNS, ...modeColumns(viewMode)];
+}
+
+function sortedRecords() {
+  const records = [...currentState.riskRecords];
+  if (!sortState.key) return records;
+  const col = currentColumns().find((c) => c.key === sortState.key);
+  if (!col) return records;
+  const dir = sortState.direction === "asc" ? 1 : -1;
+  return records.sort((a, b) => {
+    const va = col.sort(a);
+    const vb = col.sort(b);
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
+}
+
+function renderModeToggle() {
+  const el = document.querySelector("[data-view-mode-toggle]");
+  if (!el) return;
+  el.innerHTML = VIEW_MODES.map(
+    (m) =>
+      `<button type="button" class="btn btn-sm ${viewMode === m.key ? "btn-primary" : "btn-secondary"}" data-view-mode="${m.key}">${m.label}</button>`
+  ).join("");
+}
+
+function renderTableHead() {
+  const thead = document.querySelector("[data-records-thead]");
+  if (!thead) return;
+  const columns = currentColumns();
+  thead.innerHTML = `
+    <tr>
+      ${columns
+        .map((col) => {
+          const isSorted = sortState.key === col.key;
+          const arrow = isSorted ? (sortState.direction === "asc" ? " ▲" : " ▼") : "";
+          return `<th class="${col.highlight ? "col-highlight" : ""}" data-sort-key="${col.key}" tabindex="0" role="button" aria-sort="${isSorted ? (sortState.direction === "asc" ? "ascending" : "descending") : "none"}">${escapeHtml(col.label)}${arrow}</th>`;
+        })
+        .join("")}
+      <th></th>
+    </tr>
+  `;
+}
+
+function renderTableBody() {
   const { recordsBody, recordsTable, recordsEmpty } = els();
   if (!recordsBody) return;
-  const records = currentState.riskRecords;
+  const records = sortedRecords();
 
   if (recordsEmpty) recordsEmpty.hidden = records.length > 0;
   if (recordsTable) recordsTable.hidden = records.length === 0;
 
+  const columns = currentColumns();
   recordsBody.innerHTML = records
     .map(
       (r) => `
-    <tr>
-      <td>${escapeHtml(r.id)}</td>
-      <td>${escapeHtml(r.title)}</td>
-      <td><span class="badge ${r.riskType === "Threat" ? "badge-high" : "badge-low"}">${r.riskType}</span></td>
-      <td>${escapeHtml(r.recordType)}</td>
-      <td>${escapeHtml(r.owner)}</td>
-      <td>${escapeHtml(r.impactArea)}</td>
-      <td>${fmtNumber(r.computed?.pre?.emv)}</td>
-      <td>${fmtNumber(r.computed?.post?.emv)}</td>
+    <tr data-row-id="${r.id}">
+      ${columns.map((col) => `<td class="${col.highlight ? "col-highlight" : ""}">${col.render(r)}</td>`).join("")}
       <td style="white-space:nowrap;">
-        <button type="button" class="btn btn-ghost btn-sm" data-edit-record="${r.id}">Edit</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-duplicate-record="${r.id}">Duplicate</button>
         <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${r.id}">Delete</button>
       </td>
     </tr>
   `
     )
     .join("");
+}
+
+function renderList() {
+  renderModeToggle();
+  renderTableHead();
+  renderTableBody();
 }
 
 // --- Options for selects --------------------------------------------------
@@ -375,6 +502,22 @@ function startEditRecord(id) {
   renderForm();
 }
 
+// Opens the form pre-filled from an existing record, but as a brand new
+// unsaved record (id cleared) — saving creates a separate row rather
+// than overwriting the original. Response actions get fresh local ids
+// too, so they don't collide with the original record's Actions rows.
+function duplicateRecord(id) {
+  const record = currentState.riskRecords.find((r) => r.id === id);
+  if (!record) return;
+  draft = JSON.parse(JSON.stringify(record));
+  draft.id = null;
+  draft.title = `${draft.title} (Copy)`;
+  draft.createdAt = "";
+  draft.updatedAt = "";
+  draft.actions = draft.actions.map((a) => ({ ...a, id: createLocalAction().id }));
+  renderForm();
+}
+
 function formHasErrors() {
   return !!document.querySelector('.dist-feedback[data-valid="false"]');
 }
@@ -448,14 +591,40 @@ function wire() {
   });
 
   document.querySelector("[data-records-body]")?.addEventListener("click", async (event) => {
-    const editBtn = event.target.closest("[data-edit-record]");
-    if (editBtn) return startEditRecord(editBtn.dataset.editRecord);
+    const dupBtn = event.target.closest("[data-duplicate-record]");
+    if (dupBtn) return duplicateRecord(dupBtn.dataset.duplicateRecord);
     const delBtn = event.target.closest("[data-delete-record]");
     if (delBtn) {
       if (confirm("Delete this risk record? This cannot be undone.")) {
         await deleteRiskRecord(delBtn.dataset.deleteRecord);
       }
+      return;
     }
+    const row = event.target.closest("tr[data-row-id]");
+    if (row) startEditRecord(row.dataset.rowId);
+  });
+
+  document.querySelector("[data-view-mode-toggle]")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-view-mode]");
+    if (!btn) return;
+    viewMode = btn.dataset.viewMode;
+    sortState = { key: null, direction: "asc" }; // columns changed — old sort key may not exist anymore
+    renderModeToggle();
+    renderTableHead();
+    renderTableBody();
+  });
+
+  document.querySelector("[data-records-thead]")?.addEventListener("click", (event) => {
+    const th = event.target.closest("[data-sort-key]");
+    if (!th) return;
+    const key = th.dataset.sortKey;
+    if (sortState.key === key) {
+      sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+    } else {
+      sortState = { key, direction: "asc" };
+    }
+    renderTableHead();
+    renderTableBody();
   });
 
   document.querySelectorAll("[data-cancel-form]").forEach((btn) =>
