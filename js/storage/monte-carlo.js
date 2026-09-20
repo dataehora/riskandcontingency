@@ -83,6 +83,49 @@ export function summarize(sortedValues) {
   };
 }
 
+// Bins sortedValues into `binCount` equal-width bins across an explicit
+// [domainMin, domainMax] range (rather than each series' own min/max) so
+// two series (e.g. pre- and post-mitigation) can be binned onto the same
+// x-axis and overlaid meaningfully.
+export function histogram(sortedValues, binCount, domainMin, domainMax) {
+  const span = domainMax - domainMin || 1;
+  const binWidth = span / binCount;
+  const bins = Array.from({ length: binCount }, (_, i) => ({
+    binStart: domainMin + i * binWidth,
+    binEnd: domainMin + (i + 1) * binWidth,
+    count: 0,
+  }));
+  for (const v of sortedValues) {
+    let idx = Math.floor((v - domainMin) / binWidth);
+    if (idx >= binCount) idx = binCount - 1;
+    if (idx < 0) idx = 0;
+    bins[idx].count++;
+  }
+  return bins;
+}
+
+export function mean(values) {
+  if (!values.length) return 0;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+export function stdev(values, meanValue) {
+  if (values.length < 2) return 0;
+  const m = meanValue ?? mean(values);
+  const variance = values.reduce((sum, v) => sum + (v - m) ** 2, 0) / (values.length - 1);
+  return Math.sqrt(variance);
+}
+
+// Gaussian PDF, used to draw the "bell curve" overlaid on the histogram.
+// The result is a density, not a count — callers scale it by
+// (trials * binWidth) to match the histogram's count scale.
+export function normalPdf(x, meanValue, stdevValue) {
+  if (stdevValue <= 0) return x === meanValue ? Infinity : 0;
+  const coeff = 1 / (stdevValue * Math.sqrt(2 * Math.PI));
+  const exponent = -((x - meanValue) ** 2) / (2 * stdevValue ** 2);
+  return coeff * Math.exp(exponent);
+}
+
 // Evenly-subsampled points for the S-curve, so a 10k-trial run doesn't
 // render 10k SVG points. Always includes the true min and max.
 export function curvePoints(sortedValues, maxPoints = 200) {

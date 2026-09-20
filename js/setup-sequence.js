@@ -1,7 +1,8 @@
 // Renders the 4-step setup sequence into any [data-setup-sequence]
-// container, and gates page content behind [data-requires-step="N"] /
-// [data-step-locked-notice="N"] (N is 1-4, matching STEPS below) so a
-// step's UI never appears before its prerequisites are met.
+// container (Home page only, by design) and gates page content on every
+// page behind [data-requires-step="N"] / [data-step-locked-notice="N"]
+// (N is 1-4, matching STEPS below) so a step's UI never appears before
+// its prerequisites are met.
 import { getConnectionState, onConnectionChange } from "./storage/folder-connection.js";
 import { getRegisterState, onRegisterChange } from "./storage/register-store.js";
 
@@ -11,6 +12,25 @@ export const STEPS = [
   { key: "risk-record", label: "Create risk record", page: "/risk-register.html" },
   { key: "modelling", label: "Run modelling", page: "/modelling.html" },
 ];
+
+const DISMISSED_KEY = "setup-sequence-dismissed";
+
+function isDismissed() {
+  try {
+    return localStorage.getItem(DISMISSED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setDismissed(value) {
+  try {
+    if (value) localStorage.setItem(DISMISSED_KEY, "true");
+    else localStorage.removeItem(DISMISSED_KEY);
+  } catch {
+    // Storage unavailable — dismissal just won't persist this session.
+  }
+}
 
 export function computeStepStatus() {
   const connection = getConnectionState();
@@ -22,7 +42,8 @@ export function computeStepStatus() {
     register.status === "ready" &&
     (register.rbs.length > 0 ||
       register.impactAreas.length > 0 ||
-      register.owners.length > 0);
+      register.owners.length > 0 ||
+      register.qhseLevels.length > 0);
   const riskRecordDone = configDone && register.riskRecords.length > 0;
   const modellingDone = riskRecordDone && !!register.settings?.lastModelledAt;
 
@@ -33,11 +54,28 @@ function renderSequence(doneFlags) {
   const containers = document.querySelectorAll("[data-setup-sequence]");
   if (!containers.length) return;
 
+  const allDone = doneFlags.every(Boolean);
+
+  // Only a completed sequence can be dismissed; as soon as it's no
+  // longer complete (e.g. a different, emptier folder gets connected),
+  // any previous dismissal is cleared so the guidance reappears.
+  if (!allDone) setDismissed(false);
+
+  if (allDone && isDismissed()) {
+    containers.forEach((el) => {
+      el.innerHTML = "";
+    });
+    return;
+  }
+
   const firstNotDone = doneFlags.findIndex((d) => !d);
 
   const html = `
     <div class="setup-sequence">
-      <span class="eyebrow">Setup sequence</span>
+      <div class="setup-sequence-header">
+        <span class="eyebrow">Setup sequence</span>
+        ${allDone ? `<button type="button" class="btn btn-ghost btn-sm" data-dismiss-setup-sequence aria-label="Dismiss setup sequence">Dismiss &times;</button>` : ""}
+      </div>
       <ol class="setup-steps">
         ${STEPS.map((step, i) => {
           const done = doneFlags[i];
@@ -59,6 +97,10 @@ function renderSequence(doneFlags) {
 
   containers.forEach((el) => {
     el.innerHTML = html;
+    el.querySelector("[data-dismiss-setup-sequence]")?.addEventListener("click", () => {
+      setDismissed(true);
+      renderSequence(doneFlags);
+    });
   });
 }
 

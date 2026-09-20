@@ -58,9 +58,7 @@
       <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
-    <section style="margin-bottom: var(--space-6);" data-setup-sequence></section>
-
-    <div class="empty-state" data-requires-no-connection>
+<div class="empty-state" data-requires-no-connection>
       <h3>Connect a folder to get started</h3>
       <p>Contingency compares against results stored in the Excel workbook in your connected folder.</p>
       <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
@@ -89,6 +87,10 @@
             <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap: var(--space-2);">
               <h3 style="margin-bottom:0;">Budget vs. modelled cost</h3>
               <span style="font-size:0.8rem; color: var(--color-text-subtle);" data-contingency-run-meta></span>
+            </div>
+            <div data-contingency-phase-select-wrap hidden style="max-width: 260px; margin-top: var(--space-3);">
+              <label for="contingency-phase-select">Compare against</label>
+              <select id="contingency-phase-select" data-contingency-phase-select></select>
             </div>
             <div class="assessment-summary">
               <div class="stat-tile">

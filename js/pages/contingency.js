@@ -2,8 +2,12 @@ import { getRegisterState, onRegisterChange, updateSettings } from "../storage/r
 import { PERCENTILE_STEPS } from "../storage/monte-carlo.js";
 import { renderSCurve } from "../charts/s-curve.js";
 
+const PHASE_LABEL = { pre: "Pre-mitigation", post: "Post-mitigation" };
+
 let currentState = getRegisterState();
 let budgetInputWired = false;
+let comparePhaseWired = false;
+let comparePhase = null; // user's chosen phase when a run has both
 
 function fmtNumber(n) {
   if (!Number.isFinite(n)) return "—";
@@ -35,6 +39,27 @@ function confidenceLabel(summary, budget) {
   return covered === null ? "Below P05" : `Up to P${String(covered).padStart(2, "0")}`;
 }
 
+function resolveComparePhase(lastRun) {
+  const available = lastRun.phases ?? [];
+  if (comparePhase && available.includes(comparePhase)) return comparePhase;
+  // Default to post-mitigation (residual risk) when both are available.
+  return available.includes("post") ? "post" : available[0];
+}
+
+function renderPhaseSelector(lastRun) {
+  const wrap = document.querySelector("[data-contingency-phase-select-wrap]");
+  const select = document.querySelector("[data-contingency-phase-select]");
+  if (!wrap || !select) return;
+  const available = lastRun.phases ?? [];
+  if (available.length < 2) {
+    wrap.hidden = true;
+    return;
+  }
+  wrap.hidden = false;
+  select.innerHTML = available.map((p) => `<option value="${p}">${PHASE_LABEL[p]}</option>`).join("");
+  select.value = resolveComparePhase(lastRun);
+}
+
 function renderResults() {
   const settings = currentState.settings ?? {};
   const budget = Number(settings.availableBudget);
@@ -42,7 +67,8 @@ function renderResults() {
   const resultsEl = document.querySelector("[data-contingency-results]");
   const noBudgetEl = document.querySelector("[data-contingency-no-budget]");
 
-  if (!lastRun || !Number.isFinite(budget) || settings.availableBudget === "" || settings.availableBudget == null) {
+  const hasBudget = Number.isFinite(budget) && settings.availableBudget !== "" && settings.availableBudget != null;
+  if (!lastRun || !hasBudget) {
     if (resultsEl) resultsEl.hidden = true;
     if (noBudgetEl) noBudgetEl.hidden = false;
     return;
@@ -50,11 +76,13 @@ function renderResults() {
   if (resultsEl) resultsEl.hidden = false;
   if (noBudgetEl) noBudgetEl.hidden = true;
 
-  const { phase, summary, curve } = lastRun;
+  renderPhaseSelector(lastRun);
+  const phase = resolveComparePhase(lastRun);
+  const { summary, curve } = lastRun.results[phase];
   const p50 = summary.percentiles.P50 ?? summary.min;
 
   document.querySelector("[data-contingency-run-meta]").textContent =
-    `Compared against ${settings.lastModelledTrials?.toLocaleString() ?? "—"} trials · ${phase === "pre" ? "Pre-mitigation" : "Post-mitigation"} · modelled ${settings.lastModelledAt ? new Date(settings.lastModelledAt).toLocaleString() : "—"}`;
+    `Compared against ${settings.lastModelledTrials?.toLocaleString() ?? "—"} trials · ${PHASE_LABEL[phase]} · modelled ${settings.lastModelledAt ? new Date(settings.lastModelledAt).toLocaleString() : "—"}`;
   document.querySelector("[data-contingency-budget]").textContent = fmtNumber(budget);
   document.querySelector("[data-contingency-confidence]").textContent = confidenceLabel(summary, budget);
   document.querySelector("[data-contingency-headroom]").textContent = fmtNumber(budget - p50);
@@ -93,6 +121,17 @@ function wireBudgetInput() {
   });
 }
 
+function wireComparePhaseSelect() {
+  if (comparePhaseWired) return;
+  const select = document.querySelector("[data-contingency-phase-select]");
+  if (!select) return;
+  comparePhaseWired = true;
+  select.addEventListener("change", () => {
+    comparePhase = select.value;
+    renderResults();
+  });
+}
+
 function syncBudgetInput() {
   const input = document.querySelector("[data-budget-input]");
   if (!input) return;
@@ -105,6 +144,7 @@ function syncBudgetInput() {
 onRegisterChange((state) => {
   currentState = state;
   wireBudgetInput();
+  wireComparePhaseSelect();
   syncBudgetInput();
   renderResults();
 });

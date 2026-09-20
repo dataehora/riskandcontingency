@@ -77,6 +77,14 @@ Notes:
   `[hidden] { display: none !important; }` rule in `base.css` to
   actually hide — same-specificity author rules otherwise beat the UA
   stylesheet.
+- Same trap, different rule: the global `input, select, textarea { width:
+  100%; padding: 8px 10px; }` in `components.css` also matches
+  `input[type=checkbox|radio]` unless overridden — any real (visible)
+  checkbox needs `input[type="checkbox"] { width: auto; padding: 0; }`
+  (already added) or it renders as a giant padded box, not a checkbox.
+  The theme-toggle's checkbox never hit this because it's
+  `.visually-hidden`, which happened to mask the bug until the Modelling
+  phase checkboxes (2026-09-20) made it visible.
 - **Theme**: defaults to OS `prefers-color-scheme`; the toggle switch
   (top-right of the header, `js/theme.js`) sets an explicit
   `data-theme="light"|"dark"` on `<html>`, stored in `localStorage`
@@ -86,6 +94,18 @@ Notes:
   twice — once under `@media (prefers-color-scheme: dark)` guarded by
   `:root:not([data-theme="light"])`, once under `:root[data-theme="dark"]`
   — so an explicit choice always wins over the OS setting.
+- **Header layout** (2026-09-20 fix): with 6 nav items plus the
+  connection pill/buttons/theme toggle, the header row no longer
+  reliably fits on one line at common desktop widths (was the actual
+  cause of the toggle seeming to not exist — it was overflowing/getting
+  clipped, not missing). Fixed by giving `.app-header` `min-height`
+  instead of a fixed `height`, and `.app-header-inner`
+  `flex-wrap: wrap` with `.app-nav`/`.app-header-actions` both
+  `flex: none` (so each wraps as a whole unit rather than squeezing) and
+  `.app-header-actions { margin-left: auto }` (stays right-aligned
+  whichever line it lands on). Verified at 1280px (one line) and 1000px
+  (wraps to two, toggle still fully visible) — if the header ever looks
+  broken again, check this before assuming an element vanished.
 
 **Data storage** (`js/storage/`): **File System Access API** — the user
 picks a folder once via `showDirectoryPicker`, the app reads/writes a
@@ -200,15 +220,28 @@ least one row in `RiskRegister`), 4) run modelling — done once
 below). Each step's UI is gated behind the previous one via
 `[data-requires-step]`/`[data-step-locked-notice]` (see
 `setup-sequence.js` above) — never silently hidden without explanation.
+The **stepper widget itself** (not the gating) only renders on
+`index.html` (2026-09-20) — every other page still has the gating
+attributes but no `[data-setup-sequence]` container. Once all 4 steps
+are done, a "Dismiss" button appears; dismissing sets
+`localStorage['setup-sequence-dismissed']`, which hides the widget going
+forward — but the moment any step becomes un-done again (e.g. a
+different, emptier folder gets connected), the flag is cleared
+automatically so the guidance reappears rather than staying silently
+gone.
 
 **Monte Carlo modelling** (`js/storage/monte-carlo.js`, pure/testable;
 UI in `js/pages/modelling.js`): simulates only **Regular Pooled Record**
-risks (`pooledRecords()` filters by `recordType`), for a chosen phase
-(pre/post, user-selected — no strong default convention exists for
-this, so both are offered rather than guessing) and trial count
-(1,000/5,000/10,000). Per trial, per pooled record: Likelihood is
-*itself sampled* from its own Min/ML/Max distribution (not collapsed to
-its expected value first) and compared against a fresh uniform draw to
+risks (`pooledRecords()` filters by `recordType`). Phase is chosen via
+two checkboxes, not a single-select — **Post-mitigation is preselected**
+by default (2026-09-20; the user picked this over Pre after being asked
+to offer both rather than guess), at least one must stay checked
+(enforced by re-checking the box if an uncheck would leave zero
+selected), and **both can be selected at once**, running two independent
+simulations that render as two overlaid series. Trial count: 1,000/
+5,000/10,000. Per trial, per pooled record: Likelihood is *itself
+sampled* from its own Min/ML/Max distribution (not collapsed to its
+expected value first) and compared against a fresh uniform draw to
 decide whether the risk "occurs" that trial; if it occurs, Direct Cost
 and Knock On are independently sampled (`sampleDistribution` — inverse-
 CDF for triangular, linear for uniform, constant for single-point) and
@@ -219,7 +252,32 @@ cases (always-occurs, never-occurs) and statistical ones (50% likelihood
 re-deriving.
 Output: `summarize()` returns Min, P05–P50 in steps of 5, Max (exactly
 the table the user asked for — deliberately stops at P50/median, not
-P100). `curvePoints()` subsamples to ≤200 points for the S-curve so a
+P100), one row per selected phase when both are run.
+
+**Modelling's chart is a histogram + fitted normal ("bell") curve**
+(`js/charts/distribution-chart.js`), not cumulative (changed from an
+S-curve 2026-09-20 — the user explicitly wants a normal-shaped
+distribution here). `histogram()` bins onto a **shared** domain/bin-edge
+set (`monte-carlo.js`, `BIN_COUNT = 30` in `modelling.js`) computed
+across *all* selected phases together, so Pre and Post bars/curves align
+on the same x-axis for a meaningful overlay — binning each series to its
+own range independently would misalign them. The bell curve is a
+literal Gaussian fit (`normalPdf()` using the trial sample's own
+mean/stdev), scaled by `trials * binWidth` to match the histogram's
+count scale — it's a rough reference line, not a claim the underlying
+distribution is actually normal (a zero-inflated/skewed pooled-risk
+portfolio often won't look bell-shaped, and that's expected, not a bug).
+Colors are the user's explicit choice — red (`--color-risk-high`) for
+Pre, green (`--color-risk-low`) for Post — which is a real accessibility
+concern (red/green is the classic color-blind-unsafe pairing per the
+dataviz skill), mitigated with a secondary encoding: Post is always
+dashed (bars and curve), Pre always solid, plus a legend whenever both
+are shown. **The S-curve (`js/charts/s-curve.js`) still exists** and is
+used by **Contingency only** — a cumulative view is what "what confidence
+does my budget give me" actually needs; Modelling and Contingency
+intentionally use two different chart types for two different questions.
+
+`curvePoints()` subsamples to ≤200 points for the S-curve so a
 10k-trial run doesn't render 10k SVG points. The S-curve is a single-
 series line chart (no legend needed per the dataviz skill's rule for
 single series), using `--color-primary-alt` (already dark-mode-themed
@@ -229,26 +287,33 @@ fallback. Every run persists `lastModelledAt`/`lastModelledTrials`/
 `lastModelledResultsJson` to the workbook's `Settings` sheet via
 `updateSettings()` — this marks setup-sequence step 4 done, and is what
 the Contingency page reads rather than re-running the simulation.
-`lastModelledResultsJson` holds `{ phase, summary, curve }`: `curve` is
-`curvePoints(sorted, 200).map(p => p.value)` — the **subsampled** ≤200
-values, not the raw trials array. This matters: an xlsx cell caps out
-around 32,767 characters, and 10,000 raw trial numbers as JSON would
-exceed that. `js/charts/s-curve.js` (shared by Modelling and
-Contingency) re-derives cumulative % from array *position*, so feeding
-it these 200 already-sorted, evenly-spaced values reproduces the same
-curve shape without needing the full trial data.
+`lastModelledResultsJson` holds `{ phases: ["pre"|"post", ...],
+results: { pre?: {summary, curve, mean, stdev}, post?: {...} } }` (v2
+schema, 2026-09-20 — was flat `{phase, summary, curve}` before dual-phase
+support existed; nothing reads the old shape anymore since this app has
+no real users yet). `curve` is `curvePoints(sorted, 200).map(p =>
+p.value)` per phase — the **subsampled** ≤200 values, not the raw
+trials array. This matters: an xlsx cell caps out around 32,767
+characters, and 10,000 raw trial numbers as JSON would exceed that.
+`js/charts/s-curve.js` re-derives cumulative % from array *position*,
+so feeding it these 200 already-sorted, evenly-spaced values reproduces
+the same curve shape without needing the full trial data.
 
 **Contingency page** (`contingency.html`, `js/pages/contingency.js`):
 gated behind setup-sequence step 4 (reuses
 `[data-requires-step="4"]`/`[data-step-locked-notice="4"]` — a Monte
 Carlo run must exist). A single "Available Budget" number input,
 persisted to `settings.availableBudget` on `change` (blur/Enter, not
-per-keystroke). Once both a budget and a stored Monte Carlo run exist,
-shows: the S-curve with the budget as a second (red,
-`--color-danger`) reference line distinct from the median crosshair;
-a "Confidence Covered" reading — the highest of P05–P50 the budget
-meets or exceeds, walking `PERCENTILE_STEPS` ascending (there's no
-percentile above P50 to report against, by the user's own spec, so a
+per-keystroke). When the last run has both phases, a "Compare against"
+select appears (`resolveComparePhase()` — defaults to Post-mitigation,
+the residual risk left after response actions, which is what a
+budget more typically needs to cover; falls back to whichever single
+phase exists). Once both a budget and a stored Monte Carlo run exist,
+shows: the S-curve for the chosen phase with the budget as a second
+(red, `--color-danger`) reference line distinct from the median
+crosshair; a "Confidence Covered" reading — the highest of P05–P50 the
+budget meets or exceeds, walking `PERCENTILE_STEPS` ascending (there's
+no percentile above P50 to report against, by the user's own spec, so a
 budget above the modelled max just says "covers full modelled range"
 rather than inventing a number); and a comparison table (modelled cost
 / covered? / headroom) for Min, each P05–P50, and Max.
@@ -273,9 +338,13 @@ sequence + Modelling tab scaffold (done); 5) assessment model v2 —
 Likelihood as %, Total Cost/Direct Cost/Knock On grouping, QHSE,
 declared Max fields, layout (done, 2026-09-20); 6) Monte Carlo modelling
 engine + S-curve + percentile table (done, 2026-09-20); 7) Contingency
-page + Risk Reporting nav rename (done, 2026-09-20); 8) Risk Reporting
-itself (list + top-N ranking of EMV/Max Total Cost/Schedule Exposure/
-Max Schedule) — not started, still the one empty-state page left.
+page + Risk Reporting nav rename (done, 2026-09-20); 8) header
+overflow/theme-toggle-visibility fix, checkbox styling fix,
+setup-sequence Home-only + dismissible, Modelling dual-phase (Pre/Post
+checkboxes, Post default) + histogram/bell-curve chart, "Connected to
+Folder:" label (done, 2026-09-20); 9) Risk Reporting itself (list +
+top-N ranking of EMV/Max Total Cost/Schedule Exposure/Max Schedule) —
+not started, still the one empty-state page left.
 
 ## Local dev server
 
