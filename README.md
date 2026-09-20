@@ -13,7 +13,11 @@ actual tool is designed and built.
 ```
 index.html            Landing page
 styles.css             Landing-page styles
-CNAME, robots.txt, sitemap.xml   Hosting + crawl metadata
+CNAME, robots.txt, sitemap.xml   Crawl metadata (CNAME is a leftover
+                                  from an earlier GitHub Pages setup;
+                                  hosting is now Cloudflare Pages, whose
+                                  domain binding lives in the dashboard,
+                                  not this file)
 scripts/auto-deploy.sh Automated commit -> PR -> merge -> publish flow
 ```
 
@@ -33,7 +37,7 @@ Or, in Claude Code, use the `static-site` launch config
 
 ## Deployment
 
-Served via GitHub Pages on the `riskandcontingency.com` domain (`CNAME`).
+Served via Cloudflare Pages on the `riskandcontingency.com` domain.
 Pushing to `main` publishes automatically — no build step.
 
 ## License

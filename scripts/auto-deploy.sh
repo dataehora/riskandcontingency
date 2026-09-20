@@ -47,4 +47,4 @@ git checkout main
 git branch -D "$BRANCH" 2>/dev/null || true
 git pull --ff-only origin main
 
-echo "auto-deploy: published to main — GitHub Pages will build in ~1 min."
+echo "auto-deploy: published to main — Cloudflare Pages will build in ~1 min."
