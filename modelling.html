@@ -49,7 +49,7 @@
     <div class="page-header">
       <span class="eyebrow">Modelling</span>
       <h1>Run the risk model</h1>
-      <p>Step 4 of the setup sequence — roll up EMV and exposure across the risk register once your records are in place.</p>
+      <p>Step 4 of the setup sequence — Monte Carlo simulation of Total Cost across every Regular Pooled Record risk, weighted by Likelihood.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
@@ -71,9 +71,44 @@
         <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before running the model. <a data-missing-step-link href="#">Go there &rarr;</a></p>
       </div>
 
-      <div class="empty-state" data-requires-step="3" hidden>
-        <h3>Modelling is coming in a future update</h3>
-        <p>Your risk register has records ready. The modelling run itself — rolling up EMV and exposure across the register — hasn't been built yet.</p>
+      <div data-requires-step="3" hidden>
+        <div class="card" style="margin-bottom: var(--space-5);">
+          <h3>Run Monte Carlo simulation</h3>
+          <p>Simulates the Total Cost (Direct Cost + Knock On) of every <strong>Regular Pooled Record</strong> risk, weighted by its assessed Likelihood, across many trials to produce a cost distribution.</p>
+          <p data-pooled-count style="font-size:0.85rem;"></p>
+          <div class="form-grid" style="max-width: 480px;">
+            <div>
+              <label for="mc-phase">Assessment</label>
+              <select id="mc-phase" data-mc-phase>
+                <option value="pre">Pre-mitigation</option>
+                <option value="post">Post-mitigation</option>
+              </select>
+            </div>
+            <div>
+              <label for="mc-trials">Simulations</label>
+              <select id="mc-trials" data-mc-trials>
+                <option value="1000">1,000</option>
+                <option value="5000" selected>5,000</option>
+                <option value="10000">10,000</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="button" data-run-simulation style="margin-top: var(--space-4);">Run simulation</button>
+          <p class="dist-feedback" data-mc-empty-notice hidden style="margin-top: var(--space-3);">No Regular Pooled Record risks yet — add or change a risk record's Record Type in the Risk Register to include it in modelling.</p>
+        </div>
+
+        <div data-mc-results hidden>
+          <div class="card" style="margin-bottom: var(--space-5);">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap: var(--space-2);">
+              <h3 style="margin-bottom:0;">Results</h3>
+              <span style="font-size:0.8rem; color: var(--color-text-subtle);" data-mc-run-meta></span>
+            </div>
+            <div data-mc-chart style="margin-top: var(--space-4);"></div>
+            <div style="overflow-x:auto; margin-top: var(--space-5);">
+              <table class="data-table" data-mc-table></table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -86,5 +121,6 @@
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>
+  <script type="module" src="/js/pages/modelling.js"></script>
 </body>
 </html>

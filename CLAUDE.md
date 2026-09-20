@@ -191,15 +191,43 @@ Exploit/Enhance/Share/Monitor-Accept (`STRATEGIES` in
 `js/pages/risk-register.js`).
 
 **Setup sequence**: 1) select folder, 2) create config file (RBS/Impact
-Areas/Owners — "done" once any of the three has at least one entry,
+Areas/Owners/QHSE Levels — "done" once any has at least one entry,
 whether hand-added or from the template), 3) create risk record (at
-least one row in `RiskRegister`), 4) run modelling (not build-able yet
-— no modelling engine exists, so this step can never complete; the
-gating logic for it is in place and correct, it's just permanently
-"locked" until that engine ships). Each step's UI is gated behind the
-previous one via `[data-requires-step]`/`[data-step-locked-notice]`
-(see `setup-sequence.js` above) — never silently hidden without
-explanation.
+least one row in `RiskRegister`), 4) run modelling — done once
+`settings.lastModelledAt` is set (written by every simulation run, see
+below). Each step's UI is gated behind the previous one via
+`[data-requires-step]`/`[data-step-locked-notice]` (see
+`setup-sequence.js` above) — never silently hidden without explanation.
+
+**Monte Carlo modelling** (`js/storage/monte-carlo.js`, pure/testable;
+UI in `js/pages/modelling.js`): simulates only **Regular Pooled Record**
+risks (`pooledRecords()` filters by `recordType`), for a chosen phase
+(pre/post, user-selected — no strong default convention exists for
+this, so both are offered rather than guessing) and trial count
+(1,000/5,000/10,000). Per trial, per pooled record: Likelihood is
+*itself sampled* from its own Min/ML/Max distribution (not collapsed to
+its expected value first) and compared against a fresh uniform draw to
+decide whether the risk "occurs" that trial; if it occurs, Direct Cost
+and Knock On are independently sampled (`sampleDistribution` — inverse-
+CDF for triangular, linear for uniform, constant for single-point) and
+summed into that trial's portfolio total. Verified against deterministic
+cases (always-occurs, never-occurs) and statistical ones (50% likelihood
+→ ~50% nonzero trials; triangular sample mean converges to
+(min+ml+max)/3) — see test transcript in this session if it needs
+re-deriving.
+Output: `summarize()` returns Min, P05–P50 in steps of 5, Max (exactly
+the table the user asked for — deliberately stops at P50/median, not
+P100). `curvePoints()` subsamples to ≤200 points for the S-curve so a
+10k-trial run doesn't render 10k SVG points. The S-curve is a single-
+series line chart (no legend needed per the dataviz skill's rule for
+single series), using `--color-primary-alt` (already dark-mode-themed
+in `tokens.css`) for the line, with a hover crosshair+tooltip and the
+percentile table always shown alongside as the accessible/tabular
+fallback. Every run persists `lastModelledAt`/`lastModelledTrials`/
+`lastModelledResultsJson` (the phase + full summary, as JSON) to the
+workbook's `Settings` sheet via `updateSettings()` — this is what marks
+setup-sequence step 4 done, and what the Contingency page (not yet
+built) should read rather than re-running the simulation.
 
 **Testing note**: the whole connected-state flow (Configuration CRUD,
 Risk Register save/edit/delete, EMV) was verified end-to-end in-browser
@@ -220,9 +248,9 @@ form + validation + EMV + response actions (done); 4) dark mode + setup
 sequence + Modelling tab scaffold (done); 5) assessment model v2 —
 Likelihood as %, Total Cost/Direct Cost/Knock On grouping, QHSE,
 declared Max fields, layout (done, 2026-09-20); 6) Monte Carlo modelling
-engine — not started; 7) Risk Reporting (list + top-N ranking) — not
-started; 8) Contingency (available budget vs. Monte Carlo results) —
-not started.
+engine + S-curve + percentile table (done, 2026-09-20); 7) Risk
+Reporting (list + top-N ranking) — not started; 8) Contingency
+(available budget vs. Monte Carlo results) — not started.
 
 ## Local dev server
 
