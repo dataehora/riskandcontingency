@@ -8,21 +8,24 @@ import {
   createLocalAction,
   validateDistribution,
   calculateAssessment,
+  totalCostRange,
   DIMENSIONS,
 } from "../storage/register-store.js";
+import { RECORD_TYPES } from "../storage/workbook.js";
 
 const DIMENSION_LABELS = {
   likelihood: "Likelihood",
-  costImpact: "Cost Impact",
+  costImpact: "Direct Cost",
   knockOn: "Knock On",
-  scheduleImpact: "Schedule Impact",
+  scheduleImpact: "Schedule",
 };
 const DIMENSION_UNITS = {
-  likelihood: "probability, 0–1",
+  likelihood: "%, 1–100",
   costImpact: "currency",
   knockOn: "currency, indirect/downstream cost",
   scheduleImpact: "days",
 };
+const DIMENSION_BOUNDS = { likelihood: { min: 1, max: 100 } };
 // Required in Pre-mitigation: a risk isn't really assessed without these.
 // Knock On and every Post-mitigation group are optional (a new risk may
 // not have mitigation assessed yet, or no knock-on effect at all).
@@ -110,6 +113,7 @@ function populateOptions(select, items, placeholder, value) {
 function distGroupHtml(phase, dim) {
   const key = `${phase}:${dim}`;
   const required = REQUIRED_GROUPS.has(key);
+  const showsMax = dim === "costImpact" || dim === "knockOn" || dim === "scheduleImpact";
   return `
     <div class="dist-group" data-phase="${phase}" data-dim="${dim}">
       <div class="dist-group-header">
@@ -122,6 +126,19 @@ function distGroupHtml(phase, dim) {
         <label>Max<input type="number" step="any" data-cell="max"></label>
       </div>
       <div class="dist-feedback" data-feedback></div>
+      ${showsMax ? `<div class="dist-computed" data-computed></div>` : ""}
+    </div>
+  `;
+}
+
+function qhseGroupHtml(phase) {
+  return `
+    <div class="qhse-group" data-phase="${phase}">
+      <div class="dist-group-header">
+        <h4>QHSE</h4>
+        <span class="dist-group-unit">qualitative</span>
+      </div>
+      <select data-qhse-select></select>
     </div>
   `;
 }
@@ -136,24 +153,42 @@ function assessmentSectionHtml(phase) {
     <div class="card" style="margin-bottom: var(--space-5);" data-assessment-phase="${phase}">
       <h3>${title}</h3>
       <p>${hint}</p>
-      ${DIMENSIONS.map((dim) => distGroupHtml(phase, dim)).join("")}
-      <div class="assessment-summary">
-        <div class="stat-tile">
-          <div class="stat-label">EMV</div>
-          <div class="stat-value" data-summary="emv">—</div>
+
+      ${distGroupHtml(phase, "likelihood")}
+
+      <div class="total-cost-block">
+        <div class="dist-group-header">
+          <h4>Total Cost</h4>
+          <span class="dist-group-unit">Direct Cost + Knock On, computed</span>
         </div>
-        <div class="stat-tile">
-          <div class="stat-label">Max Cost Impact</div>
-          <div class="stat-value" data-summary="maxCostImpact">—</div>
+        <div class="assessment-summary">
+          <div class="stat-tile">
+            <div class="stat-label">Min</div>
+            <div class="stat-value" data-total-cost="min">—</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-label">Expected</div>
+            <div class="stat-value" data-total-cost="ev">—</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-label">Max</div>
+            <div class="stat-value" data-total-cost="max">—</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-label">EMV</div>
+            <div class="stat-value" data-summary="emv">—</div>
+          </div>
         </div>
-        <div class="stat-tile">
-          <div class="stat-label">Schedule Exposure</div>
-          <div class="stat-value" data-summary="scheduleExposure">—</div>
+
+        <div class="indented-group">
+          ${distGroupHtml(phase, "costImpact")}
+          ${distGroupHtml(phase, "knockOn")}
         </div>
-        <div class="stat-tile">
-          <div class="stat-label">Schedule Max Impact</div>
-          <div class="stat-value" data-summary="scheduleMaxImpact">—</div>
-        </div>
+      </div>
+
+      <div class="secondary-assessments-box">
+        ${distGroupHtml(phase, "scheduleImpact")}
+        ${qhseGroupHtml(phase)}
       </div>
     </div>
   `;
@@ -170,7 +205,7 @@ function updateDistGroup(groupEl) {
   const min = readCell(groupEl.querySelector('[data-cell="min"]'));
   const ml = readCell(groupEl.querySelector('[data-cell="ml"]'));
   const max = readCell(groupEl.querySelector('[data-cell="max"]'));
-  const result = validateDistribution({ min, ml, max });
+  const result = validateDistribution({ min, ml, max }, DIMENSION_BOUNDS[dim]);
   const key = `${phase}:${dim}`;
   const required = REQUIRED_GROUPS.has(key);
 
@@ -189,6 +224,15 @@ function updateDistGroup(groupEl) {
     feedback.dataset.valid = "false";
   }
 
+  const computedEl = groupEl.querySelector("[data-computed]");
+  if (computedEl) {
+    const computed = calculateAssessment(draft[phase]);
+    if (dim === "costImpact") computedEl.textContent = `Max Direct Cost: ${fmtNumber(computed.maxDirectCost)}`;
+    if (dim === "knockOn") computedEl.textContent = `Max Knock On: ${fmtNumber(computed.maxKnockOn)}`;
+    if (dim === "scheduleImpact")
+      computedEl.textContent = `Max Schedule: ${fmtNumber(computed.maxSchedule)} · Schedule Exposure: ${fmtNumber(computed.scheduleExposure)}`;
+  }
+
   updateSummary(phase);
 }
 
@@ -196,10 +240,11 @@ function updateSummary(phase) {
   const section = document.querySelector(`[data-assessment-phase="${phase}"]`);
   if (!section) return;
   const computed = calculateAssessment(draft[phase]);
+  const range = totalCostRange(draft[phase]);
   section.querySelector('[data-summary="emv"]').textContent = fmtNumber(computed.emv);
-  section.querySelector('[data-summary="maxCostImpact"]').textContent = fmtNumber(computed.maxCostImpact);
-  section.querySelector('[data-summary="scheduleExposure"]').textContent = fmtNumber(computed.scheduleExposure);
-  section.querySelector('[data-summary="scheduleMaxImpact"]').textContent = fmtNumber(computed.scheduleMaxImpact);
+  section.querySelector('[data-total-cost="min"]').textContent = fmtNumber(range.min);
+  section.querySelector('[data-total-cost="ev"]').textContent = fmtNumber(range.ev);
+  section.querySelector('[data-total-cost="max"]').textContent = fmtNumber(range.max);
 }
 
 function fillDistGroup(groupEl, dist) {
@@ -207,6 +252,16 @@ function fillDistGroup(groupEl, dist) {
   groupEl.querySelector('[data-cell="ml"]').value = dist?.ml ?? "";
   groupEl.querySelector('[data-cell="max"]').value = dist?.max ?? "";
   updateDistGroup(groupEl);
+}
+
+function fillQhseGroup(phase) {
+  const groupEl = document.querySelector(`.qhse-group[data-phase="${phase}"]`);
+  if (!groupEl) return;
+  const select = groupEl.querySelector("[data-qhse-select]");
+  populateOptions(select, currentState.qhseLevels, "Select QHSE level…", draft[phase].qhse);
+  select.addEventListener("change", () => {
+    draft[phase].qhse = select.value || null;
+  });
 }
 
 // --- Response actions ------------------------------------------------
@@ -294,6 +349,7 @@ function renderForm() {
       const groupEl = document.querySelector(`.dist-group[data-phase="${phase}"][data-dim="${dim}"]`);
       fillDistGroup(groupEl, draft[phase][dim]);
     }
+    fillQhseGroup(phase);
   }
 
   renderActions();
@@ -352,7 +408,7 @@ async function submitForm(event) {
   }
   if (requiredGroupsMissing()) {
     errorBox.textContent =
-      "Pre-mitigation Likelihood, Cost Impact and Schedule Impact are required.";
+      "Pre-mitigation Likelihood, Direct Cost and Schedule are required.";
     errorBox.hidden = false;
     return;
   }
@@ -367,8 +423,15 @@ async function submitForm(event) {
   showList();
 }
 
+function populateRecordTypeOptions() {
+  const select = document.querySelector('[data-field="recordType"]');
+  if (!select) return;
+  select.innerHTML = RECORD_TYPES.map((t) => `<option value="${t}">${t}</option>`).join("");
+}
+
 function wire() {
   const { form } = els();
+  populateRecordTypeOptions();
   document.querySelector("[data-new-record]")?.addEventListener("click", startNewRecord);
   document.querySelectorAll("[data-load-template]").forEach((btn) => {
     btn.addEventListener("click", async () => {

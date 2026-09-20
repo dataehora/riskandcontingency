@@ -10,7 +10,9 @@ import {
   riskRecordTemplates,
   validateDistribution,
   calculateAssessment,
+  totalCostRange,
   nextId,
+  DIMENSIONS,
 } from "./workbook.js";
 import {
   getConnectionState,
@@ -18,7 +20,6 @@ import {
   getDirectoryHandle,
 } from "./folder-connection.js";
 
-const DIMENSIONS = ["likelihood", "costImpact", "knockOn", "scheduleImpact"];
 const PHASES = ["pre", "post"];
 
 let state = {
@@ -26,7 +27,9 @@ let state = {
   rbs: [],
   impactAreas: [],
   owners: [],
+  qhseLevels: [],
   riskRecords: [],
+  settings: {},
 };
 
 const listeners = new Set();
@@ -66,11 +69,14 @@ function rowToRecord(row, actionsRows) {
     pre[dim] = rowToDist(row, `pre_${dim}`);
     post[dim] = rowToDist(row, `post_${dim}`);
   }
+  pre.qhse = row.pre_qhse || null;
+  post.qhse = row.post_qhse || null;
+
   return {
     id: row.id,
     title: row.title || "",
     riskType: row.riskType || "Threat",
-    recordType: row.recordType || "Pooled",
+    recordType: row.recordType || "Regular Pooled Record",
     description: row.description || "",
     cause: row.cause || "",
     effect: row.effect || "",
@@ -113,14 +119,20 @@ function recordToRow(record) {
     rbsCategory: record.rbsCategory,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+    pre_qhse: record.pre.qhse ?? "",
+    post_qhse: record.post.qhse ?? "",
     pre_emv: preCalc.emv,
-    pre_maxCostImpact: preCalc.maxCostImpact,
     pre_scheduleExposure: preCalc.scheduleExposure,
-    pre_scheduleMaxImpact: preCalc.scheduleMaxImpact,
+    pre_maxDirectCost: preCalc.maxDirectCost,
+    pre_maxKnockOn: preCalc.maxKnockOn,
+    pre_maxTotalCost: preCalc.maxTotalCost,
+    pre_maxSchedule: preCalc.maxSchedule,
     post_emv: postCalc.emv,
-    post_maxCostImpact: postCalc.maxCostImpact,
     post_scheduleExposure: postCalc.scheduleExposure,
-    post_scheduleMaxImpact: postCalc.scheduleMaxImpact,
+    post_maxDirectCost: postCalc.maxDirectCost,
+    post_maxKnockOn: postCalc.maxKnockOn,
+    post_maxTotalCost: postCalc.maxTotalCost,
+    post_maxSchedule: postCalc.maxSchedule,
   };
   for (const dim of DIMENSIONS) {
     Object.assign(row, distToRow(record.pre[dim] ?? emptyDist(), `pre_${dim}`));
@@ -142,8 +154,10 @@ async function persist() {
     rbs: state.rbs,
     impactAreas: state.impactAreas,
     owners: state.owners,
+    qhseLevels: state.qhseLevels,
     riskRecords: state.riskRecords.map(recordToRow),
     actions: actionsToRows(state.riskRecords),
+    settings: state.settings,
   });
 }
 
@@ -159,7 +173,9 @@ async function load() {
       rbs: data.rbs,
       impactAreas: data.impactAreas,
       owners: data.owners,
+      qhseLevels: data.qhseLevels,
       riskRecords: data.riskRecords.map((row) => rowToRecord(row, data.actions)),
+      settings: data.settings ?? {},
     };
   } catch (err) {
     state = { ...state, status: "error" };
@@ -171,7 +187,15 @@ onConnectionChange((connection) => {
   if (connection.status === "connected") {
     load();
   } else if (state.status !== "idle") {
-    state = { status: "idle", rbs: [], impactAreas: [], owners: [], riskRecords: [] };
+    state = {
+      status: "idle",
+      rbs: [],
+      impactAreas: [],
+      owners: [],
+      qhseLevels: [],
+      riskRecords: [],
+      settings: {},
+    };
     notify();
   }
 });
@@ -188,7 +212,7 @@ function namedListMutators(key) {
   return {
     async add(name) {
       const list = state[key];
-      const id = nextId(list, key.slice(0, 3));
+      const id = nextId(list, key.slice(0, 4));
       state = { ...state, [key]: [...list, { id, name }] };
       notify();
       await persist();
@@ -204,10 +228,18 @@ function namedListMutators(key) {
 export const rbsList = namedListMutators("rbs");
 export const impactAreaList = namedListMutators("impactAreas");
 export const ownerList = namedListMutators("owners");
+export const qhseLevelList = namedListMutators("qhseLevels");
+
+// --- Settings (available budget, last modelling run) -------------------
+export async function updateSettings(patch) {
+  state = { ...state, settings: { ...state.settings, ...patch } };
+  notify();
+  await persist();
+}
 
 // --- Risk records -------------------------------------------------------
 function blankAssessment() {
-  const a = {};
+  const a = { qhse: null };
   for (const dim of DIMENSIONS) a[dim] = emptyDist();
   return a;
 }
@@ -217,7 +249,7 @@ export function blankRiskRecord() {
     id: null,
     title: "",
     riskType: "Threat",
-    recordType: "Pooled",
+    recordType: "Regular Pooled Record",
     description: "",
     cause: "",
     effect: "",
@@ -301,7 +333,7 @@ export function createLocalAction() {
   };
 }
 
-export { validateDistribution, calculateAssessment, DIMENSIONS, PHASES };
+export { validateDistribution, calculateAssessment, totalCostRange, DIMENSIONS, PHASES };
 
 // Re-run the connection check in case the folder was already connected
 // before this module loaded (module load order across scripts on a page).

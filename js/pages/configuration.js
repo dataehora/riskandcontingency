@@ -4,9 +4,15 @@ import {
   rbsList,
   impactAreaList,
   ownerList,
+  qhseLevelList,
 } from "../storage/register-store.js";
 
-const LISTS = { rbs: rbsList, impactAreas: impactAreaList, owners: ownerList };
+const LISTS = {
+  rbs: rbsList,
+  impactAreas: impactAreaList,
+  owners: ownerList,
+  qhseLevels: qhseLevelList,
+};
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -20,7 +26,8 @@ function render(state) {
   const isEmpty =
     state.rbs.length === 0 &&
     state.impactAreas.length === 0 &&
-    state.owners.length === 0;
+    state.owners.length === 0 &&
+    state.qhseLevels.length === 0;
   const ready = state.status === "ready";
 
   if (emptyState) emptyState.hidden = !ready || !isEmpty;
