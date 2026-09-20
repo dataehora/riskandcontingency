@@ -29,6 +29,12 @@ echo "auto-deploy: creating branch ${BRANCH}"
 
 # ------------------------------------------------------------------ 2. branch + commit
 git checkout -b "$BRANCH"
+
+# Bump the version marker on every deploy so the in-app "update
+# available" check (js/version-check.js) can detect a fresh deployment
+# even in a browser tab that's been left open since before it shipped.
+printf '{"version":"%s"}\n' "$(date -u +%Y%m%dT%H%M%SZ)" > version.json
+
 git add -A
 git commit -m "$(printf '%s\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>' "$MSG")"
 
