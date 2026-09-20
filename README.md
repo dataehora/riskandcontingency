@@ -2,9 +2,10 @@
 
 Web-based project risk and contingency management: create and assess
 risk records under a project's Risk Breakdown Structure, calculate EMV
-pre- and post-mitigation, and report on exposure — reading and writing
-directly to an Excel risk register in a folder on your own machine. No
-accounts, no cloud storage, no server.
+pre- and post-mitigation, run Monte Carlo simulation across pooled
+risks, and compare available budget to the modelled cost distribution —
+reading and writing directly to an Excel risk register in a folder on
+your own machine. No accounts, no cloud storage, no server.
 
 Live at [riskandcontingency.com](https://riskandcontingency.com).
 
@@ -19,15 +20,17 @@ current build status and architecture.
 ```
 index.html                        Home / dashboard
 risk-register.html                Risk record creation & management
-modelling.html                    Run the risk model (tab scaffolded, engine not built yet)
-reporting.html                    Risk list & top-N exposure ranking (not built yet)
-configuration.html                RBS / impact area / owner setup
+modelling.html                    Monte Carlo simulation of Total Cost (Regular Pooled Records)
+reporting.html                    Risk Reporting: list & top-N exposure ranking (not built yet)
+contingency.html                  Available budget vs. Monte Carlo results
+configuration.html                RBS / impact area / owner / QHSE level setup
 css/                               Design system (tokens, base, components, shell)
 js/shell.js                       Shared nav + connection-status wiring
 js/theme.js                       Dark/light toggle
 js/setup-sequence.js              4-step setup stepper + per-page gating
-js/storage/                       File System Access folder connection, .xlsx read/write, register state
-js/pages/                         Per-page UI logic (configuration.js, risk-register.js)
+js/storage/                       File System Access folder connection, .xlsx read/write, register state, Monte Carlo engine
+js/charts/s-curve.js              Shared S-curve chart (used by Modelling + Contingency)
+js/pages/                         Per-page UI logic (configuration, risk-register, modelling, contingency)
 js/vendor/                        Vendored SheetJS (xlsx.full.min.js), no CDN dependency
 CNAME, robots.txt, sitemap.xml    Crawl metadata (CNAME is a leftover
                                    from an earlier GitHub Pages setup;
