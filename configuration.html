@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configuration — Risk and Contingency</title>
+  <meta name="description" content="Set up the Risk Breakdown Structure, impact areas and risk owners per project.">
+  <link rel="canonical" href="https://riskandcontingency.com/configuration.html">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/shell.css">
+</head>
+<body data-page="configuration">
+  <header class="app-header">
+    <div class="app-header-inner">
+      <a class="app-brand" href="/index.html">
+        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
+        Risk &amp; Contingency
+      </a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary">
+        <a href="/index.html" data-nav="home">Home</a>
+        <a href="/working-space.html" data-nav="working-space">Working Space</a>
+        <a href="/reporting.html" data-nav="reporting">Reporting</a>
+        <a href="/configuration.html" data-nav="configuration">Configuration</a>
+      </nav>
+      <div class="app-header-actions">
+        <span class="status-pill" data-connection-pill data-state="checking">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span data-connection-label>Checking&hellip;</span>
+        </span>
+        <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="page-header">
+      <span class="eyebrow">Configuration &amp; Data Management</span>
+      <h1>Projects &amp; reference data</h1>
+      <p>Set up the Risk Breakdown Structure per project, impact areas, and the list of risk owners used across the Working Space.</p>
+    </div>
+
+    <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
+      <span aria-hidden="true">&#9888;&#65039;</span>
+      <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
+    </div>
+
+    <div class="empty-state" data-requires-no-connection>
+      <h3>Connect a folder to get started</h3>
+      <p>Project setup is stored in the Excel workbook in your connected folder.</p>
+      <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
+    </div>
+
+    <div class="empty-state" data-requires-connection hidden>
+      <h3>Project setup is coming in the next update</h3>
+      <p>Your folder is connected. Risk Breakdown Structure, impact area and risk owner setup will appear here next.</p>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+  </footer>
+
+  <script type="module" src="/js/shell.js"></script>
+</body>
+</html>

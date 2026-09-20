@@ -10,11 +10,12 @@ layout — this file is developer/agent context that doesn't belong there.
 
 ## Status
 
-Greenfield. Only a placeholder landing page (`index.html` /
-`styles.css`) exists so far — the actual risk/contingency management
-tool hasn't been designed yet. Treat any architecture notes below as
-provisional until real features land; update this file as the shape of
-the project becomes clear.
+Real build underway (started 2026-09-20). Landed so far: design system
+(`css/tokens.css`, `base.css`, `components.css`, `shell.css`), the app
+shell/navigation across the 4 pages, and the File System Access folder
+connection (`js/storage/`). The three feature areas below are still
+empty-state placeholders — Working Space, Reporting and Configuration
+CRUD have not landed yet. Update this section as each area ships.
 
 ## Stack
 
@@ -29,6 +30,80 @@ the project becomes clear.
   the same Cloudflare account, Cloudflare manages the DNS record for
   the custom domain automatically — no manual DNS records needed in
   the Cloudflare DNS tab for this.
+
+## Architecture
+
+The app is a set of static, server-less pages sharing one design system
+and one storage layer — no SPA framework, no router, no bundler.
+
+**Pages** (flat, root-level, no build step so no pretty-URL routing):
+`index.html` (home/dashboard), `working-space.html`, `reporting.html`,
+`configuration.html`. Each page repeats the same header/footer markup
+(no templating available) and loads the same four stylesheets from
+`css/` plus `js/shell.js` as a `type="module"` script.
+
+**Design system** (`css/`): `tokens.css` (CSS custom properties — color,
+spacing, type — with a `prefers-color-scheme: dark` override block),
+`base.css` (reset + typography), `components.css` (buttons, cards,
+tables, badges, forms, empty states), `shell.css` (header/nav layout).
+Visual direction: professional risk/engineering-consulting aesthetic
+(deep navy `--color-primary`, muted gold `--color-accent`, red/amber/
+green for risk severity), loosely inspired by Oracle Primavera Cloud's
+layout conventions — not a clone, no Oracle branding/colors reused.
+Note: any element hosting both an author `display` rule (e.g. `.btn`,
+`.notice`) and the `hidden` attribute needs the global
+`[hidden] { display: none !important; }` rule in `base.css` to actually
+hide — same-specificity author rules otherwise beat the UA stylesheet.
+
+**Data storage** (`js/storage/`): the standing decision (confirmed with
+the user 2026-09-20) is the **File System Access API** — the user picks
+a folder once via `showDirectoryPicker`, and the app reads/writes an
+Excel workbook in it directly. Pure client-side, no backend, consistent
+with the no-build-step static site. Trade-off accepted: Chromium only
+(Chrome/Edge/Opera) — no Firefox/Safari; `index.html` and every area
+page show an explicit unsupported-browser notice via
+`isFileSystemAccessSupported()` rather than failing silently.
+- `idb-kv.js`: tiny IndexedDB key/value wrapper, used only to persist
+  the chosen `FileSystemDirectoryHandle` across sessions (handles are
+  structured-cloneable in Chromium).
+- `folder-connection.js`: connect/reconnect/disconnect flow and
+  connection state (`checking` / `unsupported` / `disconnected` /
+  `reconnect` / `connected` / `error`), exposed via
+  `onConnectionChange(listener)`. `reconnect` exists because the
+  browser requires a fresh user gesture to re-grant permission each
+  session even when the folder handle itself is remembered.
+- `js/shell.js` wires this state to the DOM via data attributes any
+  page can use: `[data-connection-pill]`/`[data-connection-label]`
+  (status pill), `[data-connection-action]`/`[data-connection-disconnect]`
+  (buttons — supports multiple per page), `[data-requires-connection]`/
+  `[data-requires-no-connection]` (conditionally shown sections),
+  `[data-unsupported-notice]`.
+- **Not yet built**: actual `.xlsx` reading/writing. That needs a
+  vendored copy of [SheetJS](https://sheetjs.com) (MIT-licensed, kept
+  as a local file — no CDN dependency) plus the risk-record schema
+  below, planned for the PR that builds Configuration (simplest CRUD:
+  named lists) ahead of Working Space.
+
+**Domain model** (per the spec gathered 2026-09-20, not yet
+implemented): one Excel workbook per **Project**, each with its own
+Risk Breakdown Structure (RBS). A risk record carries owner, cause,
+description, effects, impact area, RBS category, and pre/post-mitigation
+likelihood & impact assessments. Each assessment is 3 input cells
+validated into exactly one of:
+- **Single point** — Most Likely (ML) only.
+- **Uniform** — Min and Max, with Max > Min.
+- **Triangular** — Min, ML, Max, strictly increasing.
+EMV is (re)calculated from the assessment on every change, pre- and
+post-mitigation. Response plans (mitigating/contingency actions) carry
+cost, action owner and due date. Reporting ranks records by EMV, max
+cost impact, schedule exposure, and max schedule impact (top-N,
+configurable N).
+
+**Build sequencing** (small reviewable PRs per the workflow convention
+below): 1) shell + design system + folder connection (done); 2)
+Configuration CRUD (RBS, impact areas, owners) + SheetJS wiring; 3)
+Working Space (risk record form, assessment validation, EMV, response
+plans); 4) Reporting (list + top-N ranking).
 
 ## Local dev server
 

@@ -1,24 +1,35 @@
 # Risk and Contingency
 
-Web-based project risk and contingency management.
+Web-based project risk and contingency management: create and assess
+risk records under a project's Risk Breakdown Structure, calculate EMV
+pre- and post-mitigation, and report on exposure — reading and writing
+directly to an Excel risk register in a folder on your own machine. No
+accounts, no cloud storage, no server.
 
 Live at [riskandcontingency.com](https://riskandcontingency.com).
 
 Static site: plain HTML, CSS and vanilla JavaScript — no build step, no
-dependencies, no accounts required. Currently a placeholder while the
-actual tool is designed and built.
+Node dependencies. Data persistence uses the browser's File System
+Access API against a folder the user picks (Chrome/Edge/Opera). The
+app is under active development — see [CLAUDE.md](CLAUDE.md) for the
+current build status and architecture.
 
 ## Repository layout
 
 ```
-index.html            Landing page
-styles.css             Landing-page styles
-CNAME, robots.txt, sitemap.xml   Crawl metadata (CNAME is a leftover
-                                  from an earlier GitHub Pages setup;
-                                  hosting is now Cloudflare Pages, whose
-                                  domain binding lives in the dashboard,
-                                  not this file)
-scripts/auto-deploy.sh Automated commit -> PR -> merge -> publish flow
+index.html                        Home / dashboard
+working-space.html                Risk record creation & management
+reporting.html                    Risk list & top-N exposure ranking
+configuration.html                Project / RBS / owner setup
+css/                               Design system (tokens, base, components, shell)
+js/shell.js                       Shared nav + connection-status wiring
+js/storage/                       File System Access folder connection + IndexedDB
+CNAME, robots.txt, sitemap.xml    Crawl metadata (CNAME is a leftover
+                                   from an earlier GitHub Pages setup;
+                                   hosting is now Cloudflare Pages, whose
+                                   domain binding lives in the dashboard,
+                                   not this file)
+scripts/auto-deploy.sh            Automated commit -> PR -> merge -> publish flow
 ```
 
 ## Development
