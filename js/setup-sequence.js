@@ -7,7 +7,7 @@ import { getConnectionState, onConnectionChange } from "./storage/folder-connect
 import { getRegisterState, onRegisterChange } from "./storage/register-store.js";
 
 export const STEPS = [
-  { key: "folder", label: "Select folder", page: "/index.html" },
+  { key: "folder", label: "Select folder", page: "/" },
   { key: "config", label: "Create config file", page: "/configuration.html" },
   { key: "risk-record", label: "Create risk record", page: "/risk-register.html" },
   { key: "modelling", label: "Run modelling", page: "/modelling.html" },
