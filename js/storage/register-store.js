@@ -15,6 +15,12 @@ import {
   expectedValue,
   nextId,
   DIMENSIONS,
+  RISK_ID_PATTERN,
+  riskIdError,
+  nextRiskId,
+  highestRiskNumber,
+  actionId,
+  actionNumber,
 } from "./workbook.js";
 import {
   getConnectionState,
@@ -40,6 +46,7 @@ function emptyState(status) {
     riskRecords: [],
     settings: {},
     conflict: false,
+    idRepairs: [],
   };
 }
 
@@ -98,6 +105,7 @@ function rowToRecord(row, actionsRows) {
     rbsCategory: row.rbsCategory || "",
     createdAt: row.createdAt || "",
     updatedAt: row.updatedAt || "",
+    lastActionNumber: Number(row.lastActionNumber) || 0,
     pre,
     post,
     computed: { pre: calculateAssessment(pre), post: calculateAssessment(post) },
@@ -132,6 +140,7 @@ function recordToRow(record) {
     rbsCategory: record.rbsCategory,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+    lastActionNumber: record.lastActionNumber ?? 0,
     pre_qhse: record.pre.qhse ?? "",
     post_qhse: record.post.qhse ?? "",
     pre_emv: preCalc.emv,
@@ -195,6 +204,64 @@ async function persist() {
   // Our own write just changed the file's mtime — record that as
   // "known" so it isn't mistaken for an external change next time.
   knownFileModifiedAt = await getFileLastModified(handle);
+  // Any load-time ID repairs are now on disk too.
+  if (state.idRepairs.length) {
+    state = { ...state, idRepairs: [] };
+    notify();
+  }
+}
+
+// Guarantees every loaded record has a unique, valid ID (the workbook
+// may have been hand-edited in Excel: blank, duplicated or unsafe ids).
+// Offending records get a fresh auto id; the repairs are reported via
+// state.idRepairs (Risk Register shows them) and written back with the
+// next save — never silently on load. A renamed duplicate starts with no
+// actions, since the Actions sheet can't say which duplicate owned them
+// (they stay with the first). Also moves actions onto the
+// "<riskId>-A-001" scheme (renumbering any that don't follow it).
+function normalizeIds(records, lastRiskNumber) {
+  const repairs = [];
+  const seen = new Set();
+  const out = [];
+  for (const record of records) {
+    const id = String(record.id ?? "").trim();
+    const key = id.toLowerCase();
+    const duplicate = !!id && seen.has(key);
+    if (id && RISK_ID_PATTERN.test(id) && !duplicate) {
+      seen.add(key);
+      out.push({ ...record, id });
+      continue;
+    }
+    const newId = nextRiskId([...out, ...records], highestRiskNumber(out, lastRiskNumber));
+    seen.add(newId.toLowerCase());
+    repairs.push({
+      from: id,
+      to: newId,
+      title: record.title,
+      reason: !id ? "missing" : duplicate ? "duplicate" : "invalid",
+    });
+    out.push({ ...record, id: newId, actions: duplicate ? [] : record.actions });
+  }
+  return { records: out.map((r) => ({ ...r, ...finalizeActions(r, r.id, r.actions) })), repairs };
+}
+
+// Assigns "<riskId>-A-NNN" ids to new (local-) or off-scheme actions,
+// keeps existing numbers, and re-prefixes numbers when the risk's own ID
+// was renamed (oldRiskId -> riskId). Returns { actions, lastActionNumber }.
+function finalizeActions(record, riskId, actions, oldRiskId = riskId) {
+  let last = Number(record.lastActionNumber) || 0;
+  for (const a of actions ?? []) {
+    const n = actionNumber(riskId, a.id) ?? actionNumber(oldRiskId, a.id);
+    if (n) last = Math.max(last, n);
+  }
+  const used = new Set();
+  const finalized = (actions ?? []).map((a) => {
+    let n = actionNumber(riskId, a.id) ?? actionNumber(oldRiskId, a.id);
+    if (!n || used.has(n)) n = ++last;
+    used.add(n);
+    return { ...a, id: actionId(riskId, n) };
+  });
+  return { actions: finalized, lastActionNumber: last };
 }
 
 async function load({ silent = false } = {}) {
@@ -207,15 +274,21 @@ async function load({ silent = false } = {}) {
   try {
     const data = await loadWorkbook(handle);
     knownFileModifiedAt = await getFileLastModified(handle);
+    const settings = data.settings ?? {};
+    const { records, repairs } = normalizeIds(
+      data.riskRecords.map((row) => rowToRecord(row, data.actions)),
+      settings.lastRiskNumber
+    );
     state = {
       status: "ready",
       rbs: data.rbs,
       impactAreas: data.impactAreas,
       owners: data.owners,
       qhseLevels: data.qhseLevels,
-      riskRecords: data.riskRecords.map((row) => rowToRecord(row, data.actions)),
-      settings: data.settings ?? {},
+      riskRecords: records,
+      settings: { ...settings, lastRiskNumber: highestRiskNumber(records, settings.lastRiskNumber) },
       conflict: false,
+      idRepairs: repairs,
     };
   } catch (err) {
     state = { ...state, status: "error" };
@@ -315,6 +388,7 @@ function blankAssessment() {
 export function blankRiskRecord() {
   return {
     id: null,
+    lastActionNumber: 0,
     title: "",
     riskType: "Threat",
     recordType: "Regular Pooled Record",
@@ -333,46 +407,51 @@ export function blankRiskRecord() {
   };
 }
 
-function allActions() {
-  return state.riskRecords.flatMap((r) => r.actions ?? []);
+export class RiskIdError extends Error {}
+
+// Suggested id for a new record (never a previously used auto number).
+export function suggestRiskId() {
+  return nextRiskId(state.riskRecords, state.settings?.lastRiskNumber);
 }
 
-function withFinalizedActionIds(actions) {
-  const pool = [...allActions()];
-  return actions.map((action) => {
-    if (action.id && !action.id.startsWith("local-")) return action;
-    const id = nextId(pool, "A");
-    pool.push({ id });
-    return { ...action, id };
-  });
-}
-
-export async function saveRiskRecord(record) {
+// `originalId` is the id the record had when the form opened (null for a
+// new record) — it identifies which record to update even if the user
+// changed the ID field. Throws RiskIdError when the ID is invalid or
+// already taken; that check runs after the conflict check, so it's made
+// against state that matches what's on disk.
+export async function saveRiskRecord(record, { originalId = record.id ?? null } = {}) {
   if (await checkConflict()) return false;
   const now = new Date().toISOString();
-  const isNew = !record.id;
-  const withComputed = (r) => ({
-    ...r,
-    actions: withFinalizedActionIds(r.actions ?? []),
-    computed: { pre: calculateAssessment(r.pre), post: calculateAssessment(r.post) },
-  });
+  const isNew = !originalId || !state.riskRecords.some((r) => r.id === originalId);
+  const id = String(record.id ?? "").trim() || suggestRiskId();
+  const error = riskIdError(id, state.riskRecords, isNew ? null : originalId);
+  if (error) throw new RiskIdError(error);
 
-  let saved;
-  if (isNew) {
-    const id = nextId(state.riskRecords, "R");
-    saved = withComputed({ ...record, id, createdAt: now, updatedAt: now });
-    state = { ...state, riskRecords: [...state.riskRecords, saved] };
-  } else {
-    saved = withComputed({ ...record, updatedAt: now });
-    state = {
-      ...state,
-      riskRecords: state.riskRecords.map((r) => (r.id === record.id ? saved : r)),
-    };
-  }
+  const base = isNew ? { ...record, lastActionNumber: 0, createdAt: now } : record;
+  const { actions, lastActionNumber } = finalizeActions(base, id, record.actions, isNew ? id : originalId);
+  const saved = {
+    ...base,
+    id,
+    updatedAt: now,
+    actions,
+    lastActionNumber,
+    computed: { pre: calculateAssessment(record.pre), post: calculateAssessment(record.post) },
+  };
+
+  state = {
+    ...state,
+    riskRecords: isNew
+      ? [...state.riskRecords, saved]
+      : state.riskRecords.map((r) => (r.id === originalId ? saved : r)),
+    settings: {
+      ...state.settings,
+      lastRiskNumber: highestRiskNumber([saved], state.settings?.lastRiskNumber),
+    },
+  };
   notify();
   await persist();
   // Truthy like every other mutator's `true`, but returns the saved
-  // record itself so the form can pick up a freshly minted id.
+  // record itself so the form can pick up its final id / action ids.
   return saved;
 }
 

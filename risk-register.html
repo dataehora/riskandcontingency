@@ -91,6 +91,8 @@
             </div>
           </div>
 
+          <div class="notice notice-warning" data-id-repairs hidden style="margin-bottom: var(--space-5);"></div>
+
           <div class="empty-state" data-records-empty hidden>
             <h3>No risk records yet</h3>
             <p>Create your first risk record, or load one of the generic templates to see the fields in action.</p>
@@ -102,6 +104,7 @@
             <table class="data-table" data-records-table hidden>
               <thead data-records-thead></thead>
               <tbody data-records-body></tbody>
+              <tfoot data-records-tfoot></tfoot>
             </table>
           </div>
         </div>
@@ -117,6 +120,11 @@
           <form id="record-form" data-record-form>
             <div class="card" style="margin-bottom: var(--space-5);">
               <h3>Details</h3>
+              <div class="risk-id-field">
+                <label for="f-id">Risk ID</label>
+                <input id="f-id" type="text" data-field="id" required maxlength="32" autocomplete="off" spellcheck="false">
+                <p class="field-feedback" data-id-feedback></p>
+              </div>
               <div class="title-row-grid">
                 <div>
                   <label for="f-title">Risk Title</label>

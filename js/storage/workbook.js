@@ -31,6 +31,7 @@ const RISK_RECORD_COLUMNS = [
   "rbsCategory",
   "createdAt",
   "updatedAt",
+  "lastActionNumber",
   ...["pre", "post"].flatMap((phase) => [
     ...DIMENSIONS.flatMap((dim) => [
       `${phase}_${dim}_min`,
@@ -71,6 +72,7 @@ const SETTINGS_COLUMNS = [
   "lastModelledTrials",
   "lastModelledResultsJson",
   "ramJson",
+  "lastRiskNumber",
 ];
 
 function emptyRegister() {
@@ -387,6 +389,62 @@ export function totalCostRange(assessment) {
     ev: expectedValue(directCost) + expectedValue(knockOn),
     max: hi(directCost) + hi(knockOn),
   };
+}
+
+// --- Risk & action IDs ---------------------------------------------------
+// Risk IDs are user-editable but must be unique (case-insensitive) and
+// safe: starts with a letter/digit (so a hand-edited "=..." / "+..." /
+// "@..." id can never act as a spreadsheet formula), then letters,
+// digits, "-", "_" or ".", max 32 chars. Auto-assigned ids are
+// R-0001, R-0002, ... and are never reissued after deletion
+// (settings.lastRiskNumber is a high-water mark).
+//
+// Action IDs are hierarchical, derived from their risk:
+// "<riskId>-A-001" (zero-padded 3-digit sequence per risk, also a
+// never-reused high-water mark: the record's lastActionNumber).
+export const RISK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/;
+
+export function riskIdError(id, riskRecords, originalId = null) {
+  const value = String(id ?? "").trim();
+  if (!value) return "Risk ID is required.";
+  if (!RISK_ID_PATTERN.test(value)) {
+    return "Risk ID must start with a letter or digit and use only letters, digits, “-”, “_” or “.” (max 32 characters).";
+  }
+  const clash = riskRecords.find(
+    (r) => r.id && r.id.toLowerCase() === value.toLowerCase() && r.id !== originalId
+  );
+  if (clash) return `Risk ID “${value}” is already used by “${clash.title}”. Each risk record needs a unique ID.`;
+  return null;
+}
+
+function autoRiskNumber(id) {
+  const m = /^R-(\d+)$/i.exec(String(id ?? ""));
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+export function highestRiskNumber(riskRecords, lastRiskNumber = 0) {
+  return Math.max(Number(lastRiskNumber) || 0, 0, ...riskRecords.map((r) => autoRiskNumber(r.id)));
+}
+
+// Next free auto id, skipping any number already taken (e.g. by a
+// custom id that happens to look like "R-0007").
+export function nextRiskId(riskRecords, lastRiskNumber = 0) {
+  const taken = new Set(riskRecords.map((r) => String(r.id ?? "").toLowerCase()));
+  let n = highestRiskNumber(riskRecords, lastRiskNumber) + 1;
+  while (taken.has(`r-${String(n).padStart(4, "0")}`)) n++;
+  return `R-${String(n).padStart(4, "0")}`;
+}
+
+export function actionId(riskId, number) {
+  return `${riskId}-A-${String(number).padStart(3, "0")}`;
+}
+
+// Sequence number of an action id that belongs to riskId, else null.
+export function actionNumber(riskId, id) {
+  const prefix = `${riskId}-A-`;
+  if (!riskId || typeof id !== "string" || !id.startsWith(prefix)) return null;
+  const rest = id.slice(prefix.length);
+  return /^\d+$/.test(rest) ? parseInt(rest, 10) : null;
 }
 
 export function nextId(records, prefix) {
