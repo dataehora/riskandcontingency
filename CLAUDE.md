@@ -113,6 +113,13 @@ hit a stale-cache deploy):
   PNG, since most social platforms don't render SVG og:images).
   `sitemap.xml` has `<lastmod>` per URL, **set by hand** — bump it when a
   page's content meaningfully changes.
+- **JSON-LD** (`index.html` only): one `@graph` with a `WebSite` and a
+  `SoftwareApplication` (BusinessApplication, operatingSystem "Web").
+  Only facts stated on the site — **no `offers`/price**, because no page
+  says the tool is free (only the README's MIT license does). Add
+  `"offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}`
+  if/when the site says so. `application/ld+json` is a non-executed data
+  block, so it needs no CSP hash.
 
 ## Architecture
 
