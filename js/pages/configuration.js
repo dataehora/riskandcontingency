@@ -17,6 +17,7 @@ import {
   resolveBins,
   equalThresholds,
   validateThresholds,
+  riskPoints,
 } from "../storage/ram.js";
 import { renderRiskMatrix } from "../charts/risk-matrix.js";
 
@@ -63,7 +64,14 @@ function render(state) {
         .join("") || `<li class="named-list-empty">None yet.</li>`;
   }
 
-  renderRam(state);
+  try {
+    renderRam(state);
+  } catch (err) {
+    // Never leave the matrix silently blank — say so, and log the cause.
+    console.error(err);
+    const preview = document.querySelector("[data-ram-preview]");
+    if (preview) preview.textContent = "The matrix couldn't be drawn — try reloading the page (Ctrl+F5).";
+  }
 }
 
 // --- Risk Assessment Matrix bins -------------------------------------
@@ -142,7 +150,14 @@ function renderRam(state) {
     errorBox.hidden = true;
   }
 
-  renderRiskMatrix(section.querySelector("[data-ram-preview]"), bins);
+  // Preview shows every risk at its pre-mitigation position, so the
+  // effect of a bin change is visible immediately (Risk Reporting has
+  // the filters and the post-mitigation view).
+  const { points } = riskPoints(state.riskRecords, "pre", bins);
+  renderRiskMatrix(section.querySelector("[data-ram-preview]"), bins, points);
+  section.querySelector("[data-ram-preview-note]").textContent = state.riskRecords.length
+    ? `${points.length} of ${state.riskRecords.length} risk record${state.riskRecords.length === 1 ? "" : "s"} shown at their pre-mitigation position.`
+    : "No risk records yet — the grid shows the configured bins; risks appear here once added in the Risk Register.";
 }
 
 async function saveThresholds(axis) {

@@ -65,7 +65,14 @@ hit a stale-cache deploy):
   `no-cache` (not `no-store`) means the browser still revalidates with
   the origin via ETag before using a cached copy, so unchanged files
   still get a cheap 304 rather than a full re-download, but a changed
-  file is never silently served stale. This has no effect locally — the
+  file is never silently served stale.
+  **Caveat found 2026-09-27:** on the custom domain, JS/CSS responses
+  came back with `Cache-Control: max-age=14400` (HTML correctly
+  `no-cache`) — the zone's Caching → Configuration → **Browser Cache
+  TTL** overrides `_headers` for static assets unless it's set to
+  "Respect Existing Headers". Symptom: new HTML running with old JS
+  (e.g. the Configuration RAM preview rendering empty). Check with
+  `curl -sI https://riskandcontingency.com/js/pages/configuration.js`. This has no effect locally — the
   dev server has its own `no-store` headers via `nocache_server.py`,
   unrelated to this file.
 - **`js/version-check.js`** (loaded on every page): covers the
@@ -335,6 +342,31 @@ no conflict is flagged. The Risk Register form calls
 `holdAutoRefresh(true)` while a draft is open so this can't turn a
 would-be conflict into a silent overwrite of someone else's edit.
 
+**Risk & action IDs** (2026-09-27, `workbook.js` "Risk & action IDs" +
+`register-store.js` `saveRiskRecord`/`normalizeIds`/`finalizeActions`):
+- Risk ID is an editable form field, prefilled for new records with
+  `suggestRiskId()` (next `R-NNNN`). Must match `RISK_ID_PATTERN`
+  (starts with a letter/digit — so a hand-edited `=…`/`+…`/`@…` can't act
+  as a spreadsheet formula — then `[A-Za-z0-9._-]`, ≤32 chars) and be
+  unique case-insensitively (`riskIdError`). Checked live in the form
+  **and** again inside `saveRiskRecord` after the conflict check (so
+  against state that matches disk), which throws `RiskIdError`.
+- `saveRiskRecord(record, { originalId })`: `originalId` = the id when
+  the form opened, so editing the ID field renames that record instead
+  of creating a second one; its actions are re-prefixed.
+- Auto numbers are never reissued: `settings.lastRiskNumber` is a
+  high-water mark (a deleted R-0002 is not handed out again).
+- Action IDs are hierarchical: `<riskId>-A-NNN` (3-digit, per risk,
+  high-water mark in the record's `lastActionNumber` column). The old
+  global `A-0001` ids are migrated on load.
+- On load, `normalizeIds` gives any blank, duplicate or invalid risk id
+  a fresh auto id and reports it in `state.idRepairs` (warning notice on
+  the Risk Register list); the fix reaches disk with the next save — load
+  never writes. A renamed duplicate gets no actions (they stay with the
+  first record using that id — the Actions sheet can't disambiguate).
+- EMV view of the list has a `<tfoot>` total row (net: opportunities
+  are negative EMV).
+
 **Risk Register save** (2026-09-27): Save buttons at the top
 (`.form-toolbar`, `form="record-form"`) and bottom; a successful save
 **stays on the record** (draft replaced by the saved copy, so a new
@@ -448,6 +480,13 @@ Output: `summarize()` returns Min, P05–P50 in steps of 5, Max (exactly
 the table the user asked for — deliberately stops at P50/median, not
 P100), one row per selected phase when both are run.
 
+**Modelling's chart (2026-09-27 v2): histogram (iterations, left
+y-axis) + S-curve per phase (0–100% cumulative, right y-axis) on one
+shared Total Cost x-axis that starts at 0** — it only extends below 0
+when opportunities make some trial totals negative (clamping those
+would misstate the result). The bell curve remains as a thin reference
+line; hover shows cumulative % per phase at the cursor. The rest of this
+paragraph describes the histogram/bell part, which is unchanged:
 **Modelling's chart is a histogram + fitted normal ("bell") curve**
 (`js/charts/distribution-chart.js`), not cumulative (changed from an
 S-curve 2026-09-20 — the user explicitly wants a normal-shaped

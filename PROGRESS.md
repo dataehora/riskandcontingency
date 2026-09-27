@@ -44,6 +44,8 @@ dark mode, mobile-responsive header.
 - Configuration: 5x5 Risk Assessment Matrix bins (Likelihood 0–100%, Cost Impact 0 → highest cost in the register, equal bins by default and auto-tracking).
 - Risk Reporting: RAM plot with Impact Area / Record Type (and Pre/Post) filters, plus a table of plotted risks. List + top-N ranking still not built.
 - Dev server switched to a threaded server (single-threaded one stalled).
+- Later the same day: Modelling chart = histogram (left axis, iterations) + S-curve (right axis, 0–100%), x-axis from 0; Configuration RAM preview now plots the risks; EMV totals row; editable, validated, unique Risk ID (never-reused auto numbers, load-time repair of bad IDs); hierarchical action IDs `R-0006-A-001`.
+- Open: Cloudflare zone Browser Cache TTL overrides `_headers` for JS/CSS (4h) — needs "Respect Existing Headers" in the dashboard.
 
 ## Session 2026-09-20 — 10 PRs
 

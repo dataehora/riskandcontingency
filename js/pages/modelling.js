@@ -88,7 +88,9 @@ async function runSimulation() {
     runs[phase] = { sorted, summary: summarize(sorted) };
   }
 
-  const domainMin = Math.min(...phases.map((p) => runs[p].sorted[0] ?? 0));
+  // Cost axis starts at 0 (only extends below it if opportunities push
+  // some trial totals negative).
+  const domainMin = Math.min(0, ...phases.map((p) => runs[p].sorted[0] ?? 0));
   const domainMax = Math.max(...phases.map((p) => runs[p].sorted[runs[p].sorted.length - 1] ?? 0));
   const binWidth = (domainMax - domainMin || 1) / BIN_COUNT;
 
@@ -109,6 +111,7 @@ async function runSimulation() {
       stdev: sd,
       trials,
       binWidth,
+      sorted,
     };
   });
 

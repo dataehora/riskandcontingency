@@ -7,13 +7,15 @@ import {
   blankRiskRecord,
   createLocalAction,
   holdAutoRefresh,
+  suggestRiskId,
+  RiskIdError,
   validateDistribution,
   calculateAssessment,
   totalCostRange,
   expectedValue,
   DIMENSIONS,
 } from "../storage/register-store.js";
-import { RECORD_TYPES } from "../storage/workbook.js";
+import { RECORD_TYPES, riskIdError } from "../storage/workbook.js";
 
 const DIMENSION_LABELS = {
   likelihood: "Likelihood",
@@ -39,6 +41,10 @@ const STRATEGIES = {
 };
 
 let draft = null;
+// The ID the open record had when the form opened (null = new record).
+// Passed to saveRiskRecord so an edited ID renames that record rather
+// than creating a second one.
+let formOriginalId = null;
 let currentState = getRegisterState();
 let viewMode = "emv"; // emv | cost | schedule | qhse
 let sortState = { key: null, direction: "asc" };
@@ -76,7 +82,7 @@ function els() {
 
 // --- List view ----------------------------------------------------------
 const BASE_COLUMNS = [
-  { key: "id", label: "ID", sort: (r) => r.id, render: (r) => escapeHtml(r.id) },
+  { key: "id", label: "ID", sort: (r) => r.id, render: (r) => `<span style="white-space:nowrap;">${escapeHtml(r.id)}</span>` },
   { key: "title", label: "Title", sort: (r) => r.title.toLowerCase(), render: (r) => escapeHtml(r.title) },
   {
     key: "riskType",
@@ -204,19 +210,68 @@ function renderTableBody() {
   recordsBody.innerHTML = records
     .map(
       (r) => `
-    <tr data-row-id="${r.id}">
+    <tr data-row-id="${escapeHtml(r.id)}">
       ${columns.map((col) => `<td class="${col.highlight ? "col-highlight" : ""}">${col.render(r)}</td>`).join("")}
       <td style="white-space:nowrap;">
-        <button type="button" class="btn btn-ghost btn-sm" data-duplicate-record="${r.id}">Duplicate</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${r.id}">Delete</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-duplicate-record="${escapeHtml(r.id)}">Duplicate</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${escapeHtml(r.id)}">Delete</button>
       </td>
     </tr>
   `
     )
     .join("");
+  renderTableFoot(columns, records);
+}
+
+// EMV view only: net totals (threats positive, opportunities negative)
+// across every record in the list.
+function renderTableFoot(columns, records) {
+  const tfoot = document.querySelector("[data-records-tfoot]");
+  if (!tfoot) return;
+  if (viewMode !== "emv" || !records.length) {
+    tfoot.innerHTML = "";
+    return;
+  }
+  const sum = (phase) => records.reduce((acc, r) => acc + (r.computed?.[phase]?.emv || 0), 0);
+  const totals = { preEmv: sum("pre"), postEmv: sum("post") };
+  const firstTotal = columns.findIndex((c) => c.key in totals);
+  tfoot.innerHTML = `
+    <tr>
+      <td colspan="${firstTotal}">Total EMV (${records.length} risk${records.length === 1 ? "" : "s"}, net of opportunities)</td>
+      ${columns
+        .slice(firstTotal)
+        .map((c) => `<td class="${c.highlight ? "col-highlight" : ""}">${c.key in totals ? fmtNumber(totals[c.key]) : ""}</td>`)
+        .join("")}
+      <td></td>
+    </tr>
+  `;
+}
+
+function renderIdRepairs() {
+  const el = document.querySelector("[data-id-repairs]");
+  if (!el) return;
+  const repairs = currentState.idRepairs ?? [];
+  el.hidden = repairs.length === 0;
+  if (!repairs.length) return;
+  const why = { missing: "had no ID", duplicate: "duplicated another record's ID", invalid: "had an invalid ID" };
+  el.innerHTML = `
+    <span aria-hidden="true">&#9888;&#65039;</span>
+    <div>
+      <p style="margin:0 0 4px;"><strong>Some risk IDs in the workbook needed fixing.</strong> Every risk record must have a unique ID, so these were given new ones. The fix is written to the workbook with your next save.</p>
+      <ul style="margin:0; padding-left: 1.2em;">
+        ${repairs
+          .map(
+            (r) =>
+              `<li>“${escapeHtml(r.title)}” ${why[r.reason]}${r.from ? ` (${escapeHtml(r.from)})` : ""} → now <strong>${escapeHtml(r.to)}</strong>${r.reason === "duplicate" ? " (its response actions stay with the first record that used the ID)" : ""}</li>`
+          )
+          .join("")}
+      </ul>
+    </div>
+  `;
 }
 
 function renderList() {
+  renderIdRepairs();
   renderModeToggle();
   renderTableHead();
   renderTableBody();
@@ -396,7 +451,8 @@ function fillQhseGroup(phase) {
 function actionRowHtml(action) {
   const strategies = STRATEGIES[draft.riskType] ?? STRATEGIES.Threat;
   return `
-    <div class="action-row" data-action-id="${action.id}">
+    <div class="action-row" data-action-id="${escapeHtml(action.id)}">
+      <div><label>Action ID</label><div class="action-id" title="Assigned automatically as Risk ID-A-number">${action.id.startsWith("local-") ? "New (on save)" : escapeHtml(action.id)}</div></div>
       <div><label>Action Title</label><input type="text" data-action-field="title" value="${escapeHtml(action.title)}"></div>
       <div><label>Action Owner</label>
         <select data-action-field="owner" data-options="owners"></select>
@@ -409,7 +465,7 @@ function actionRowHtml(action) {
       </div>
       <div><label>Due Date</label><input type="date" data-action-field="dueDate" value="${escapeHtml(action.dueDate)}"></div>
       <div><label>Cost</label><input type="number" step="any" data-action-field="cost" value="${action.cost ?? 0}"></div>
-      <div><button type="button" class="btn btn-ghost btn-sm" data-remove-action="${action.id}">Remove</button></div>
+      <div><button type="button" class="btn btn-ghost btn-sm" data-remove-action="${escapeHtml(action.id)}">Remove</button></div>
     </div>
   `;
 }
@@ -461,6 +517,9 @@ function renderForm() {
   listView.hidden = true;
   formView.hidden = false;
 
+  formOriginalId = draft.id ?? null;
+  form.querySelector('[data-field="id"]').value = draft.id ?? suggestRiskId();
+  updateIdFeedback();
   form.querySelector('[data-field="title"]').value = draft.title;
   form.querySelector('[data-field="riskType"]').value = draft.riskType;
   form.querySelector('[data-field="recordType"]').value = draft.recordType;
@@ -516,10 +575,31 @@ function duplicateRecord(id) {
   draft = JSON.parse(JSON.stringify(record));
   draft.id = null;
   draft.title = `${draft.title} (Copy)`;
+  draft.lastActionNumber = 0;
   draft.createdAt = "";
   draft.updatedAt = "";
   draft.actions = draft.actions.map((a) => ({ ...a, id: createLocalAction().id }));
   renderForm();
+}
+
+function idFieldValue() {
+  return document.querySelector('[data-field="id"]')?.value.trim() ?? "";
+}
+
+// Live check of the ID field: unique (case-insensitive) across every
+// other record and safe characters only. The store re-checks on save
+// against the on-disk state, so this is guidance, not the only guard.
+function updateIdFeedback() {
+  const el = document.querySelector("[data-id-feedback]");
+  if (!el) return null;
+  const id = idFieldValue();
+  const error = riskIdError(id, currentState.riskRecords, formOriginalId);
+  el.dataset.valid = error ? "false" : "true";
+  if (error) el.textContent = error;
+  else if (formOriginalId && id !== formOriginalId)
+    el.textContent = `Renames ${formOriginalId} → ${id}; its action IDs become ${id}-A-… on save.`;
+  else el.textContent = formOriginalId ? "Unique ID." : "Suggested next ID — you can change it, but it must be unique.";
+  return error;
 }
 
 function formHasErrors() {
@@ -537,6 +617,7 @@ function requiredGroupsMissing() {
 async function submitForm(event) {
   event.preventDefault();
   const { form } = els();
+  draft.id = idFieldValue();
   draft.title = form.querySelector('[data-field="title"]').value.trim();
   draft.riskType = form.querySelector('[data-field="riskType"]').value;
   draft.recordType = form.querySelector('[data-field="recordType"]').value;
@@ -548,6 +629,12 @@ async function submitForm(event) {
   draft.rbsCategory = form.querySelector('[data-field="rbsCategory"]').value;
 
   const errorBox = document.querySelector("[data-form-error]");
+  const idError = updateIdFeedback();
+  if (idError) {
+    errorBox.textContent = idError;
+    errorBox.hidden = false;
+    return;
+  }
   if (!draft.title) {
     errorBox.textContent = "Risk Title is required.";
     errorBox.hidden = false;
@@ -564,7 +651,16 @@ async function submitForm(event) {
     errorBox.hidden = false;
     return;
   }
-  const saved = await saveRiskRecord(draft);
+  let saved;
+  try {
+    saved = await saveRiskRecord(draft, { originalId: formOriginalId });
+  } catch (err) {
+    if (!(err instanceof RiskIdError)) throw err;
+    errorBox.textContent = err.message;
+    errorBox.hidden = false;
+    updateIdFeedback();
+    return;
+  }
   if (!saved) {
     // Blocked by a conflict — the file changed on disk since this tab
     // loaded it. Stay on the form (draft isn't lost) and point at the
@@ -659,6 +755,7 @@ function wire() {
   });
 
   form?.addEventListener("submit", submitForm);
+  form?.querySelector('[data-field="id"]')?.addEventListener("input", updateIdFeedback);
 
   form?.querySelector('[data-field="riskType"]')?.addEventListener("change", (e) => {
     draft.riskType = e.target.value;

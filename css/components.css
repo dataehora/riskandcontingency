@@ -593,7 +593,7 @@
 
 .action-row {
   display: grid;
-  grid-template-columns: 2fr 1.4fr 1.4fr 1fr 1fr auto;
+  grid-template-columns: auto 2fr 1.4fr 1.4fr 1fr 1fr auto;
   gap: var(--space-2);
   align-items: end;
   padding: var(--space-3) 0;
@@ -827,4 +827,40 @@ textarea:focus {
 
 .ram-bins-table input {
   max-width: 160px;
+}
+
+/* Risk Register: ID field + action IDs */
+.risk-id-field {
+  max-width: 260px;
+  margin-bottom: var(--space-3);
+}
+
+.risk-id-field input {
+  font-family: var(--font-mono);
+}
+
+.field-feedback {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  min-height: 1.1em;
+  color: var(--color-text-subtle);
+}
+
+.field-feedback[data-valid="false"] {
+  color: var(--color-risk-high);
+}
+
+.action-id {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  padding: 9px 0;
+  color: var(--color-text-muted);
+}
+
+/* Risk Register list: EMV totals row */
+.data-table tfoot td {
+  font-weight: 700;
+  border-top: 2px solid var(--color-border-strong);
+  border-bottom: none;
 }

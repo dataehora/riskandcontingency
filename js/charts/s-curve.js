@@ -5,24 +5,11 @@
 // available budget) draws a second vertical marker distinct from the
 // median crosshair.
 import { curvePoints } from "../storage/monte-carlo.js";
+import { niceTicks } from "./axis.js";
 
 function fmtNumber(n) {
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
-
-// Evenly spaced "round" axis values (1/2/5 x 10^n steps) across [lo, hi].
-function niceTicks(lo, hi, count) {
-  const span = hi - lo;
-  if (!(span > 0)) return [lo];
-  const raw = span / count;
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => span / s <= count) ?? 10 * mag;
-  const ticks = [];
-  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) {
-    ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
-  }
-  return ticks;
 }
 
 // Keeps an edge label inside the plot instead of clipping at the SVG edge.
