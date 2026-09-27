@@ -25,6 +25,9 @@ reporting.html                    Risk Reporting: list & top-N exposure ranking 
 contingency.html                  Available budget vs. Monte Carlo results
 configuration.html                RBS / impact area / owner / QHSE level setup
 about.html                        Description + FAQ (incl. the single-editor / conflict-detection design)
+404.html                          Not-found page (Cloudflare Pages serves it for unknown URLs)
+images/og-image.png               1200x630 social-share preview image
+_headers                          Cloudflare Pages response headers (caching, security, CSP report-only)
 css/                               Design system (tokens, base, components, shell)
 js/shell.js                       Shared nav + connection-status wiring
 js/theme.js                       Dark/light toggle
