@@ -61,7 +61,7 @@
     <div class="page-header">
       <span class="eyebrow">Risk Reporting</span>
       <h1>Risk register &amp; exposure ranking</h1>
-      <p>List every risk record and rank the top risks by EMV, maximum cost impact, schedule exposure or maximum schedule impact.</p>
+      <p>Plot risk records on the 5&times;5 Risk Assessment Matrix, filtered by Impact Area and Record Type.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
@@ -75,9 +75,50 @@
       <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
     </div>
 
-    <div class="empty-state" data-requires-connection hidden>
-      <h3>Reporting is coming in a future update</h3>
-      <p>Your folder is connected. The risk register list and top-N ranking views will appear here once risk records exist.</p>
+    <div data-requires-connection hidden>
+      <div class="notice notice-warning" data-step-locked-notice="3" hidden style="margin-bottom: var(--space-5);">
+        <span aria-hidden="true">&#9888;&#65039;</span>
+        <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before reporting on risks. <a data-missing-step-link href="#">Go there &rarr;</a></p>
+      </div>
+
+      <div data-requires-step="3" hidden>
+        <section class="card" style="margin-bottom: var(--space-5);">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap: var(--space-2);">
+            <h3 style="margin-bottom:0;">Risk Assessment Matrix</h3>
+            <a href="/configuration.html" style="font-size:0.85rem;">Edit matrix bins in Configuration &rarr;</a>
+          </div>
+          <p style="margin-top: var(--space-2);">Each risk is placed by its expected Likelihood and expected Cost Impact (Total Cost = Direct Cost + Knock On; opportunities by magnitude), using the bins set in Configuration.</p>
+          <div class="form-grid" style="margin: var(--space-4) 0;">
+            <div>
+              <label for="ram-phase">Assessment</label>
+              <select id="ram-phase" data-ram-filter="phase">
+                <option value="pre">Pre-mitigation</option>
+                <option value="post">Post-mitigation</option>
+              </select>
+            </div>
+            <div>
+              <label for="ram-impact-area">Impact Area</label>
+              <select id="ram-impact-area" data-ram-filter="impactArea"></select>
+            </div>
+            <div>
+              <label for="ram-record-type">Record Type</label>
+              <select id="ram-record-type" data-ram-filter="recordType"></select>
+            </div>
+          </div>
+          <p data-ram-summary style="font-size:0.85rem;"></p>
+          <div data-ram-matrix></div>
+          <div class="ram-legend">
+            <span><span class="ram-chip">R-0001</span>Threat</span>
+            <span><span class="ram-chip ram-chip-opportunity">R-0002</span>Opportunity</span>
+            <span><span class="ram-swatch ram-cell-low"></span>Low (L&times;I 1&ndash;4)</span>
+            <span><span class="ram-swatch ram-cell-medium"></span>Medium (5&ndash;12)</span>
+            <span><span class="ram-swatch ram-cell-high"></span>High (15&ndash;25)</span>
+          </div>
+          <div style="overflow-x:auto; margin-top: var(--space-5);">
+            <table class="data-table" data-ram-table></table>
+          </div>
+        </section>
+      </div>
     </div>
   </main>
 
@@ -89,6 +130,7 @@
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>
+  <script type="module" src="/js/pages/reporting.js"></script>
   <script type="module" src="/js/version-check.js"></script>
   <script type="module" src="/js/conflict-banner.js"></script>
 </body>

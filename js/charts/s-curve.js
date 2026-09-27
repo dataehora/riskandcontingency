@@ -1,5 +1,5 @@
-// Shared S-curve (cumulative probability) chart, used by both Modelling
-// and Contingency. Single series -> no legend needed per the dataviz
+// Shared S-curve (cumulative probability) chart, used by Contingency
+// (Modelling uses a histogram instead). Single series -> no legend needed per the dataviz
 // skill's rule; color reuses --color-primary-alt (already themed for
 // light/dark in tokens.css). An optional `referenceLine` (e.g. an
 // available budget) draws a second vertical marker distinct from the
@@ -9,6 +9,27 @@ import { curvePoints } from "../storage/monte-carlo.js";
 function fmtNumber(n) {
   if (!Number.isFinite(n)) return "—";
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+// Evenly spaced "round" axis values (1/2/5 x 10^n steps) across [lo, hi].
+function niceTicks(lo, hi, count) {
+  const span = hi - lo;
+  if (!(span > 0)) return [lo];
+  const raw = span / count;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((s) => span / s <= count) ?? 10 * mag;
+  const ticks = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) {
+    ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+  }
+  return ticks;
+}
+
+// Keeps an edge label inside the plot instead of clipping at the SVG edge.
+function labelAnchor(x, left, right) {
+  if (x > right - 50) return "end";
+  if (x < left + 50) return "start";
+  return "middle";
 }
 
 export function renderSCurve(container, sorted, summary, options = {}) {
@@ -22,14 +43,25 @@ export function renderSCurve(container, sorted, summary, options = {}) {
   const plotW = width - padLeft - padRight;
   const plotH = height - padTop - padBottom;
 
-  const min = Math.min(summary.min, referenceLine?.value ?? summary.min);
-  const max = Math.max(summary.max, referenceLine?.value ?? summary.max);
-  const span = max - min || 1;
+  // Domain covers the simulated range plus the reference line, padded
+  // 5% each side so the curve visibly starts flat at 0% on the left and
+  // runs flat at 100% to the right edge (a zero-inflated pooled run
+  // otherwise hides its first vertical step inside the y-axis, and a
+  // budget above the modelled max left the curve stopping mid-chart).
+  const lo = Math.min(summary.min, referenceLine?.value ?? summary.min);
+  const hi = Math.max(summary.max, referenceLine?.value ?? summary.max);
+  const pad = (hi - lo || Math.abs(hi) || 1) * 0.05;
+  const min = lo - pad;
+  const max = hi + pad;
+  const span = max - min;
   const xOf = (v) => padLeft + ((v - min) / span) * plotW;
   const yOf = (pct) => padTop + (1 - pct / 100) * plotH;
 
   const points = curvePoints(sorted, 200);
-  const pathD = points
+  const pathPoints = points.length
+    ? [{ value: min, cumulative: 0 }, { value: points[0].value, cumulative: 0 }, ...points, { value: max, cumulative: 100 }]
+    : [];
+  const pathD = pathPoints
     .map((p, i) => `${i === 0 ? "M" : "L"}${xOf(p.value).toFixed(1)},${yOf(p.cumulative).toFixed(1)}`)
     .join(" ");
 
@@ -43,10 +75,11 @@ export function renderSCurve(container, sorted, summary, options = {}) {
     )
     .join("");
 
-  const xTickValues = [min, summary.percentiles.P25 ?? min, summary.percentiles.P50 ?? max, max];
-  const xTicks = xTickValues
+  const xTicks = niceTicks(lo, hi, 6)
+    .filter((v) => v >= min && v <= max)
     .map(
       (v) => `
+      <line x1="${xOf(v)}" y1="${height - padBottom}" x2="${xOf(v)}" y2="${height - padBottom + 4}" stroke="var(--color-border-strong)" stroke-width="1" />
       <text x="${xOf(v)}" y="${height - padBottom + 18}" text-anchor="middle" font-size="11" fill="var(--color-text-subtle)">${fmtNumber(v)}</text>
     `
     )
@@ -56,7 +89,7 @@ export function renderSCurve(container, sorted, summary, options = {}) {
   const refLine = referenceLine
     ? `
       <line x1="${xOf(referenceLine.value)}" y1="${padTop}" x2="${xOf(referenceLine.value)}" y2="${height - padBottom}" stroke="var(--color-danger)" stroke-width="2" />
-      <text x="${xOf(referenceLine.value)}" y="${padTop - 4}" text-anchor="middle" font-size="11" fill="var(--color-danger)">${referenceLine.label ?? "Reference"}</text>
+      <text x="${xOf(referenceLine.value)}" y="${padTop - 4}" text-anchor="${labelAnchor(xOf(referenceLine.value), padLeft, width - padRight)}" font-size="11" fill="var(--color-danger)">${referenceLine.label ?? "Reference"}</text>
     `
     : "";
 

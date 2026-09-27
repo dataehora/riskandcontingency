@@ -8,7 +8,7 @@ reflects the files on disk.
 """
 
 import sys
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 
 class NoCacheHandler(SimpleHTTPRequestHandler):
@@ -21,4 +21,6 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    HTTPServer(("", port), NoCacheHandler).serve_forever()
+    # Threading: a single-threaded server stalls every other request behind
+    # one browser keep-alive connection (seen with two browsers open).
+    ThreadingHTTPServer(("", port), NoCacheHandler).serve_forever()

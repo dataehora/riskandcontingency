@@ -61,7 +61,7 @@
     <div class="page-header">
       <span class="eyebrow">Configuration &amp; Data Management</span>
       <h1>Projects &amp; reference data</h1>
-      <p>Set up the Risk Breakdown Structure, impact areas, and the list of risk owners used across the Risk Register. This is step 2 of the setup sequence — it needs a connected folder first.</p>
+      <p>Set up the Risk Breakdown Structure, impact areas, the list of risk owners and the Risk Assessment Matrix used across the Risk Register and Risk Reporting. This is step 2 of the setup sequence — it needs a connected folder first.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
@@ -125,6 +125,27 @@
             </form>
           </section>
         </div>
+
+        <section class="card" style="margin-top: var(--space-5);" data-ram-config>
+          <h3>Risk Assessment Matrix (5&times;5)</h3>
+          <p>Set the 5 bins for each axis. Likelihood spans 0&ndash;100%. Cost Impact (Total Cost = Direct Cost + Knock On) spans 0 to the highest cost anywhere in the Risk Register &mdash; <span data-ram-cost-max></span> &mdash; and follows it as records change. Each bin runs from the previous bin's upper bound to its own. Changes save automatically and are used by the matrix on Risk Reporting.</p>
+          <div class="card-grid" style="margin-top: var(--space-4);">
+            <div>
+              <h4 style="margin-bottom: var(--space-2);">Likelihood (%) &mdash; vertical axis</h4>
+              <table class="data-table ram-bins-table" data-ram-bins="likelihood"></table>
+              <button class="btn btn-ghost btn-sm" type="button" data-ram-reset="likelihood" style="margin-top: var(--space-2);">Reset to equal bins</button>
+            </div>
+            <div>
+              <h4 style="margin-bottom: var(--space-2);">Cost Impact &mdash; horizontal axis</h4>
+              <table class="data-table ram-bins-table" data-ram-bins="cost"></table>
+              <button class="btn btn-ghost btn-sm" type="button" data-ram-reset="cost" style="margin-top: var(--space-2);">Reset to equal bins</button>
+              <p data-ram-cost-mode style="font-size:0.8rem; color: var(--color-text-subtle); margin-top: var(--space-2);"></p>
+            </div>
+          </div>
+          <div class="notice notice-warning" data-ram-error hidden style="margin-top: var(--space-4);"></div>
+          <h4 style="margin: var(--space-5) 0 var(--space-3);">Preview</h4>
+          <div data-ram-preview></div>
+        </section>
       </div>
     </div>
   </main>

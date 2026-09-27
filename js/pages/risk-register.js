@@ -6,6 +6,7 @@ import {
   loadRiskRecordTemplate,
   blankRiskRecord,
   createLocalAction,
+  holdAutoRefresh,
   validateDistribution,
   calculateAssessment,
   totalCostRange,
@@ -456,6 +457,7 @@ function buildAssessmentSections() {
 
 function renderForm() {
   const { form, formView, listView } = els();
+  holdAutoRefresh(true);
   listView.hidden = true;
   formView.hidden = false;
 
@@ -484,9 +486,11 @@ function renderForm() {
 
 function showList() {
   const { formView, listView } = els();
+  document.querySelector("[data-form-error]")?.setAttribute("hidden", "");
   formView.hidden = true;
   listView.hidden = false;
   draft = null;
+  holdAutoRefresh(false);
   renderList();
 }
 
@@ -571,7 +575,25 @@ async function submitForm(event) {
     return;
   }
   errorBox.hidden = true;
-  showList();
+  // Stay on the record after saving (so the user can keep editing it),
+  // picking up the saved copy — a new record now has its real id and
+  // response actions their final ids, so a second save updates rather
+  // than duplicates.
+  draft = JSON.parse(JSON.stringify(saved));
+  renderForm();
+  showSaveToast(`Saved ${saved.id} — “${saved.title}” at ${new Date().toLocaleTimeString()}.`);
+}
+
+let toastTimer = null;
+function showSaveToast(message) {
+  const toast = document.querySelector("[data-save-toast]");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.hidden = true;
+  }, 4000);
 }
 
 function populateRecordTypeOptions() {
