@@ -31,9 +31,12 @@ Real build underway (started 2026-09-20). Landed so far:
   every page, gates each area behind its prerequisite and explains what's
   missing rather than failing silently.
 
-Still empty-state placeholders: **Modelling** (new page — no simulation
-engine exists yet, only the gated tab) and **Reporting** (list + top-N
-ranking not built). Update this section as each ships.
+- **Risk Assessment Matrix** (2026-09-27): 5x5 bins configured on
+  Configuration, plotted on Risk Reporting — see "Risk Assessment
+  Matrix" below.
+
+Still not built: Risk Reporting's list + top-N ranking (the RAM is the
+only thing on that page so far). Update this section as it ships.
 
 ## Stack
 
@@ -300,6 +303,47 @@ neither feeds EMV.
   Minor, Medium, Major, Catastrophic. Stored as a plain string
   (`pre_qhse`/`post_qhse` columns), no calculation feeds off it (yet).
 
+**Risk Assessment Matrix** (2026-09-27; logic `js/storage/ram.js`, pure;
+renderer `js/charts/risk-matrix.js`; editor in `js/pages/configuration.js`;
+plot + filters in `js/pages/reporting.js`). Stored as `settings.ramJson`
+(a `Settings` sheet column): `{ likelihood: [t1..t4], cost: {mode:
+"equal"} | {mode: "custom", thresholds: [t1..t4]} }` — only the 4 inner
+boundaries per axis; 0 and the axis max are implied. Likelihood spans a
+fixed 0–100 (default 20/40/60/80). Cost Impact spans 0 to
+`costAxisMax()` = the largest |Total Cost range min/max| across every
+record's pre and post assessment, so it tracks the register. Default
+cost mode is **"equal"**, which re-splits that span on every render (so
+the equal default keeps following the register); editing any cost
+boundary switches to **"custom"** absolute amounts, where only the top
+edge follows the register — if the max drops below a custom boundary,
+Configuration shows a warning (`costOutOfRange`) and Reporting says so.
+**Assumptions (not specified by the user — follow up if wrong):** "Cost
+Impact" = **Total Cost** (Direct Cost + Knock On EV, the same quantity
+as EMV), not Direct Cost alone; each risk is placed by its *expected*
+Likelihood and expected Total Cost; opportunities (negative costs) are
+placed by magnitude and drawn with a dashed chip. Reporting adds a
+Pre/Post selector (default Pre = inherent risk) alongside the requested
+Impact Area and Record Type filters; bins are always resolved against the
+whole register, not the filtered subset, so filtering never changes what
+a cell means. Cell colour = L x I score band (1–4 low, 5–12 medium,
+15–25 high). Risks with no Likelihood/Direct Cost in the chosen phase are
+counted as "not shown", not silently dropped.
+**Cross-tab refresh** (added with the RAM so Reporting follows config
+edits made in another tab): `register-store.js` re-reads the workbook
+silently on `focus`/`visibilitychange` when the file's mtime moved and
+no conflict is flagged. The Risk Register form calls
+`holdAutoRefresh(true)` while a draft is open so this can't turn a
+would-be conflict into a silent overwrite of someone else's edit.
+
+**Risk Register save** (2026-09-27): Save buttons at the top
+(`.form-toolbar`, `form="record-form"`) and bottom; a successful save
+**stays on the record** (draft replaced by the saved copy, so a new
+record picks up its real id and a second save updates rather than
+duplicates) and shows a fixed-position `.toast` confirmation.
+`saveRiskRecord` now returns the saved record (still truthy) instead of
+`true`. Both example templates are "Regular Pooled Record" (the Threat
+one used to be High Impact).
+
 **Knock On + EMV — documented assumption** (2026-09-20, not explicitly
 specified by the user, follow up if it's wrong): Knock On is treated as
 an *indirect/downstream* cost impact, distinct from Direct Cost — the
@@ -427,6 +471,13 @@ used by **Contingency only** — a cumulative view is what "what confidence
 does my budget give me" actually needs; Modelling and Contingency
 intentionally use two different chart types for two different questions.
 
+The S-curve's x-domain is the modelled range plus the budget line,
+padded 5% each side, with the path extended flat at 0% from the left
+edge and flat at 100% to the right edge (2026-09-27 fix — before, a
+budget above the modelled max left the curve stopping mid-chart, and
+a zero-inflated run's first step hid inside the y-axis). X ticks are
+"nice" 1/2/5 x 10^n values rather than Min/P25/P50/Max, which collided
+whenever those percentiles were all 0.
 `curvePoints()` subsamples to ≤200 points for the S-curve so a
 10k-trial run doesn't render 10k SVG points. The S-curve is a single-
 series line chart (no legend needed per the dataviz skill's rule for
@@ -499,8 +550,10 @@ fix (done, 2026-09-20); 10) save-conflict detection + banner, About page
 EMV/Cost/Schedule/QHSE highlighted toggle, row-click-to-edit,
 Duplicate, Title half-width form row (done, 2026-09-20); 12) Risk
 Reporting itself (list + top-N ranking of EMV/Max Total Cost/Schedule
-Exposure/Max Schedule) — not started, still the one empty-state page
-left.
+Exposure/Max Schedule) — not started; 13) Risk Assessment Matrix
+(Configuration bins + Reporting plot with filters), save confirmation +
+top Save button, S-curve 0→100% edge fix, templates both Pooled (done,
+2026-09-27).
 
 ## Local dev server
 
@@ -511,6 +564,13 @@ reflected without a manual hard-refresh. Plain `http.server` sends no
 caching headers at all, which lets the *browser* heuristically cache
 scripts and makes edits look like they aren't applying — if that ever
 happens, suspect the browser's cache before the code.
+
+The server is a `ThreadingHTTPServer` (2026-09-27): the old single-
+threaded `HTTPServer` let one browser keep-alive connection stall every
+other request, which looked like the Browser pane "refusing" localhost.
+If the Browser pane can't reach it anyway, headless Chrome driven over
+the DevTools protocol (with the mock handle injected via
+`Page.addScriptToEvaluateOnNewDocument`) works for verification.
 
 Port 5850 is deliberately different from beatconfused's 5849, so both
 repos' dev servers can run at the same time without colliding.

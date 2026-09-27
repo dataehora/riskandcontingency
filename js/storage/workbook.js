@@ -70,6 +70,7 @@ const SETTINGS_COLUMNS = [
   "lastModelledAt",
   "lastModelledTrials",
   "lastModelledResultsJson",
+  "ramJson",
 ];
 
 function emptyRegister() {
@@ -200,7 +201,7 @@ export function riskRecordTemplates() {
     {
       title: "Delay in long-lead equipment delivery",
       riskType: "Threat",
-      recordType: "High Impact",
+      recordType: "Regular Pooled Record",
       description:
         "Key equipment sourced from a single supplier may arrive later than the baseline schedule.",
       cause: "Single-source supplier with limited manufacturing capacity.",

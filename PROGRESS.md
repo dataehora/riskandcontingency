@@ -5,7 +5,7 @@ For *how things work* (architecture, data model, gotchas, decisions),
 see [CLAUDE.md](CLAUDE.md) — that's the living technical reference and
 is kept current; this file is the higher-level "where are we" summary.
 
-**Last updated:** 2026-09-20, end of session. All work described below
+**Last updated:** 2026-09-27 (see "Session 2026-09-27" below). Previously: 2026-09-20, end of session. All work described below
 is merged to `main` and deployed — `git status` is clean, local `main`
 matches `origin/main` exactly (`d6ce211`), and `gh pr list` confirms all
 10 PRs opened today are merged. Nothing is pending.
@@ -26,9 +26,9 @@ and FAQ are on the live [About page](https://riskandcontingency.com/about.html).
 | Risk Register | Full CRUD: Likelihood/Direct Cost/Knock On/Schedule/QHSE assessments (pre & post), response actions, sortable + highlighted list (EMV/Cost/Schedule/QHSE toggle), row-click-to-edit, Duplicate |
 | Modelling | Monte Carlo simulation (1k/5k/10k trials) over Regular Pooled Record risks, Pre and/or Post mitigation, histogram + fitted bell curve chart |
 | Contingency | Available budget vs. last Monte Carlo run, S-curve with budget reference line, confidence-coverage reading |
-| Configuration | RBS, Impact Areas, Owners, QHSE Levels — all CRUD, starter template |
+| Configuration | RBS, Impact Areas, Owners, QHSE Levels — all CRUD, starter template; Risk Assessment Matrix bins |
 | About | Description + 6-question FAQ (data storage, browser support, concurrent-edit behavior, EMV methodology, Monte Carlo scope, account requirements) |
-| **Risk Reporting** | **Not built** — still an empty state. The one remaining page. |
+| Risk Reporting | 5x5 Risk Assessment Matrix with Impact Area / Record Type / phase filters. **List + top-N ranking not built yet.** |
 
 Cross-cutting, done today: real `.xlsx` persistence (vendored SheetJS),
 save-conflict detection (blocks a save if the file changed on disk
@@ -36,7 +36,16 @@ since load, shows a banner — single-editor-at-a-time by design, not a
 bug), stale-browser-cache fix (`_headers` + update-available banner),
 dark mode, mobile-responsive header.
 
-## Today's session (2026-09-20) — 10 PRs
+## Session 2026-09-27
+
+- Both example risk templates are now Regular Pooled Record.
+- Risk Register: Save button at the top of the form too; saving stays on the record and shows a "Saved R-000x" confirmation toast.
+- Contingency S-curve now runs from 0% at the left edge to 100% at the right edge (previously stopped at the modelled max when the budget was higher), with round-number x ticks.
+- Configuration: 5x5 Risk Assessment Matrix bins (Likelihood 0–100%, Cost Impact 0 → highest cost in the register, equal bins by default and auto-tracking).
+- Risk Reporting: RAM plot with Impact Area / Record Type (and Pre/Post) filters, plus a table of plotted risks. List + top-N ranking still not built.
+- Dev server switched to a threaded server (single-threaded one stalled).
+
+## Session 2026-09-20 — 10 PRs
 
 1. **#1** Corrected CLAUDE.md/README: hosting is Cloudflare Pages, not GitHub Pages (a prior-session doc error).
 2. **#2** App shell: design system, navigation, File System Access folder connection.
@@ -60,7 +69,7 @@ dark mode, mobile-responsive header.
 
 ## Known gaps / next steps
 
-- **Risk Reporting** is the one unbuilt area: list all risk records, rank top-N by EMV / Max Total Cost / Schedule Exposure / Max Schedule. Natural next task.
+- **Risk Reporting** list/ranking is the one unbuilt area (the RAM exists): list all risk records, rank top-N by EMV / Max Total Cost / Schedule Exposure / Max Schedule. Natural next task.
 - Multi-project support doesn't exist — one workbook per folder, no project switcher.
 - QHSE Levels are configurable as a named list, but there's no severity *scoring* (e.g. a numeric weight per level) — only the label is used today.
 - No automated test suite exists; verification this session was manual (in-browser, via a mocked `FileSystemDirectoryHandle` — see CLAUDE.md's "Testing this" notes under conflict detection) each time before shipping.

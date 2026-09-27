@@ -197,11 +197,13 @@ async function persist() {
   knownFileModifiedAt = await getFileLastModified(handle);
 }
 
-async function load() {
+async function load({ silent = false } = {}) {
   const handle = getDirectoryHandle();
   if (!handle) return;
-  state = { ...state, status: "loading" };
-  notify();
+  if (!silent) {
+    state = { ...state, status: "loading" };
+    notify();
+  }
   try {
     const data = await loadWorkbook(handle);
     knownFileModifiedAt = await getFileLastModified(handle);
@@ -220,6 +222,33 @@ async function load() {
   }
   notify();
 }
+
+// Another tab (e.g. Configuration open next to Risk Reporting) may have
+// saved since this tab loaded. When the tab becomes visible again and
+// the file's mtime moved, re-read it silently so views follow the latest
+// config/records. Skipped while a conflict is already flagged — that
+// path is resolved by the banner's explicit reload.
+// Pages hold this while an unsaved edit is open (Risk Register form), so
+// a background refresh can't quietly turn a would-be conflict into an
+// overwrite of someone else's change to the same record.
+let autoRefreshHeld = false;
+export function holdAutoRefresh(held) {
+  autoRefreshHeld = !!held;
+}
+
+async function refreshIfChangedOnDisk() {
+  const handle = getDirectoryHandle();
+  if (!handle || autoRefreshHeld || state.status !== "ready" || state.conflict) return;
+  const current = await getFileLastModified(handle);
+  if (current !== null && current !== knownFileModifiedAt) await load({ silent: true });
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshIfChangedOnDisk().catch(() => {});
+});
+window.addEventListener("focus", () => {
+  refreshIfChangedOnDisk().catch(() => {});
+});
 
 onConnectionChange((connection) => {
   if (connection.status === "connected") {
@@ -328,20 +357,23 @@ export async function saveRiskRecord(record) {
     computed: { pre: calculateAssessment(r.pre), post: calculateAssessment(r.post) },
   });
 
+  let saved;
   if (isNew) {
     const id = nextId(state.riskRecords, "R");
-    const record2 = withComputed({ ...record, id, createdAt: now, updatedAt: now });
-    state = { ...state, riskRecords: [...state.riskRecords, record2] };
+    saved = withComputed({ ...record, id, createdAt: now, updatedAt: now });
+    state = { ...state, riskRecords: [...state.riskRecords, saved] };
   } else {
-    const record2 = withComputed({ ...record, updatedAt: now });
+    saved = withComputed({ ...record, updatedAt: now });
     state = {
       ...state,
-      riskRecords: state.riskRecords.map((r) => (r.id === record.id ? record2 : r)),
+      riskRecords: state.riskRecords.map((r) => (r.id === record.id ? saved : r)),
     };
   }
   notify();
   await persist();
-  return true;
+  // Truthy like every other mutator's `true`, but returns the saved
+  // record itself so the form can pick up a freshly minted id.
+  return saved;
 }
 
 export async function deleteRiskRecord(id) {
