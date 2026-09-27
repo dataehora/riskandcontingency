@@ -79,6 +79,41 @@ hit a stale-cache deploy):
   "anything to publish?" idempotency check, so an empty deploy still
   correctly no-ops rather than bumping the version for nothing).
 
+## Security headers, 404, SEO (2026-09-27)
+
+- **`_headers`** also sets `X-Frame-Options`, `Referrer-Policy`,
+  `Permissions-Policy` site-wide, and `X-Robots-Tag: noindex` on
+  `https://:project.pages.dev/*` (`:project` is Cloudflare's literal
+  placeholder syntax) so preview/`*.pages.dev` URLs don't compete with
+  the real domain in search.
+- **CSP is `Content-Security-Policy-Report-Only`** (logs violations to
+  the console, blocks nothing). The site loads **no third-party
+  anything** — no analytics, ads, fonts, CDNs or external APIs (SheetJS
+  is vendored) — so the policy is essentially `'self'` everywhere, plus:
+  - `script-src` has a `'sha256-…'` hash for the inline no-flash theme
+    script in every page's `<head>`. **If that inline script changes by
+    even one character, recompute the hash** (sha256 of the text between
+    `<script>` and `</script>`, base64) or the theme script will be
+    reported (and blocked once enforced).
+  - `style-src 'unsafe-inline'` is needed for the many `style="…"`
+    attributes in pages and in JS-generated markup (charts,
+    conflict banner). Removing it means moving those into classes.
+  - Verified 2026-09-27 by serving the policy as *enforcing* from a
+    throwaway local server: every page, theme script and the
+    `/version.json` poll worked with zero violations. To enforce it,
+    rename the header to `Content-Security-Policy`. No `report-uri`
+    endpoint exists (no backend).
+- **`404.html`**: Cloudflare Pages serves it with a real 404 status for
+  any unknown path (without it, Pages falls back to SPA-style serving
+  `index.html` with 200). `noindex`, not in the sitemap, uses root-
+  absolute asset paths so it renders at any nested URL.
+- **SEO**: each page has exactly one `<h1>`, a ≤~60-char `<title>`, a
+  140–160-char meta description, and `og:*` + `twitter:card` tags with
+  `og:image` → `images/og-image.png` (1200x630, generated with PIL —
+  PNG, since most social platforms don't render SVG og:images).
+  `sitemap.xml` has `<lastmod>` per URL, **set by hand** — bump it when a
+  page's content meaningfully changes.
+
 ## Architecture
 
 The app is a set of static, server-less pages sharing one design system

@@ -36,7 +36,7 @@ git checkout -b "$BRANCH"
 printf '{"version":"%s"}\n' "$(date -u +%Y%m%dT%H%M%SZ)" > version.json
 
 git add -A
-git commit -m "$(printf '%s\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>' "$MSG")"
+git commit -m "$(printf '%s\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>' "$MSG")"
 
 # ------------------------------------------------------------------ 3. push + PR + merge
 git push -u origin "$BRANCH"
