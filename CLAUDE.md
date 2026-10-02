@@ -97,9 +97,20 @@ hit a stale-cache deploy):
   placeholder syntax) so preview/`*.pages.dev` URLs don't compete with
   the real domain in search.
 - **CSP is `Content-Security-Policy-Report-Only`** (logs violations to
-  the console, blocks nothing). The site loads **no third-party
-  anything** — no analytics, ads, fonts, CDNs or external APIs (SheetJS
-  is vendored) — so the policy is essentially `'self'` everywhere, plus:
+  the console, blocks nothing). The only third-party code is **Google
+  Analytics** (GA4, `G-2DF5MS2G7H`, added 2026-10-02) — no ads, fonts,
+  CDNs or external APIs (SheetJS is vendored) — so the policy is
+  `'self'` plus Google's documented GA4 hosts (`*.googletagmanager.com`
+  in script/img/connect-src, `*.google-analytics.com` and
+  `*.analytics.google.com` in img/connect-src), plus:
+  - **Google tag**: first thing after `<head>` on every page (incl.
+    `404.html`), as Google instructs. Its inline config script is kept
+    on **one line** on purpose — the working tree is CRLF on Windows but
+    git/Cloudflare serve LF, and a multi-line inline script would hash
+    differently in each. It has its own `'sha256-…'` in `script-src`;
+    same recompute rule as the theme script below. `about.html`'s
+    "Where is my data stored?" FAQ discloses GA — keep that in sync if
+    analytics changes.
   - `script-src` has a `'sha256-…'` hash for the inline no-flash theme
     script in every page's `<head>`. **If that inline script changes by
     even one character, recompute the hash** (sha256 of the text between
