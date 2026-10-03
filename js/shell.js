@@ -7,6 +7,7 @@ import {
   reconnectFolder,
   disconnectFolder,
 } from "./storage/folder-connection.js";
+import { t, onLangChange } from "./i18n/i18n.js";
 
 function highlightActiveNav() {
   const page = document.body.dataset.page;
@@ -30,14 +31,7 @@ function wireMobileNavToggle() {
   });
 }
 
-const STATUS_LABEL = {
-  checking: "Checking…",
-  unsupported: "Folder access unsupported",
-  disconnected: "Not connected",
-  reconnect: "Reconnect folder",
-  connected: "Connected",
-  error: "Connection error",
-};
+const STATUS_KEYS = ["checking", "unsupported", "disconnected", "reconnect", "connected", "error"];
 
 function renderConnectionUi(state) {
   const pill = document.querySelector("[data-connection-pill]");
@@ -51,23 +45,25 @@ function renderConnectionUi(state) {
   if (label) {
     const text =
       state.status === "connected" && state.folderName
-        ? `Connected to Folder: ${state.folderName}`
-        : STATUS_LABEL[state.status] ?? state.status;
+        ? t("connection.connectedTo", { folder: state.folderName })
+        : STATUS_KEYS.includes(state.status)
+          ? t(`connection.${state.status}`)
+          : state.status;
     label.textContent = text;
     pill?.setAttribute("aria-label", text);
   }
 
   primaryBtns.forEach((primaryBtn) => {
     if (state.status === "connected") {
-      primaryBtn.textContent = "Change folder";
+      primaryBtn.textContent = t("connection.changeFolder");
       primaryBtn.hidden = false;
     } else if (state.status === "reconnect") {
-      primaryBtn.textContent = "Reconnect folder";
+      primaryBtn.textContent = t("connection.reconnect");
       primaryBtn.hidden = false;
     } else if (state.status === "unsupported") {
       primaryBtn.hidden = true;
     } else {
-      primaryBtn.textContent = "Connect folder";
+      primaryBtn.textContent = t("connection.connectFolder");
       primaryBtn.hidden = false;
     }
   });
@@ -113,6 +109,7 @@ function wireConnectionControls() {
   }
 
   onConnectionChange(renderConnectionUi);
+  onLangChange(() => renderConnectionUi(getConnectionState()));
   restoreConnection();
 }
 

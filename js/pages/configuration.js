@@ -9,9 +9,9 @@ import {
 } from "../storage/register-store.js";
 import {
   BIN_COUNT,
-  LIKELIHOOD_LABELS,
+  likelihoodLabel,
   LIKELIHOOD_MAX,
-  COST_LABELS,
+  costLabel,
   parseRamConfig,
   serializeRamConfig,
   resolveBins,
@@ -20,6 +20,7 @@ import {
   riskPoints,
 } from "../storage/ram.js";
 import { renderRiskMatrix } from "../charts/risk-matrix.js";
+import { t, tn, fmtInt, fmtNum, onLangChange } from "../i18n/i18n.js";
 
 const LISTS = {
   rbs: rbsList,
@@ -34,7 +35,10 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+let lastState = null;
+
 function render(state) {
+  lastState = state;
   const emptyState = document.querySelector("[data-config-empty-state]");
   const content = document.querySelector("[data-config-content]");
   const isEmpty =
@@ -57,11 +61,11 @@ function render(state) {
           (item) => `
         <li class="named-list-item">
           <span>${escapeHtml(item.name)}</span>
-          <button type="button" class="btn btn-ghost btn-sm" data-remove="${key}" data-id="${item.id}">Remove</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-remove="${key}" data-id="${item.id}">${t("common.remove")}</button>
         </li>
       `
         )
-        .join("") || `<li class="named-list-empty">None yet.</li>`;
+        .join("") || `<li class="named-list-empty">${t("conf.noneYet")}</li>`;
   }
 
   try {
@@ -70,19 +74,17 @@ function render(state) {
     // Never leave the matrix silently blank — say so, and log the cause.
     console.error(err);
     const preview = document.querySelector("[data-ram-preview]");
-    if (preview) preview.textContent = "The matrix couldn't be drawn — try reloading the page (Ctrl+F5).";
+    if (preview) preview.textContent = t("conf.ram.drawError");
   }
 }
 
 // --- Risk Assessment Matrix bins -------------------------------------
 let latestState = null;
-const BIN_LABELS = { likelihood: LIKELIHOOD_LABELS, cost: COST_LABELS };
+const BIN_LABEL = { likelihood: likelihoodLabel, cost: costLabel };
 
 function fmtEdge(axis, v) {
   if (!Number.isFinite(v)) return "—";
-  return axis === "likelihood"
-    ? `${Number(v.toFixed(2))}%`
-    : v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return axis === "likelihood" ? `${fmtNum(v, 2)}%` : fmtInt(v);
 }
 
 // Table skeleton is built once per axis; later renders only update
@@ -93,9 +95,9 @@ function ensureBinsTable(axis) {
   table.dataset.built = "1";
   const step = axis === "likelihood" ? "0.1" : "any";
   table.innerHTML = `
-    <thead><tr><th>Bin</th><th>From</th><th>To</th></tr></thead>
+    <thead><tr><th>${t("conf.ram.bin")}</th><th>${t("conf.ram.from")}</th><th>${t("conf.ram.to")}</th></tr></thead>
     <tbody>
-      ${BIN_LABELS[axis]
+      ${Array.from({ length: BIN_COUNT }, (_, i) => BIN_LABEL[axis](i))
         .map(
           (label, i) => `
         <tr>
@@ -103,7 +105,7 @@ function ensureBinsTable(axis) {
           <td data-ram-from="${i}"></td>
           <td>${
             i < BIN_COUNT - 1
-              ? `<input type="number" step="${step}" min="0" data-ram-threshold="${axis}" data-index="${i}" aria-label="${label} upper bound">`
+              ? `<input type="number" step="${step}" min="0" data-ram-threshold="${axis}" data-index="${i}" aria-label="${t("conf.ram.upperBound", { bin: label })}">`
               : `<span data-ram-top></span>`
           }</td>
         </tr>`
@@ -127,7 +129,7 @@ function renderRam(state) {
     table.querySelectorAll("[data-ram-from]").forEach((td) => {
       td.textContent = fmtEdge(axis, edges[Number(td.dataset.ramFrom)]);
     });
-    table.querySelector("[data-ram-top]").textContent = `${fmtEdge(axis, edges[BIN_COUNT])} (max)`;
+    table.querySelector("[data-ram-top]").textContent = t("conf.ram.top", { value: fmtEdge(axis, edges[BIN_COUNT]) });
     table.querySelectorAll("[data-ram-threshold]").forEach((input) => {
       if (document.activeElement === input) return;
       const v = edges[Number(input.dataset.index) + 1];
@@ -135,16 +137,15 @@ function renderRam(state) {
     });
   }
 
-  section.querySelector("[data-ram-cost-max]").textContent =
-    bins.costMax > 0 ? `currently ${fmtEdge("cost", bins.costMax)}` : "no risk record costs yet";
+  section.querySelector("[data-ram-intro]").textContent = t("conf.ram.intro", {
+    costMax: bins.costMax > 0 ? t("conf.ram.costMaxCurrent", { value: fmtEdge("cost", bins.costMax) }) : t("conf.ram.costMaxNone"),
+  });
   section.querySelector("[data-ram-cost-mode]").textContent =
-    bins.costMode === "equal"
-      ? "Equal bins: re-divided automatically whenever the highest cost in the register changes."
-      : "Custom bins: your boundaries stay fixed; only the top of the last bin follows the register's highest cost.";
+    bins.costMode === "equal" ? t("conf.ram.modeEqual") : t("conf.ram.modeCustom");
 
   const errorBox = section.querySelector("[data-ram-error]");
   if (bins.costOutOfRange && !errorBox.dataset.inputError) {
-    errorBox.textContent = `The register's highest cost (${fmtEdge("cost", bins.costMax)}) is now at or below one of your custom Cost Impact boundaries, so some bins are empty ranges. Adjust the boundaries or reset to equal bins.`;
+    errorBox.textContent = t("conf.ram.outOfRange", { value: fmtEdge("cost", bins.costMax) });
     errorBox.hidden = false;
   } else if (!errorBox.dataset.inputError) {
     errorBox.hidden = true;
@@ -156,8 +157,8 @@ function renderRam(state) {
   const { points } = riskPoints(state.riskRecords, "pre", bins);
   renderRiskMatrix(section.querySelector("[data-ram-preview]"), bins, points);
   section.querySelector("[data-ram-preview-note]").textContent = state.riskRecords.length
-    ? `${points.length} of ${state.riskRecords.length} risk record${state.riskRecords.length === 1 ? "" : "s"} shown at their pre-mitigation position.`
-    : "No risk records yet — the grid shows the configured bins; risks appear here once added in the Risk Register.";
+    ? tn("conf.ram.previewNote", state.riskRecords.length, { shown: fmtInt(points.length) })
+    : t("conf.ram.previewEmpty");
 }
 
 async function saveThresholds(axis) {
@@ -170,7 +171,7 @@ async function saveThresholds(axis) {
   const max = axis === "likelihood" ? LIKELIHOOD_MAX : resolveBins(config, latestState.riskRecords).costMax;
   const error = validateThresholds(thresholds, max);
   if (error) {
-    errorBox.textContent = `${axis === "likelihood" ? "Likelihood" : "Cost Impact"}: ${error} Not saved yet.`;
+    errorBox.textContent = t("conf.ram.inputError", { axis: t(axis === "likelihood" ? "dim.likelihood" : "rep.ram.costImpact"), error });
     errorBox.dataset.inputError = "1";
     errorBox.hidden = false;
     return;
@@ -231,4 +232,9 @@ function wire() {
 }
 
 onRegisterChange(render);
+onLangChange(() => {
+  // Bin tables are built once; rebuild them with the new labels.
+  document.querySelectorAll("[data-ram-bins]").forEach((table) => delete table.dataset.built);
+  if (lastState) render(lastState);
+});
 wire();

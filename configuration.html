@@ -5,10 +5,13 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DF5MS2G7H"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-2DF5MS2G7H');</script>
   <meta charset="utf-8">
-  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
+  <script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){d.dataset.theme=t;}var l=localStorage.getItem('lang-preference')||(navigator.language||'').slice(0,2).toLowerCase();if(l==='pt'||l==='es'){d.lang=l;d.setAttribute('data-i18n-pending','');}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Configuration — RBS and Reference Data | Risk and Contingency</title>
-  <meta name="description" content="Set up the reference data behind your risk register: Risk Breakdown Structure, impact areas, risk owners and QHSE levels, or start from a ready-made template.">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/images/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <title data-i18n="meta.configuration.title">Configuration — RBS and Reference Data | Risk and Contingency</title>
+  <meta name="description" data-i18n-attr="content:meta.configuration.description" content="Set up the reference data behind your risk register: Risk Breakdown Structure, impact areas, risk owners and QHSE levels, or start from a ready-made template.">
   <link rel="canonical" href="https://riskandcontingency.com/configuration.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Risk and Contingency">
@@ -24,23 +27,24 @@
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/shell.css">
+  <script type="module" src="/js/i18n/i18n.js"></script>
 </head>
 <body data-page="configuration">
   <header class="app-header">
     <div class="app-header-inner">
       <a class="app-brand" href="/index.html">
-        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
-        Risk &amp; Contingency
+        <img class="app-brand-logo" src="/images/logo-light.png" alt="R&amp;C" width="68" height="28">
+        <span class="app-brand-name">Risk &amp; Contingency</span>
       </a>
-      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
-      <nav class="app-nav" aria-label="Primary">
-        <a href="/index.html" data-nav="home">Home</a>
-        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
-        <a href="/modelling.html" data-nav="modelling">Modelling</a>
-        <a href="/reporting.html" data-nav="reporting">Risk Reporting</a>
-        <a href="/contingency.html" data-nav="contingency">Contingency</a>
-        <a href="/configuration.html" data-nav="configuration">Configuration</a>
-        <a href="/about.html" data-nav="about">About</a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation" data-i18n-attr="aria-label:header.toggleNav">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary" data-i18n-attr="aria-label:header.primaryNav">
+        <a href="/index.html" data-nav="home" data-i18n="nav.home">Home</a>
+        <a href="/risk-register.html" data-nav="risk-register" data-i18n="nav.riskRegister">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling" data-i18n="nav.modelling">Modelling</a>
+        <a href="/reporting.html" data-nav="reporting" data-i18n="nav.reporting">Risk Reporting</a>
+        <a href="/contingency.html" data-nav="contingency" data-i18n="nav.contingency">Contingency</a>
+        <a href="/configuration.html" data-nav="configuration" data-i18n="nav.configuration">Configuration</a>
+        <a href="/about.html" data-nav="about" data-i18n="nav.about">About</a>
       </nav>
       <div class="app-header-actions">
         <span class="status-pill" data-connection-pill data-state="checking">
@@ -48,13 +52,13 @@
           <span data-connection-label>Checking&hellip;</span>
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
-        <label class="theme-toggle" title="Toggle dark mode">
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden data-i18n="header.disconnect">Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode" data-i18n-attr="title:header.toggleTheme">
           <input type="checkbox" data-theme-toggle class="visually-hidden">
           <span class="theme-toggle-track" aria-hidden="true">
             <span class="theme-toggle-thumb"></span>
           </span>
-          <span class="visually-hidden">Toggle dark mode</span>
+          <span class="visually-hidden" data-i18n="header.toggleTheme">Toggle dark mode</span>
         </label>
       </div>
     </div>
@@ -62,91 +66,91 @@
 
   <main class="app-main">
     <div class="page-header">
-      <span class="eyebrow">Configuration &amp; Data Management</span>
-      <h1>Projects &amp; reference data</h1>
-      <p>Set up the Risk Breakdown Structure, impact areas, the list of risk owners and the Risk Assessment Matrix used across the Risk Register and Risk Reporting. This is step 2 of the setup sequence — it needs a connected folder first.</p>
+      <span class="eyebrow" data-i18n="conf.eyebrow">Configuration &amp; Data Management</span>
+      <h1 data-i18n="conf.title">Projects &amp; reference data</h1>
+      <p data-i18n="conf.lead">Set up the Risk Breakdown Structure, impact areas, the list of risk owners and the Risk Assessment Matrix used across the Risk Register and Risk Reporting. This is step 2 of the setup sequence — it needs a connected folder first.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
       <span aria-hidden="true">&#9888;&#65039;</span>
-      <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
+      <p style="margin:0;" data-i18n="common.unsupportedShort">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
-<div class="empty-state" data-requires-no-connection>
-      <h3>Connect a folder to get started</h3>
-      <p>Configuration is stored in the Excel workbook in your connected folder.</p>
-      <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
+    <div class="empty-state" data-requires-no-connection>
+      <h3 data-i18n="common.connectFirst">Connect a folder to get started</h3>
+      <p data-i18n="conf.connectHint">Configuration is stored in the Excel workbook in your connected folder.</p>
+      <a class="btn btn-primary" href="/index.html" data-i18n="common.goHomeToConnect">Go to Home to connect a folder</a>
     </div>
 
     <div data-requires-connection hidden>
       <div class="empty-state" data-config-empty-state hidden>
-        <h3>No configuration yet</h3>
-        <p>Start from a template with common Risk Breakdown Structure categories, impact areas and generic owners — everything is editable afterwards.</p>
-        <button class="btn btn-primary" type="button" data-load-config-template>Load starter template</button>
+        <h3 data-i18n="conf.empty.title">No configuration yet</h3>
+        <p data-i18n="conf.empty.body">Start from a template with common Risk Breakdown Structure categories, impact areas and generic owners — everything is editable afterwards. The template is created in the language currently selected.</p>
+        <button class="btn btn-primary" type="button" data-load-config-template data-i18n="conf.empty.cta">Load starter template</button>
       </div>
 
       <div data-config-content hidden>
         <div class="card-grid">
           <section class="card">
-            <h3>Risk Breakdown Structure</h3>
-            <p>Categories used to classify risk records.</p>
+            <h3 data-i18n="conf.rbs.title">Risk Breakdown Structure</h3>
+            <p data-i18n="conf.rbs.body">Categories used to classify risk records.</p>
             <ul class="named-list" data-list="rbs"></ul>
             <form class="named-list-form" data-add-form="rbs">
-              <label class="visually-hidden" for="rbs-name">RBS category name</label>
-              <input id="rbs-name" type="text" name="name" placeholder="e.g. Design" required>
-              <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+              <label class="visually-hidden" for="rbs-name" data-i18n="conf.rbs.inputLabel">RBS category name</label>
+              <input id="rbs-name" type="text" name="name" placeholder="e.g. Design" data-i18n-attr="placeholder:conf.rbs.placeholder" required>
+              <button class="btn btn-secondary btn-sm" type="submit" data-i18n="common.add">Add</button>
             </form>
           </section>
           <section class="card">
-            <h3>Impact Areas</h3>
-            <p>CAPEX, OPEX and Revenue by default — edit as needed.</p>
+            <h3 data-i18n="conf.impactAreas.title">Impact Areas</h3>
+            <p data-i18n="conf.impactAreas.body">CAPEX, OPEX and Revenue by default — edit as needed.</p>
             <ul class="named-list" data-list="impactAreas"></ul>
             <form class="named-list-form" data-add-form="impactAreas">
-              <label class="visually-hidden" for="impact-area-name">Impact area name</label>
-              <input id="impact-area-name" type="text" name="name" placeholder="e.g. CAPEX" required>
-              <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+              <label class="visually-hidden" for="impact-area-name" data-i18n="conf.impactAreas.inputLabel">Impact area name</label>
+              <input id="impact-area-name" type="text" name="name" placeholder="e.g. CAPEX" data-i18n-attr="placeholder:conf.impactAreas.placeholder" required>
+              <button class="btn btn-secondary btn-sm" type="submit" data-i18n="common.add">Add</button>
             </form>
           </section>
           <section class="card">
-            <h3>Risk Owners</h3>
-            <p>People or roles who can be assigned as a risk owner.</p>
+            <h3 data-i18n="conf.owners.title">Risk Owners</h3>
+            <p data-i18n="conf.owners.body">People or roles who can be assigned as a risk owner.</p>
             <ul class="named-list" data-list="owners"></ul>
             <form class="named-list-form" data-add-form="owners">
-              <label class="visually-hidden" for="owner-name">Owner name</label>
-              <input id="owner-name" type="text" name="name" placeholder="e.g. Project Manager" required>
-              <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+              <label class="visually-hidden" for="owner-name" data-i18n="conf.owners.inputLabel">Owner name</label>
+              <input id="owner-name" type="text" name="name" placeholder="e.g. Project Manager" data-i18n-attr="placeholder:conf.owners.placeholder" required>
+              <button class="btn btn-secondary btn-sm" type="submit" data-i18n="common.add">Add</button>
             </form>
           </section>
           <section class="card">
-            <h3>QHSE Levels</h3>
-            <p>Qualitative scoring scale used by the QHSE assessment, low to high severity.</p>
+            <h3 data-i18n="conf.qhse.title">QHSE Levels</h3>
+            <p data-i18n="conf.qhse.body">Qualitative scoring scale used by the QHSE assessment, low to high severity.</p>
             <ul class="named-list" data-list="qhseLevels"></ul>
             <form class="named-list-form" data-add-form="qhseLevels">
-              <label class="visually-hidden" for="qhse-level-name">QHSE level name</label>
-              <input id="qhse-level-name" type="text" name="name" placeholder="e.g. Major" required>
-              <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+              <label class="visually-hidden" for="qhse-level-name" data-i18n="conf.qhse.inputLabel">QHSE level name</label>
+              <input id="qhse-level-name" type="text" name="name" placeholder="e.g. Major" data-i18n-attr="placeholder:conf.qhse.placeholder" required>
+              <button class="btn btn-secondary btn-sm" type="submit" data-i18n="common.add">Add</button>
             </form>
           </section>
         </div>
 
         <section class="card" style="margin-top: var(--space-5);" data-ram-config>
-          <h3>Risk Assessment Matrix (5&times;5)</h3>
-          <p>Set the 5 bins for each axis. Likelihood spans 0&ndash;100%. Cost Impact (Total Cost = Direct Cost + Knock On) spans 0 to the highest cost anywhere in the Risk Register &mdash; <span data-ram-cost-max></span> &mdash; and follows it as records change. Each bin runs from the previous bin's upper bound to its own. Changes save automatically and are used by the matrix on Risk Reporting.</p>
+          <h3 data-i18n="conf.ram.title">Risk Assessment Matrix (5×5)</h3>
+          <p data-ram-intro></p>
           <div class="card-grid" style="margin-top: var(--space-4);">
             <div>
-              <h4 style="margin-bottom: var(--space-2);">Likelihood (%) &mdash; vertical axis</h4>
+              <h4 style="margin-bottom: var(--space-2);" data-i18n="conf.ram.likelihoodAxis">Likelihood (%) — vertical axis</h4>
               <table class="data-table ram-bins-table" data-ram-bins="likelihood"></table>
-              <button class="btn btn-ghost btn-sm" type="button" data-ram-reset="likelihood" style="margin-top: var(--space-2);">Reset to equal bins</button>
+              <button class="btn btn-ghost btn-sm" type="button" data-ram-reset="likelihood" style="margin-top: var(--space-2);" data-i18n="conf.ram.reset">Reset to equal bins</button>
             </div>
             <div>
-              <h4 style="margin-bottom: var(--space-2);">Cost Impact &mdash; horizontal axis</h4>
+              <h4 style="margin-bottom: var(--space-2);" data-i18n="conf.ram.costAxis">Cost Impact — horizontal axis</h4>
               <table class="data-table ram-bins-table" data-ram-bins="cost"></table>
-              <button class="btn btn-ghost btn-sm" type="button" data-ram-reset="cost" style="margin-top: var(--space-2);">Reset to equal bins</button>
+              <button class="btn btn-ghost btn-sm" type="button" data-ram-reset="cost" style="margin-top: var(--space-2);" data-i18n="conf.ram.reset">Reset to equal bins</button>
               <p data-ram-cost-mode style="font-size:0.8rem; color: var(--color-text-subtle); margin-top: var(--space-2);"></p>
             </div>
           </div>
           <div class="notice notice-warning" data-ram-error hidden style="margin-top: var(--space-4);"></div>
-          <h4 style="margin: var(--space-5) 0 var(--space-1);">Preview</h4>
+          <h4 style="margin: var(--space-5) 0 var(--space-1);" data-i18n="conf.ram.preview">Preview</h4>
           <p data-ram-preview-note style="font-size:0.85rem; margin-bottom: var(--space-3);"></p>
           <div data-ram-preview></div>
         </section>
@@ -155,10 +159,12 @@
   </main>
 
   <footer class="app-footer">
-    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+    <img class="app-footer-logo" src="/images/logo.png" alt="R&amp;C" width="58" height="24" data-logo-for="light-bg">
+    <img class="app-footer-logo" src="/images/logo-light.png" alt="R&amp;C" width="58" height="24" data-logo-for="dark-bg">
+    <span data-i18n="footer.text">Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
   </footer>
 
-  <script src="/js/vendor/xlsx.full.min.js"></script>
+  <script defer src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>

@@ -1,18 +1,16 @@
 import { getRegisterState, onRegisterChange, updateSettings } from "../storage/register-store.js";
 import { PERCENTILE_STEPS } from "../storage/monte-carlo.js";
 import { renderSCurve } from "../charts/s-curve.js";
+import { t, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
-const PHASE_LABEL = { pre: "Pre-mitigation", post: "Post-mitigation" };
+const phaseLabel = (phase) => t(`phase.${phase}`);
 
 let currentState = getRegisterState();
 let budgetInputWired = false;
 let comparePhaseWired = false;
 let comparePhase = null; // user's chosen phase when a run has both
 
-function fmtNumber(n) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+const fmtNumber = fmtInt;
 
 function parseLastRun(settings) {
   if (!settings?.lastModelledResultsJson) return null;
@@ -29,14 +27,14 @@ function parseLastRun(settings) {
 // range" rather than a specific higher percentile we don't have.
 function confidenceLabel(summary, budget) {
   if (!Number.isFinite(budget)) return "—";
-  if (budget < summary.min) return "Below modelled minimum";
-  if (budget >= summary.max) return "Covers full modelled range";
+  if (budget < summary.min) return t("cont.conf.belowMin");
+  if (budget >= summary.max) return t("cont.conf.full");
   let covered = null;
   for (const p of PERCENTILE_STEPS) {
     const key = `P${String(p).padStart(2, "0")}`;
     if (summary.percentiles[key] <= budget) covered = p;
   }
-  return covered === null ? "Below P05" : `Up to P${String(covered).padStart(2, "0")}`;
+  return covered === null ? t("cont.conf.belowP05") : t("cont.conf.upTo", { p: `P${String(covered).padStart(2, "0")}` });
 }
 
 function resolveComparePhase(lastRun) {
@@ -56,7 +54,7 @@ function renderPhaseSelector(lastRun) {
     return;
   }
   wrap.hidden = false;
-  select.innerHTML = available.map((p) => `<option value="${p}">${PHASE_LABEL[p]}</option>`).join("");
+  select.innerHTML = available.map((p) => `<option value="${p}">${phaseLabel(p)}</option>`).join("");
   select.value = resolveComparePhase(lastRun);
 }
 
@@ -81,17 +79,20 @@ function renderResults() {
   const { summary, curve } = lastRun.results[phase];
   const p50 = summary.percentiles.P50 ?? summary.min;
 
-  document.querySelector("[data-contingency-run-meta]").textContent =
-    `Compared against ${settings.lastModelledTrials?.toLocaleString() ?? "—"} trials · ${PHASE_LABEL[phase]} · modelled ${settings.lastModelledAt ? new Date(settings.lastModelledAt).toLocaleString() : "—"}`;
+  document.querySelector("[data-contingency-run-meta]").textContent = t("cont.runMeta", {
+    trials: fmtInt(Number(settings.lastModelledTrials)),
+    phase: phaseLabel(phase),
+    date: settings.lastModelledAt ? new Date(settings.lastModelledAt).toLocaleString(locale()) : "—",
+  });
   document.querySelector("[data-contingency-budget]").textContent = fmtNumber(budget);
   document.querySelector("[data-contingency-confidence]").textContent = confidenceLabel(summary, budget);
   document.querySelector("[data-contingency-headroom]").textContent = fmtNumber(budget - p50);
 
   renderSCurve(document.querySelector("[data-contingency-chart]"), curve ?? [], summary, {
-    referenceLine: { value: budget, label: "Available Budget" },
+    referenceLine: { value: budget, label: t("cont.budget.label") },
   });
 
-  const cols = ["Min", ...PERCENTILE_STEPS.map((p) => `P${String(p).padStart(2, "0")}`), "Max"];
+  const cols = [t("dist.min"), ...PERCENTILE_STEPS.map((p) => `P${String(p).padStart(2, "0")}`), t("dist.max")];
   const costs = [
     summary.min,
     ...PERCENTILE_STEPS.map((p) => summary.percentiles[`P${String(p).padStart(2, "0")}`]),
@@ -101,11 +102,11 @@ function renderResults() {
   table.innerHTML = `
     <thead><tr><th></th>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
     <tbody>
-      <tr><td>Modelled cost</td>${costs.map((v) => `<td>${fmtNumber(v)}</td>`).join("")}</tr>
-      <tr><td>Covered by budget?</td>${costs
-        .map((v) => `<td>${budget >= v ? '<span class="badge badge-low">Yes</span>' : '<span class="badge badge-high">No</span>'}</td>`)
+      <tr><td>${t("cont.table.modelled")}</td>${costs.map((v) => `<td>${fmtNumber(v)}</td>`).join("")}</tr>
+      <tr><td>${t("cont.table.covered")}</td>${costs
+        .map((v) => `<td>${budget >= v ? `<span class="badge badge-low">${t("common.yes")}</span>` : `<span class="badge badge-high">${t("common.no")}</span>`}</td>`)
         .join("")}</tr>
-      <tr><td>Headroom</td>${costs.map((v) => `<td>${fmtNumber(budget - v)}</td>`).join("")}</tr>
+      <tr><td>${t("cont.table.headroom")}</td>${costs.map((v) => `<td>${fmtNumber(budget - v)}</td>`).join("")}</tr>
     </tbody>
   `;
 }
@@ -147,4 +148,7 @@ onRegisterChange((state) => {
   wireComparePhaseSelect();
   syncBudgetInput();
   renderResults();
+});
+onLangChange(() => {
+  if (currentState.status === "ready") renderResults();
 });

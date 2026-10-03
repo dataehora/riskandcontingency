@@ -35,8 +35,13 @@ Real build underway (started 2026-09-20). Landed so far:
   Configuration, plotted on Risk Reporting — see "Risk Assessment
   Matrix" below.
 
-Still not built: Risk Reporting's list + top-N ranking (the RAM is the
-only thing on that page so far). Update this section as it ships.
+- **2026-10-03**: site-wide EN/PT/ES translation (see "Internationalisation"
+  below), the R&C logo across the site, risk record **Status**, Risk
+  Register filters + record-count summary, Modelling "Risks in this run"
+  table, Risk Reporting automated register summary.
+
+Still not built: Risk Reporting's top-N ranking table (the summary and
+the RAM are on that page). Update this section as it ships.
 
 ## Stack
 
@@ -141,6 +146,59 @@ hit a stale-cache deploy):
   `"offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}`
   if/when the site says so. `application/ld+json` is a non-executed data
   block, so it needs no CSP hash.
+
+## Internationalisation (2026-10-03)
+
+Every page is available in English, Portuguese (pt-BR) and Spanish, via
+a flag switch built into the header next to the theme toggle.
+- **Engine**: `js/i18n/i18n.js` (ES module, imported by `shell.js` and
+  every page script). Static HTML carries `data-i18n="key"` (textContent),
+  `data-i18n-html="key"` (innerHTML — only for dictionary copy with
+  `<strong>`/`<code>`) or `data-i18n-attr="attr:key;attr:key"`. Dynamic
+  text uses `t(key, vars)`, `tn(key, count, vars)` (plural: `key.one` /
+  `key.other`, `{count}` pre-formatted) and `tv(group, value)` for stored
+  enum values. Pages re-render on `onLangChange()`; the Risk Register
+  form re-renders without losing unsaved input (`relabelForm`).
+- **Dictionaries**: `js/i18n/en.js` (reference), `pt.js`, `es.js` — flat
+  `"area.thing": "text"` maps. **Every new user-facing string needs a key
+  in all three files.** On localhost `i18n.js` console-warns any key
+  missing from pt/es, and `t()` warns on a key missing everywhere.
+  Keep the English text in the HTML equal to `en.js` (it's what crawlers
+  and no-JS readers see).
+- **Stored data stays English**: Risk Type, Record Type, Status and
+  Strategy are saved in English in the workbook and only *displayed*
+  translated (`value.<group>.<English value>` keys), so a file behaves
+  the same whichever language opens it. User-typed names (RBS, owners,
+  QHSE levels…) are never translated. The Configuration starter template
+  and the two example risk records are created **in the language selected
+  at the time** (`tpl.*` keys) — they're ordinary data afterwards.
+- **Language choice**: `localStorage['lang-preference']`, else the
+  browser language if it's pt/es, else English. Numbers/dates format with
+  the site language's locale (`locale()`: en-US / pt-BR / es-ES), not the
+  browser's, so a page never mixes conventions.
+- **No flash of English**: the inline `<head>` script (same one that
+  applies the theme) sets `data-i18n-pending` when the language isn't
+  English; `base.css` hides `body` until `i18n.js` removes it, with a
+  1.5s CSS-animation failsafe in case the script never runs. To keep
+  that window short, every page loads `/js/i18n/i18n.js` as a module in
+  `<head>` (first in deferred-script order) and the 1 MB SheetJS script
+  is `defer` — before, the blocking SheetJS download held the whole
+  translation pass back. That inline
+  script's CSP hash in `_headers` was recomputed for this — recompute
+  again if it changes.
+- **Flags are inline SVG, never emoji** — Windows ships no flag emoji, so
+  Chrome/Edge there render "🇺🇸" as the letters "US" (the user hit this on
+  beatconfused.com, whose switch this one is otherwise modelled on).
+- Not localised: URLs (one URL per page, client-side switch), JSON-LD,
+  `og:*` tags (English).
+
+**Logo** (2026-10-03): the user's R&C logo (dark "R"/"C", green→gold
+ampersand). `images/logo.png` = original colours on transparent (light
+backgrounds); `images/logo-light.png` = off-white letters + lightened
+ampersand (navy header, dark mode). `[data-logo-for="light-bg"|"dark-bg"]`
++ `shell.css` pick the right one per theme. Favicons and `og-image.png`
+were regenerated from it with PIL (source image isn't in the repo — the
+transparent `logo.png` is the master now).
 
 ## Architecture
 
@@ -289,8 +347,14 @@ conceptually "per project"; add that if/when it's actually needed. A
 risk record: Risk Title, Risk Type (Threat/Opportunity), Record Type
 (fixed enum in `RECORD_TYPES`, `workbook.js` — "Regular Pooled Record"
 [renamed from "Pooled" 2026-09-20] / High Impact / Benchmark — not
-configurable, unlike RBS/Impact Areas/Owners/QHSE Levels), Description,
-Cause, Effect, Risk Owner, Impact Area, RBS Category.
+configurable, unlike RBS/Impact Areas/Owners/QHSE Levels), **Status**
+(fixed enum `RISK_STATUSES`, 2026-10-03: Open / Draft / Proposed /
+Closed - Rejected / Closed - Impacted / Closed - Mitigated / Closed -
+Expired; `status` column after `recordType`; blank or unknown values —
+i.e. every row saved before Status existed — load as **Open**, so old
+registers model exactly as before; new records and both templates
+default to Open; "under review" = Draft + Proposed, `REVIEW_STATUSES`),
+Description, Cause, Effect, Risk Owner, Impact Area, RBS Category.
 
 **Pre- and post-mitigation assessment**, 6 groups in this order —
 Likelihood, Total Cost, Direct Cost, Knock On, Schedule, QHSE — and
@@ -412,8 +476,8 @@ Exploit/Enhance/Share/Monitor-Accept (`STRATEGIES` in
 `js/pages/risk-register.js`).
 
 **Risk Register list** (2026-09-20): columns are ID, Title, Type,
-Record Type, Impact Area, Owner (this exact order — Impact Area before
-Owner), then an **EMV/Cost/Schedule/QHSE toggle** (`viewMode` in
+Status (added 2026-10-03), Record Type, Impact Area, Owner (Impact Area
+before Owner), then an **EMV/Cost/Schedule/QHSE toggle** (`viewMode` in
 `js/pages/risk-register.js`, defaults to EMV) swaps in a different set
 of trailing columns, all marked `highlight: true` and rendered with the
 `.col-highlight` CSS class (both `<th>` and `<td>`) so it's visually
@@ -443,6 +507,14 @@ in the `Actions` sheet). Duplicate/Delete buttons and the row-click
 handler share one delegated listener on `tbody`; button clicks are
 checked and `return`ed on first, so they never also fire the row-click
 (no `stopPropagation()` needed).
+**Filters + summary** (2026-10-03): a filter bar (search over ID/title/
+owner/RBS/impact area/description, Status, Risk Type, Record Type,
+Impact Area, "Clear filters") sits above the table; the record-count
+summary ("Showing X of Y risk records · n threats, m opportunities ·
+k open") is rendered **above and below** the table and recomputed on
+every filter change, and the EMV `<tfoot>` total covers the filtered
+rows. The form shows a hint under Status/Record Type saying whether the
+record will be in Monte Carlo.
 The Details form's Title/Risk Type/Record Type row uses
 `.title-row-grid` (`grid-template-columns: 2fr 1fr 1fr`, collapsing to
 one column under 640px) — Title is exactly half the row width, by
@@ -469,7 +541,12 @@ gone.
 
 **Monte Carlo modelling** (`js/storage/monte-carlo.js`, pure/testable;
 UI in `js/pages/modelling.js`): simulates only **Regular Pooled Record**
-risks (`pooledRecords()` filters by `recordType`). Phase is chosen via
+risks with Status **Open** (`pooledRecords()` filters by both,
+2026-10-03). Each run's results start with a **"Risks in this run"**
+table (threats / opportunities / total) — included, then each excluded
+group (High Impact, Benchmark, not Open with the statuses listed; a
+partition of the whole register, record type checked before status) —
+plus an explicit warning whenever High Impact risks were left out. Phase is chosen via
 two checkboxes, not a single-select — **Post-mitigation is preselected**
 by default (2026-09-20; the user picked this over Pre after being asked
 to offer both rather than guess), at least one must stay checked
@@ -549,6 +626,19 @@ characters, and 10,000 raw trial numbers as JSON would exceed that.
 `js/charts/s-curve.js` re-derives cumulative % from array *position*,
 so feeding it these 200 already-sorted, evenly-spaced values reproduces
 the same curve shape without needing the full trial data.
+
+**Risk Reporting summary** (2026-10-03, `js/pages/reporting.js`
+`registerFacts()`/`narrative()`): above the RAM, KPI tiles + generated
+prose over the **whole register** (not the RAM filters): counts by type,
+record type and status (open / under review = Draft+Proposed / closed by
+kind), how many are in Monte Carlo, then — **open risks only** — threat
+EMV pre → post and % reduction, opportunity saving, net exposure,
+response actions (count, cost, by strategy, EMV-reduction-to-cost
+ratio, open threats with no action) and the highest residual threat.
+**Assumption (flag if wrong):** an open risk with no post-mitigation
+assessment keeps its pre-mitigation EMV as its post value (an empty
+assessment computes to EMV 0, which would read as "fully mitigated");
+the text says when this happens.
 
 **Contingency page** (`contingency.html`, `js/pages/contingency.js`):
 gated behind setup-sequence step 4 (reuses

@@ -21,6 +21,8 @@ import {
   highestRiskNumber,
   actionId,
   actionNumber,
+  RISK_STATUSES,
+  DEFAULT_STATUS,
 } from "./workbook.js";
 import {
   getConnectionState,
@@ -97,6 +99,8 @@ function rowToRecord(row, actionsRows) {
     title: row.title || "",
     riskType: row.riskType || "Threat",
     recordType: row.recordType || "Regular Pooled Record",
+    // Blank (rows saved before Status existed) or unrecognised -> Open.
+    status: RISK_STATUSES.includes(row.status) ? row.status : DEFAULT_STATUS,
     description: row.description || "",
     cause: row.cause || "",
     effect: row.effect || "",
@@ -132,6 +136,7 @@ function recordToRow(record) {
     title: record.title,
     riskType: record.riskType,
     recordType: record.recordType,
+    status: record.status ?? DEFAULT_STATUS,
     description: record.description,
     cause: record.cause,
     effect: record.effect,
@@ -392,6 +397,7 @@ export function blankRiskRecord() {
     title: "",
     riskType: "Threat",
     recordType: "Regular Pooled Record",
+    status: DEFAULT_STATUS,
     description: "",
     cause: "",
     effect: "",

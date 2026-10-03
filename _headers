@@ -6,7 +6,7 @@
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(self)
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'sha256-O6PzgoSu3A3ujm9dDosevLusNyKOjhUUdpGWkCbEgfo=' 'sha256-YRgj8ixWXKIN8TG2k+S6pwq/lbXaq42gvnsxesIm1W4=' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; font-src 'self'; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'sha256-iUN5/XBWU8yDvC+QX+3qbi6DPmEdg0Fj4+f08HrqOIw=' 'sha256-YRgj8ixWXKIN8TG2k+S6pwq/lbXaq42gvnsxesIm1W4=' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; font-src 'self'; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
 
 https://:project.pages.dev/*
   X-Robots-Tag: noindex

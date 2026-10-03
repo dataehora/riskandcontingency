@@ -8,6 +8,8 @@
 // every response), which makes every fresh page load/hard refresh pull
 // current content regardless of this script. This module only covers
 // the case of a tab left open across a deploy.
+import { t, onLangChange } from "./i18n/i18n.js";
+
 const CHECK_INTERVAL_MS = 30_000;
 let loadedVersion = null;
 
@@ -28,9 +30,9 @@ function showUpdateBanner() {
   banner.setAttribute("data-update-banner", "");
   banner.className = "update-banner";
   banner.innerHTML = `
-    <span>A new version of this app is available.</span>
-    <button type="button" class="btn btn-accent btn-sm" data-update-reload>Refresh now</button>
-    <button type="button" class="btn btn-ghost btn-sm" data-update-dismiss aria-label="Dismiss for now">&times;</button>
+    <span>${t("update.message")}</span>
+    <button type="button" class="btn btn-accent btn-sm" data-update-reload>${t("update.refresh")}</button>
+    <button type="button" class="btn btn-ghost btn-sm" data-update-dismiss aria-label="${t("update.dismiss")}">&times;</button>
   `;
   document.body.appendChild(banner);
   banner.querySelector("[data-update-reload]").addEventListener("click", () => location.reload());
@@ -43,6 +45,12 @@ async function checkForUpdate() {
     showUpdateBanner();
   }
 }
+
+onLangChange(() => {
+  if (!document.querySelector("[data-update-banner]")) return;
+  document.querySelector("[data-update-banner]").remove();
+  showUpdateBanner();
+});
 
 async function init() {
   loadedVersion = await fetchVersion();

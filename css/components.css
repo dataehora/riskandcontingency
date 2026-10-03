@@ -143,6 +143,13 @@
   color: var(--color-risk-high);
 }
 
+/* Status "Open": live exposure — primary tint, distinct from the
+   red/amber/green severity badges. */
+.badge-open {
+  background: rgba(43, 92, 138, 0.14);
+  color: var(--color-info);
+}
+
 .badge-neutral {
   background: var(--color-surface-alt);
   color: var(--color-text-muted);
@@ -863,4 +870,81 @@ textarea:focus {
   font-weight: 700;
   border-top: 2px solid var(--color-border-strong);
   border-bottom: none;
+}
+
+/* Risk Register list: filter bar + record-count summary above and below
+   the table (js/pages/risk-register.js). */
+.list-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(140px, 1fr)) auto;
+  gap: var(--space-3);
+  align-items: end;
+  margin-bottom: var(--space-4);
+}
+
+.list-filter-clear .btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 1000px) {
+  .list-filters {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+.list-summary {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.list-summary-bottom {
+  margin: var(--space-2) 0 0;
+}
+
+.data-table td.table-empty {
+  text-align: center;
+  color: var(--color-text-subtle);
+  padding: var(--space-5);
+}
+
+[data-view-mode-toggle] {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+label.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+  text-transform: none;
+  font-size: 0.9rem;
+}
+
+/* Modelling: "Risks in this run" table. */
+.scope-table tr.scope-included td {
+  font-weight: 600;
+  background: var(--color-accent-bg);
+}
+
+.scope-table td:not(:first-child),
+.scope-table th:not(:first-child) {
+  text-align: right;
+}
+
+/* Risk Reporting: automated register summary. */
+.report-kpis {
+  margin-bottom: var(--space-4);
+}
+
+.report-narrative p {
+  max-width: 85ch;
+  margin: 0 0 var(--space-3);
+  line-height: 1.6;
+}
+
+.report-narrative p:last-child {
+  margin-bottom: 0;
 }

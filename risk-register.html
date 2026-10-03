@@ -5,10 +5,13 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DF5MS2G7H"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-2DF5MS2G7H');</script>
   <meta charset="utf-8">
-  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
+  <script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){d.dataset.theme=t;}var l=localStorage.getItem('lang-preference')||(navigator.language||'').slice(0,2).toLowerCase();if(l==='pt'||l==='es'){d.lang=l;d.setAttribute('data-i18n-pending','');}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Risk Register — Project Risk Records | Risk and Contingency</title>
-  <meta name="description" content="Create, assess and track project risk records by RBS category, with likelihood, cost and schedule distributions, live EMV and response actions per risk.">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/images/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <title data-i18n="meta.riskRegister.title">Risk Register — Project Risk Records | Risk and Contingency</title>
+  <meta name="description" data-i18n-attr="content:meta.riskRegister.description" content="Create, assess and track project risk records by RBS category, with likelihood, cost and schedule distributions, live EMV and response actions per risk.">
   <link rel="canonical" href="https://riskandcontingency.com/risk-register.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Risk and Contingency">
@@ -24,23 +27,24 @@
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/shell.css">
+  <script type="module" src="/js/i18n/i18n.js"></script>
 </head>
 <body data-page="risk-register">
   <header class="app-header">
     <div class="app-header-inner">
       <a class="app-brand" href="/index.html">
-        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
-        Risk &amp; Contingency
+        <img class="app-brand-logo" src="/images/logo-light.png" alt="R&amp;C" width="68" height="28">
+        <span class="app-brand-name">Risk &amp; Contingency</span>
       </a>
-      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
-      <nav class="app-nav" aria-label="Primary">
-        <a href="/index.html" data-nav="home">Home</a>
-        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
-        <a href="/modelling.html" data-nav="modelling">Modelling</a>
-        <a href="/reporting.html" data-nav="reporting">Risk Reporting</a>
-        <a href="/contingency.html" data-nav="contingency">Contingency</a>
-        <a href="/configuration.html" data-nav="configuration">Configuration</a>
-        <a href="/about.html" data-nav="about">About</a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation" data-i18n-attr="aria-label:header.toggleNav">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary" data-i18n-attr="aria-label:header.primaryNav">
+        <a href="/index.html" data-nav="home" data-i18n="nav.home">Home</a>
+        <a href="/risk-register.html" data-nav="risk-register" data-i18n="nav.riskRegister">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling" data-i18n="nav.modelling">Modelling</a>
+        <a href="/reporting.html" data-nav="reporting" data-i18n="nav.reporting">Risk Reporting</a>
+        <a href="/contingency.html" data-nav="contingency" data-i18n="nav.contingency">Contingency</a>
+        <a href="/configuration.html" data-nav="configuration" data-i18n="nav.configuration">Configuration</a>
+        <a href="/about.html" data-nav="about" data-i18n="nav.about">About</a>
       </nav>
       <div class="app-header-actions">
         <span class="status-pill" data-connection-pill data-state="checking">
@@ -48,13 +52,13 @@
           <span data-connection-label>Checking&hellip;</span>
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
-        <label class="theme-toggle" title="Toggle dark mode">
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden data-i18n="header.disconnect">Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode" data-i18n-attr="title:header.toggleTheme">
           <input type="checkbox" data-theme-toggle class="visually-hidden">
           <span class="theme-toggle-track" aria-hidden="true">
             <span class="theme-toggle-thumb"></span>
           </span>
-          <span class="visually-hidden">Toggle dark mode</span>
+          <span class="visually-hidden" data-i18n="header.toggleTheme">Toggle dark mode</span>
         </label>
       </div>
     </div>
@@ -62,114 +66,146 @@
 
   <main class="app-main">
     <div class="page-header">
-      <span class="eyebrow">Risk Register</span>
-      <h1>Risk records &amp; Risk Breakdown Structure</h1>
-      <p>Create risk records under your project's Risk Breakdown Structure — owner, cause, description and effects, pre/post‑mitigation assessments, and response actions with EMV calculated automatically.</p>
+      <span class="eyebrow" data-i18n="nav.riskRegister">Risk Register</span>
+      <h1 data-i18n="rr.title">Risk records &amp; Risk Breakdown Structure</h1>
+      <p data-i18n="rr.lead">Create risk records under your project's Risk Breakdown Structure — owner, cause, description and effects, pre/post‑mitigation assessments, and response actions with EMV calculated automatically.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
       <span aria-hidden="true">&#9888;&#65039;</span>
-      <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
+      <p style="margin:0;" data-i18n="common.unsupportedShort">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
-<div class="empty-state" data-requires-no-connection>
-      <h3>Connect a folder to get started</h3>
-      <p>Risk record creation reads and writes to the Excel workbook in your connected folder.</p>
-      <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
+    <div class="empty-state" data-requires-no-connection>
+      <h3 data-i18n="common.connectFirst">Connect a folder to get started</h3>
+      <p data-i18n="rr.connectHint">Risk record creation reads and writes to the Excel workbook in your connected folder.</p>
+      <a class="btn btn-primary" href="/index.html" data-i18n="common.goHomeToConnect">Go to Home to connect a folder</a>
     </div>
 
     <div data-requires-connection hidden>
       <div class="notice notice-warning" data-step-locked-notice="2" hidden style="margin-bottom: var(--space-5);">
         <span aria-hidden="true">&#9888;&#65039;</span>
-        <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before creating risk records. <a data-missing-step-link href="#">Go there &rarr;</a></p>
+        <p style="margin:0;" data-locked-purpose="setup.purpose.riskRegister"></p>
       </div>
 
       <div data-requires-step="2" hidden>
         <div data-view="list">
           <div style="display:flex; justify-content:space-between; align-items:center; gap: var(--space-3); margin-bottom: var(--space-5); flex-wrap: wrap;">
             <div style="display:flex; gap: var(--space-2); flex-wrap: wrap;">
-              <button class="btn btn-primary" type="button" data-new-record>New risk record</button>
-              <button class="btn btn-secondary" type="button" data-load-template="0">Load example: Threat</button>
-              <button class="btn btn-secondary" type="button" data-load-template="1">Load example: Opportunity</button>
+              <button class="btn btn-primary" type="button" data-new-record data-i18n="rr.newRecord">New risk record</button>
+              <button class="btn btn-secondary" type="button" data-load-template="0" data-i18n="rr.loadThreat">Load example: Threat</button>
+              <button class="btn btn-secondary" type="button" data-load-template="1" data-i18n="rr.loadOpportunity">Load example: Opportunity</button>
             </div>
           </div>
 
           <div class="notice notice-warning" data-id-repairs hidden style="margin-bottom: var(--space-5);"></div>
 
           <div class="empty-state" data-records-empty hidden>
-            <h3>No risk records yet</h3>
-            <p>Create your first risk record, or load one of the generic templates to see the fields in action.</p>
+            <h3 data-i18n="rr.empty.title">No risk records yet</h3>
+            <p data-i18n="rr.empty.body">Create your first risk record, or load one of the generic templates to see the fields in action.</p>
           </div>
 
-          <div data-view-mode-toggle></div>
+          <div data-records-list-wrap hidden>
+            <div class="list-filters" data-list-filters>
+              <div class="list-filter-search">
+                <label for="rr-filter-search" data-i18n="rr.filter.search">Search</label>
+                <input id="rr-filter-search" type="search" data-list-filter="search" autocomplete="off" data-i18n-attr="placeholder:rr.filter.searchPlaceholder" placeholder="ID, title, owner…">
+              </div>
+              <div>
+                <label for="rr-filter-status" data-i18n="rr.field.status">Status</label>
+                <select id="rr-filter-status" data-list-filter="status"></select>
+              </div>
+              <div>
+                <label for="rr-filter-riskType" data-i18n="rr.field.riskType">Risk Type</label>
+                <select id="rr-filter-riskType" data-list-filter="riskType"></select>
+              </div>
+              <div>
+                <label for="rr-filter-recordType" data-i18n="rr.field.recordType">Record Type</label>
+                <select id="rr-filter-recordType" data-list-filter="recordType"></select>
+              </div>
+              <div>
+                <label for="rr-filter-impactArea" data-i18n="rr.field.impactArea">Impact Area</label>
+                <select id="rr-filter-impactArea" data-list-filter="impactArea"></select>
+              </div>
+              <div class="list-filter-clear">
+                <button class="btn btn-ghost btn-sm" type="button" data-clear-filters data-i18n="rr.filter.clear">Clear filters</button>
+              </div>
+            </div>
 
-          <div style="overflow-x:auto;">
-            <table class="data-table" data-records-table hidden>
-              <thead data-records-thead></thead>
-              <tbody data-records-body></tbody>
-              <tfoot data-records-tfoot></tfoot>
-            </table>
+            <div data-view-mode-toggle></div>
+
+            <p class="list-summary" data-records-summary="top" role="status" aria-live="polite"></p>
+            <div style="overflow-x:auto;">
+              <table class="data-table" data-records-table>
+                <thead data-records-thead></thead>
+                <tbody data-records-body></tbody>
+                <tfoot data-records-tfoot></tfoot>
+              </table>
+            </div>
+            <p class="list-summary list-summary-bottom" data-records-summary="bottom"></p>
           </div>
         </div>
 
         <div data-view="form" hidden>
           <div class="form-toolbar">
-            <button class="btn btn-ghost btn-sm" type="button" data-cancel-form>&larr; Back to list</button>
-            <button class="btn btn-primary" type="submit" form="record-form">Save risk record</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-cancel-form data-i18n="rr.backToList">← Back to list</button>
+            <button class="btn btn-primary" type="submit" form="record-form" data-i18n="rr.save">Save risk record</button>
           </div>
 
           <div class="notice notice-warning" data-form-error hidden style="margin-bottom: var(--space-5);"></div>
 
           <form id="record-form" data-record-form>
             <div class="card" style="margin-bottom: var(--space-5);">
-              <h3>Details</h3>
+              <h3 data-i18n="rr.details">Details</h3>
               <div class="risk-id-field">
-                <label for="f-id">Risk ID</label>
+                <label for="f-id" data-i18n="rr.field.id">Risk ID</label>
                 <input id="f-id" type="text" data-field="id" required maxlength="32" autocomplete="off" spellcheck="false">
                 <p class="field-feedback" data-id-feedback></p>
               </div>
               <div class="title-row-grid">
                 <div>
-                  <label for="f-title">Risk Title</label>
+                  <label for="f-title" data-i18n="rr.field.title">Risk Title</label>
                   <input id="f-title" type="text" data-field="title" required>
                 </div>
                 <div>
-                  <label for="f-riskType">Risk Type</label>
-                  <select id="f-riskType" data-field="riskType">
-                    <option value="Threat">Threat</option>
-                    <option value="Opportunity">Opportunity</option>
-                  </select>
+                  <label for="f-riskType" data-i18n="rr.field.riskType">Risk Type</label>
+                  <select id="f-riskType" data-field="riskType"></select>
                 </div>
                 <div>
-                  <label for="f-recordType">Record Type</label>
+                  <label for="f-recordType" data-i18n="rr.field.recordType">Record Type</label>
                   <select id="f-recordType" data-field="recordType"></select>
                 </div>
               </div>
               <div class="form-grid" style="margin-top: var(--space-3);">
                 <div>
-                  <label for="f-owner">Risk Owner</label>
+                  <label for="f-status" data-i18n="rr.field.status">Status</label>
+                  <select id="f-status" data-field="status"></select>
+                </div>
+                <div>
+                  <label for="f-owner" data-i18n="rr.field.owner">Risk Owner</label>
                   <select id="f-owner" data-field="owner"></select>
                 </div>
                 <div>
-                  <label for="f-impactArea">Impact Area</label>
+                  <label for="f-impactArea" data-i18n="rr.field.impactArea">Impact Area</label>
                   <select id="f-impactArea" data-field="impactArea"></select>
                 </div>
                 <div>
-                  <label for="f-rbsCategory">RBS Category</label>
+                  <label for="f-rbsCategory" data-i18n="rr.field.rbsCategory">RBS Category</label>
                   <select id="f-rbsCategory" data-field="rbsCategory"></select>
                 </div>
               </div>
+              <p class="field-feedback" data-status-hint style="margin-top: var(--space-2);"></p>
               <div style="margin-top: var(--space-3);">
-                <label for="f-description">Description</label>
+                <label for="f-description" data-i18n="rr.field.description">Description</label>
                 <textarea id="f-description" data-field="description" rows="2"></textarea>
               </div>
               <div class="form-grid" style="margin-top: var(--space-3);">
                 <div>
-                  <label for="f-cause">Cause</label>
+                  <label for="f-cause" data-i18n="rr.field.cause">Cause</label>
                   <textarea id="f-cause" data-field="cause" rows="2"></textarea>
                 </div>
                 <div>
-                  <label for="f-effect">Effect</label>
+                  <label for="f-effect" data-i18n="rr.field.effect">Effect</label>
                   <textarea id="f-effect" data-field="effect" rows="2"></textarea>
                 </div>
               </div>
@@ -178,15 +214,15 @@
             <div data-assessment-sections></div>
 
             <div class="card" style="margin-bottom: var(--space-5);">
-              <h3>Response</h3>
-              <p>Actions to mitigate a threat or capture an opportunity.</p>
+              <h3 data-i18n="rr.response.title">Response</h3>
+              <p data-i18n="rr.response.body">Actions to mitigate a threat or capture an opportunity.</p>
               <div data-actions-list></div>
-              <button class="btn btn-secondary btn-sm" type="button" data-add-action style="margin-top: var(--space-3);">Add action</button>
+              <button class="btn btn-secondary btn-sm" type="button" data-add-action style="margin-top: var(--space-3);" data-i18n="rr.response.add">Add action</button>
             </div>
 
             <div style="display:flex; gap: var(--space-3);">
-              <button class="btn btn-primary" type="submit">Save risk record</button>
-              <button class="btn btn-ghost" type="button" data-cancel-form>Cancel</button>
+              <button class="btn btn-primary" type="submit" data-i18n="rr.save">Save risk record</button>
+              <button class="btn btn-ghost" type="button" data-cancel-form data-i18n="common.cancel">Cancel</button>
             </div>
           </form>
         </div>
@@ -197,10 +233,12 @@
   </main>
 
   <footer class="app-footer">
-    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+    <img class="app-footer-logo" src="/images/logo.png" alt="R&amp;C" width="58" height="24" data-logo-for="light-bg">
+    <img class="app-footer-logo" src="/images/logo-light.png" alt="R&amp;C" width="58" height="24" data-logo-for="dark-bg">
+    <span data-i18n="footer.text">Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
   </footer>
 
-  <script src="/js/vendor/xlsx.full.min.js"></script>
+  <script defer src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>

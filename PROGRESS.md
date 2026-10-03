@@ -28,13 +28,22 @@ and FAQ are on the live [About page](https://riskandcontingency.com/about.html).
 | Contingency | Available budget vs. last Monte Carlo run, S-curve with budget reference line, confidence-coverage reading |
 | Configuration | RBS, Impact Areas, Owners, QHSE Levels — all CRUD, starter template; Risk Assessment Matrix bins |
 | About | Description + 6-question FAQ (data storage, browser support, concurrent-edit behavior, EMV methodology, Monte Carlo scope, account requirements) |
-| Risk Reporting | 5x5 Risk Assessment Matrix with Impact Area / Record Type / phase filters. **List + top-N ranking not built yet.** |
+| Risk Reporting | Automated register summary (2026-10-03) + 5x5 Risk Assessment Matrix with Impact Area / Record Type / phase filters. **Top-N ranking not built yet.** |
 
 Cross-cutting, done today: real `.xlsx` persistence (vendored SheetJS),
 save-conflict detection (blocks a save if the file changed on disk
 since load, shows a banner — single-editor-at-a-time by design, not a
 bug), stale-browser-cache fix (`_headers` + update-available banner),
 dark mode, mobile-responsive header.
+
+## Session 2026-10-03
+
+- **Languages**: whole site in English / Português / Español — flag switch in the header (SVG flags, so they show on Windows too), choice remembered, defaults to the browser language. Every string lives in `js/i18n/en.js`, `pt.js`, `es.js`; new copy must be added to all three (see CLAUDE.md "Internationalisation").
+- **Logo**: the R&C logo now in the header, home page, footer, favicon and social preview image.
+- **Risk Register**: new **Status** field (Open, Draft, Proposed, Closed – Rejected/Impacted/Mitigated/Expired); existing records read as Open; templates are Open. Filters (search, status, type, record type, impact area) with the record-count summary above and below the table.
+- **Modelling**: only **Open + Regular Pooled Record** risks are simulated; a "Risks in this run" table (threats/opportunities included and excluded, by reason) sits before the chart, with an explicit note when High Impact risks were left out.
+- **Risk Reporting**: automated written summary before the RAM — totals by type and status (open / under review / closed), mitigation effect on open risks, response actions, top residual threat.
+- Open question for the user: post-mitigation EMV of an open risk without a post assessment is taken as its pre-mitigation EMV in the summary.
 
 ## Session 2026-09-27
 

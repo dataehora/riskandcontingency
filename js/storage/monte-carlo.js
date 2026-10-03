@@ -25,8 +25,11 @@ function sampleDistribution(dist, rng) {
   return 0;
 }
 
+// Only live, pooled exposure is simulated: Record Type "Regular Pooled
+// Record" AND Status "Open". High Impact / Benchmark records are judged
+// individually; Draft/Proposed/Closed records aren't live exposure.
 export function pooledRecords(riskRecords) {
-  return riskRecords.filter((r) => r.recordType === "Regular Pooled Record");
+  return riskRecords.filter((r) => r.recordType === "Regular Pooled Record" && (r.status ?? "Open") === "Open");
 }
 
 // rng is injectable so results are reproducible in tests; defaults to

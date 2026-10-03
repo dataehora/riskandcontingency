@@ -5,7 +5,8 @@ risk records under a project's Risk Breakdown Structure, calculate EMV
 pre- and post-mitigation, run Monte Carlo simulation across pooled
 risks, and compare available budget to the modelled cost distribution —
 reading and writing directly to an Excel risk register in a folder on
-your own machine. No accounts, no cloud storage, no server.
+your own machine. No accounts, no cloud storage, no server. Available in
+English, Portuguese and Spanish (language switch in the header).
 
 Live at [riskandcontingency.com](https://riskandcontingency.com).
 
@@ -21,20 +22,23 @@ current build status and architecture.
 index.html                        Home / dashboard
 risk-register.html                Risk record creation & management
 modelling.html                    Monte Carlo simulation of Total Cost (Regular Pooled Records)
-reporting.html                    Risk Reporting: list & top-N exposure ranking (not built yet)
+reporting.html                    Risk Reporting: automated register summary + 5x5 Risk Assessment Matrix
 contingency.html                  Available budget vs. Monte Carlo results
 configuration.html                RBS / impact area / owner / QHSE level setup
 about.html                        Description + FAQ (incl. the single-editor / conflict-detection design)
 404.html                          Not-found page (Cloudflare Pages serves it for unknown URLs)
 images/og-image.png               1200x630 social-share preview image
+images/logo.png, logo-light.png   R&C logo (dark letters for light backgrounds / light letters for dark ones)
+favicon.ico, images/*icon*.png    Favicons generated from the logo
 _headers                          Cloudflare Pages response headers (caching, security, CSP report-only)
 css/                               Design system (tokens, base, components, shell)
+js/i18n/                          Translation engine (i18n.js) + en/pt/es dictionaries
 js/shell.js                       Shared nav + connection-status wiring
 js/theme.js                       Dark/light toggle
 js/setup-sequence.js              4-step setup stepper + per-page gating
 js/storage/                       File System Access folder connection, .xlsx read/write, register state, Monte Carlo engine
 js/charts/s-curve.js              Shared S-curve chart (used by Modelling + Contingency)
-js/pages/                         Per-page UI logic (configuration, risk-register, modelling, contingency)
+js/pages/                         Per-page UI logic (configuration, risk-register, modelling, reporting, contingency)
 js/vendor/                        Vendored SheetJS (xlsx.full.min.js), no CDN dependency
 PROGRESS.md                       Session-by-session status log (what's built, what's next)
 CNAME, robots.txt, sitemap.xml    Crawl metadata (CNAME is a leftover
