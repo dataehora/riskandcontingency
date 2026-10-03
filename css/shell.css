@@ -1,10 +1,13 @@
+/* Header (2026-10-04): two rows. Top: R&C logo on the left; folder
+   connection, language and theme switches on the right. Bottom: the
+   page tabs (Home … About). The active tab takes the page background and
+   overlaps the header's gold bottom border, so it reads as continuous
+   with the page below it. Grid areas, so the markup order (brand, nav
+   toggle, nav, actions) stays the same on every page. */
 .app-header {
   position: sticky;
   top: 0;
   z-index: 20;
-  min-height: var(--header-height);
-  display: flex;
-  align-items: center;
   background: var(--color-primary);
   border-bottom: 2px solid var(--color-accent);
 }
@@ -13,15 +16,19 @@
   width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
-  padding: 10px var(--space-5);
-  display: flex;
+  padding: 10px var(--space-5) 0;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    "brand toggle actions"
+    "nav   nav    nav";
   align-items: center;
-  flex-wrap: wrap;
-  row-gap: 8px;
-  gap: var(--space-4);
+  column-gap: var(--space-4);
+  row-gap: 10px;
 }
 
 .app-brand {
+  grid-area: brand;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -47,18 +54,25 @@
 }
 
 .app-nav {
+  grid-area: nav;
+  align-self: end;
   display: flex;
   flex-wrap: nowrap;
-  gap: var(--space-1);
-  flex: 0 0 auto;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Tabs sit on the header's bottom edge (the active one covers it). */
+  margin-bottom: -2px;
 }
 
 .app-nav a {
+  flex: none;
   color: rgba(244, 246, 248, 0.72);
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
+  padding: 9px 16px 10px;
+  border-radius: 8px 8px 0 0;
+  border-top: 3px solid transparent;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
@@ -68,21 +82,26 @@
   background: rgba(244, 246, 248, 0.08);
 }
 
+/* Active page: a tab in the page's own background colour, with a gold
+   top edge, flowing into the page underneath. */
 .app-nav a[aria-current="page"] {
-  color: var(--color-text-on-primary);
-  background: rgba(244, 246, 248, 0.14);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-top-color: var(--color-accent);
 }
 
 .app-header-actions {
-  flex: none;
-  margin-left: auto;
+  grid-area: actions;
+  justify-self: end;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: var(--space-3);
 }
 
 .app-nav-toggle {
+  grid-area: toggle;
   display: none;
   background: transparent;
   border: 1px solid rgba(244, 246, 248, 0.3);
@@ -250,8 +269,17 @@
 
 @media (max-width: 860px) {
   .app-header-inner {
-    gap: var(--space-3);
     padding: 8px var(--space-3);
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "brand   toggle"
+      "actions actions";
+    column-gap: var(--space-3);
+    row-gap: 8px;
+  }
+
+  .app-nav-toggle {
+    justify-self: end;
   }
 
   .app-brand {
@@ -271,10 +299,7 @@
 
   .app-header-actions {
     gap: var(--space-2);
-    /* Full row, so the pill/buttons/switches wrap inside it instead of
-       overflowing a phone-width screen. */
-    flex: 1 1 100%;
-    justify-content: flex-end;
+    justify-self: stretch;
   }
 
   .status-pill [data-connection-label] {
@@ -294,16 +319,28 @@
     display: inline-flex;
   }
 
+  /* Phones: the tabs become a drop-down list under the header. */
   .app-nav {
     position: absolute;
-    top: var(--header-height);
+    top: 100%;
     left: 0;
     right: 0;
+    margin: 2px 0 0;
     background: var(--color-primary);
     flex-direction: column;
     padding: var(--space-2);
     border-bottom: 2px solid var(--color-accent);
     display: none;
+  }
+
+  .app-nav a {
+    border-radius: var(--radius-sm);
+    border-top: 0;
+    border-left: 3px solid transparent;
+  }
+
+  .app-nav a[aria-current="page"] {
+    border-left-color: var(--color-accent);
   }
 
   .app-nav.is-open {

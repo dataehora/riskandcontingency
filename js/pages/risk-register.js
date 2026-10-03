@@ -28,6 +28,7 @@ import {
   parseRequiredFields,
 } from "../storage/workbook.js";
 import { t, tn, tv, fmtNum, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
+import { askName } from "../inline-name.js";
 
 // Value limits per dimension. Cost and schedule impacts must match the
 // Risk Type: a threat adds cost/time (values >= 0), an opportunity saves
@@ -935,10 +936,15 @@ function wire() {
     renderList();
   });
   document.querySelector("[data-baseline-save]")?.addEventListener("click", async () => {
-    const suggested = t("rr.baseline.defaultName", { date: new Date().toLocaleDateString(locale()) });
-    const name = window.prompt(t("rr.baseline.prompt"), suggested);
+    const saveBtn = document.querySelector("[data-baseline-save]");
+    saveBtn.disabled = true;
+    const name = await askName(document.querySelector("[data-baseline-name-form]"), {
+      label: t("rr.baseline.prompt"),
+      value: t("rr.baseline.defaultName", { date: new Date().toLocaleDateString(locale()) }),
+    });
+    saveBtn.disabled = false;
     if (name === null) return;
-    const saved = await saveBaseline(name.trim() || suggested);
+    const saved = await saveBaseline(name);
     if (saved) showSaveToast(t("rr.baseline.saved", { name: saved.name, count: fmtInt(saved.records.length) }));
   });
   document.querySelector("[data-baseline-restore]")?.addEventListener("click", async () => {

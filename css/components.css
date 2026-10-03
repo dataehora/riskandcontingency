@@ -1158,3 +1158,23 @@ textarea.is-missing {
 .baseline-bar > div {
   min-width: 240px;
 }
+
+/* Inline "name this" field (js/inline-name.js) for baselines/modellings. */
+.inline-name-host {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-bg);
+  max-width: 640px;
+}
+
+.inline-name-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.inline-name-row input {
+  flex: 1;
+}

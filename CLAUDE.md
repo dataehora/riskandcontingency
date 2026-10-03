@@ -58,7 +58,12 @@ Real build underway (started 2026-09-20). Landed so far:
   Max (one row per level), PMI/ISO terminology in pt/es, required-fields
   config as list + dropdown, sign rule for cost/schedule impacts.
 
-Still not built: Risk Reporting's top-N ranking table (the summary and
+- **2026-10-04**: "Risk Reporting" renamed **Executive Summary** and
+  moved after Contingency (nav + home cards); two-row header with
+  tab-style nav; inline name field for baselines/modellings (no
+  `prompt()`); PT terms "Registro de Risco" / "Pool de Riscos Regulares".
+
+Still not built: Executive Summary's top-N ranking table (the summary and
 the RAM are on that page). Update this section as it ships.
 
 ## Stack
@@ -217,10 +222,25 @@ a flag switch built into the header next to the theme toggle.
   (Benchmark), Prevenir (Eliminate, = PMI "avoid"); es VME, RBS,
   Cronograma, CSSMA, Costo indirecto, Referencia, Evitar. English keeps
   EMV / RBS / QHSE / Knock On. The QHSE section heading is `dim.qhse`.
-- **Portuguese terminology (user's choice)**: Risk Register = "Registro
-  de Riscos", Risk Record = "Formulário de Risco" — and by extension
-  Record Type = "Tipo de Formulário", Regular Pooled Record = "Formulário
-  Regular Agrupado". "registro" alone in pt.js means the register.
+- **Portuguese terminology (user's choice, final 2026-10-04)**: Risk
+  Register = "Registro de Riscos", Risk Record = "Registro de Risco",
+  Record Type = "Tipo de Registro", Regular Pooled Record = **"Pool de
+  Riscos Regulares"** ("pool" kept as the international term; ES uses
+  "Pool de riesgos regulares" for consistency). "Formulário" now only
+  means the form UI itself.
+- **"Risk Reporting" → "Executive Summary"** (2026-10-04): nav label
+  `nav.reporting` = Executive Summary / Sumário Executivo / Resumen
+  Ejecutivo; the file is still `reporting.html` and the i18n keys keep
+  the `rep.*` / `reporting` names.
+
+**Header layout** (2026-10-04, `shell.css`): two rows via CSS grid areas
+(markup order unchanged): top row = logo (left) + connection pill /
+buttons / language / theme switches (right); bottom row = the page tabs.
+Tabs have rounded tops; the **active tab** takes `--color-bg` (the page
+background), a gold top edge, and `margin-bottom: -2px` so it covers the
+header's gold bottom border — visually continuous with the page below.
+Under 860px the tabs become the hamburger drop-down (active item marked
+with a gold left edge) and the actions take a full second row.
 
 **Header switches** (2026-10-03): language (`i18n.js`) and theme
 (`js/theme.js`, builds `[data-theme-switch]`: caption "Theme" + "☀ Light
@@ -253,9 +273,9 @@ and one storage layer — no SPA framework, no router, no bundler.
 `index.html` (home/dashboard), `risk-register.html` (renamed from
 working-space.html 2026-09-20), `modelling.html`, `reporting.html`
 (nav label "Risk Reporting" since 2026-09-20, filename unchanged),
-`contingency.html`, `configuration.html`, `about.html`. Nav order: Home,
-Risk Register, Modelling, Risk Reporting, Contingency, Configuration,
-About. `about.html` is the only page with no connection-gated content —
+`contingency.html`, `configuration.html`, `about.html`. Nav order (2026-10-04): Home,
+Risk Register, Modelling, Contingency, Executive Summary
+(`reporting.html`), Configuration, About. `about.html` is the only page with no connection-gated content —
 it's a static description + FAQ, always fully visible regardless of
 folder-connection state (still shares the same header/footer/theme
 shell for consistency, and still loads `shell.js`/`theme.js`/
@@ -713,7 +733,9 @@ Contingency. Histogram scale: the tallest bar (or bell peak) reaches
 - **Risk register baselines** — sheets `Baselines` (id `BL-0001`, name,
   createdAt, recordCount), `BaselineRecords` / `BaselineActions` (same
   columns as RiskRegister / Actions plus `baselineId`). Risk Register
-  "Save baseline" asks a name (`prompt`); the "Showing" select switches
+  "Save baseline" asks a name in an inline field (`js/inline-name.js`
+  `askName()`, prefilled suggestion, Save / Cancel / Esc — no
+  `window.prompt`); the "Showing" select switches
   the list to a baseline **read-only** (no row click / duplicate /
   delete, New + templates disabled, notice explains), with "Restore this
   baseline" (confirm; replaces the current records, keeps the risk-number
@@ -722,7 +744,7 @@ Contingency. Histogram scale: the tallest bar (or bell peak) reaches
 - **Saved modellings** — sheet `SavedModels` (id `MC-0001`, name,
   createdAt, trials, phases, `resultsJson` = per phase {summary, curve
   (500-point stored curve), mean, stdev}, `scopeJson` = the "Risks in
-  this run" counts). Modelling: "Save modelling" (prompt for a name)
+  this run" counts). Modelling: "Save modelling" (inline name field)
   appears on an unsaved run; "Saved modellings" select reloads one
   (scope, chart, tables), with Delete. A fresh run draws from its full
   sorted trials; saved/stored runs from the stored curve. If a run's
