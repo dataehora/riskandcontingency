@@ -26,7 +26,22 @@ import {
 } from "../storage/workbook.js";
 import { t, tn, tv, fmtNum, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
-const DIMENSION_BOUNDS = { likelihood: { min: 1, max: 100 } };
+// Value limits per dimension. Cost and schedule impacts must match the
+// Risk Type: a threat adds cost/time (values >= 0), an opportunity saves
+// it (values <= 0). No sign rule while the Risk Type is still blank.
+const SIGNED_DIMENSIONS = ["costImpact", "knockOn", "scheduleImpact"];
+function boundsFor(dim) {
+  if (dim === "likelihood") return { min: 1, max: 100 };
+  if (!SIGNED_DIMENSIONS.includes(dim)) return undefined;
+  if (draft?.riskType === "Threat") return { min: 0, message: t("dist.error.threatSign") };
+  if (draft?.riskType === "Opportunity") return { max: 0, message: t("dist.error.opportunitySign") };
+  return undefined;
+}
+
+function signHint(dim) {
+  if (!SIGNED_DIMENSIONS.includes(dim) || !draft?.riskType) return "";
+  return t(draft.riskType === "Threat" ? "dim.sign.threat" : "dim.sign.opportunity");
+}
 
 // Which form fields are mandatory is chosen on the Configuration page
 // (settings.requiredFieldsJson; default ID, Title, Status, Owner). Keys:
@@ -34,7 +49,7 @@ const DIMENSION_BOUNDS = { likelihood: { min: 1, max: 100 } };
 function requiredFields() {
   return parseRequiredFields(currentState.settings);
 }
-const DETAIL_FIELDS = ["id", "title", "status", "owner", "impactArea", "rbsCategory", "description", "cause", "effect"];
+const DETAIL_FIELDS = ["id", "title", "riskType", "recordType", "status", "owner", "impactArea", "rbsCategory", "description", "cause", "effect"];
 
 // Stored values (English, in the workbook); labels come from tv("strategy", s).
 const STRATEGIES = {
@@ -397,7 +412,7 @@ function distGroupHtml(phase, dim) {
     <div class="dist-group${required ? " is-required" : ""}" data-phase="${phase}" data-dim="${dim}">
       <div class="dist-group-header">
         <h4>${t(`dim.${dim}`)}</h4>
-        <span class="dist-group-unit">${t(`dim.${dim}.unit`)}</span>
+        <span class="dist-group-unit">${t(`dim.${dim}.unit`)}<span class="sign-hint" data-sign-hint="${dim}">${signHint(dim)}</span></span>
       </div>
       <div class="dist-inputs">
         <label>${t("dist.min")}<input type="number" step="any" data-cell="min"></label>
@@ -414,7 +429,7 @@ function qhseGroupHtml(phase) {
   return `
     <div class="qhse-group${requiredFields().has(`${phase}.qhse`) ? " is-required" : ""}" data-phase="${phase}">
       <div class="dist-group-header">
-        <h4>QHSE</h4>
+        <h4>${t("dim.qhse")}</h4>
         <span class="dist-group-unit">${t("dim.qhse.unit")}</span>
       </div>
       <select data-qhse-select></select>
@@ -449,7 +464,7 @@ function assessmentSectionHtml(phase) {
             <div class="stat-value" data-total-cost="max">—</div>
           </div>
           <div class="stat-tile">
-            <div class="stat-label">EMV</div>
+            <div class="stat-label">${t("rr.view.emv")}</div>
             <div class="stat-value" data-summary="emv">—</div>
           </div>
         </div>
@@ -480,7 +495,7 @@ function updateDistGroup(groupEl) {
   const min = readCell(groupEl.querySelector('[data-cell="min"]'));
   const ml = readCell(groupEl.querySelector('[data-cell="ml"]'));
   const max = readCell(groupEl.querySelector('[data-cell="max"]'));
-  const result = validateDistribution({ min, ml, max }, DIMENSION_BOUNDS[dim]);
+  const result = validateDistribution({ min, ml, max }, boundsFor(dim));
   const required = requiredFields().has(`${phase}.${dim}`);
 
   draft[phase][dim] = { min, ml, max, type: result.valid ? result.type : null };
@@ -627,8 +642,8 @@ function renderForm() {
   form.querySelector('[data-field="id"]').value = draft.id ?? suggestRiskId();
   updateIdFeedback();
   form.querySelector('[data-field="title"]').value = draft.title;
-  populateEnum(form.querySelector('[data-field="riskType"]'), RISK_TYPES, "riskType", draft.riskType);
-  populateEnum(form.querySelector('[data-field="recordType"]'), RECORD_TYPES, "recordType", draft.recordType);
+  populateEnum(form.querySelector('[data-field="riskType"]'), RISK_TYPES, "riskType", draft.riskType ?? "", t("rr.select.riskType"));
+  populateEnum(form.querySelector('[data-field="recordType"]'), RECORD_TYPES, "recordType", draft.recordType ?? "", t("rr.select.recordType"));
   populateEnum(form.querySelector('[data-field="status"]'), RISK_STATUSES, "status", draft.status ?? "", t("rr.select.status"));
   form.querySelector('[data-field="description"]').value = draft.description;
   form.querySelector('[data-field="cause"]').value = draft.cause;
@@ -933,6 +948,11 @@ function wire() {
   form?.querySelector('[data-field="riskType"]')?.addEventListener("change", (e) => {
     draft.riskType = e.target.value;
     renderActions();
+    // Re-check every cost/schedule group against the new sign rule.
+    document.querySelectorAll(".dist-group").forEach((groupEl) => updateDistGroup(groupEl));
+    document.querySelectorAll("[data-sign-hint]").forEach((el) => {
+      el.textContent = signHint(el.dataset.signHint);
+    });
   });
   form?.querySelector('[data-field="status"]')?.addEventListener("change", updateStatusHint);
   form?.querySelector('[data-field="recordType"]')?.addEventListener("change", updateStatusHint);

@@ -218,19 +218,23 @@ export function isClosedStatus(status) {
 // --- Required fields of the risk record form -------------------------
 // Chosen on the Configuration page, stored as settings.requiredFieldsJson
 // (a JSON array of the keys below). "id" is always required — it's the
-// record's key. Risk Type and Record Type aren't listed: their selects
-// always hold a value. Assessment keys are "<phase>.<dimension>" (a
+// record's key. Default: ID, Title, Record Type, Status, Owner (new
+// records start with Risk Type, Record Type and Status blank, so these
+// are real choices). Assessment keys are "<phase>.<dimension>" (a
 // distribution counts as filled when any of Min/ML/Max is entered) or
 // "<phase>.qhse".
 export const REQUIRED_FIELD_GROUPS = [
-  { group: "details", keys: ["id", "title", "status", "owner", "impactArea", "rbsCategory", "description", "cause", "effect"] },
+  {
+    group: "details",
+    keys: ["id", "title", "riskType", "recordType", "status", "owner", "impactArea", "rbsCategory", "description", "cause", "effect"],
+  },
   ...["pre", "post"].map((phase) => ({
     group: phase,
     keys: [...DIMENSIONS, "qhse"].map((dim) => `${phase}.${dim}`),
   })),
 ];
 export const ALWAYS_REQUIRED = ["id"];
-export const DEFAULT_REQUIRED_FIELDS = ["id", "title", "status", "owner"];
+export const DEFAULT_REQUIRED_FIELDS = ["id", "title", "recordType", "status", "owner"];
 const ALL_REQUIRED_KEYS = new Set(REQUIRED_FIELD_GROUPS.flatMap((g) => g.keys));
 
 export function parseRequiredFields(settings) {
@@ -375,11 +379,13 @@ export function validateDistribution({ min, ml, max }, bounds) {
 
   if (result.valid && bounds) {
     const values = [min, ml, max].filter(isFiniteNumber);
-    if (values.some((v) => v < bounds.min || v > bounds.max)) {
+    // Either side may be open (e.g. { min: 0 } = "no negatives").
+    const outside = (v) => (bounds.min != null && v < bounds.min) || (bounds.max != null && v > bounds.max);
+    if (values.some(outside)) {
       return {
         valid: false,
         type: null,
-        message: t("dist.error.bounds", { min: bounds.min, max: bounds.max }),
+        message: bounds.message ?? t("dist.error.bounds", { min: bounds.min, max: bounds.max }),
       };
     }
   }

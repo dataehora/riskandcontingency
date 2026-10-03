@@ -456,7 +456,8 @@
   gap: var(--space-2);
 }
 
-.named-list-form input {
+.named-list-form input,
+.named-list-form select {
   flex: 1;
 }
 
@@ -988,26 +989,23 @@ textarea.is-missing {
   color: var(--color-text-muted);
 }
 
-/* Configuration: required-field checklist. */
-.required-fields-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-3);
+.sign-hint:not(:empty)::before {
+  content: " · ";
 }
 
-.required-fields-grid fieldset {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  margin: 0;
+/* Risk record form: pre-mitigation (inherent) section tinted a very soft
+   red, post-mitigation (residual) a very soft green. */
+.card[data-assessment-phase="pre"] {
+  background: linear-gradient(rgba(179, 55, 44, 0.06), rgba(179, 55, 44, 0.06)), var(--color-surface);
+  border-color: rgba(179, 55, 44, 0.28);
 }
 
-.required-fields-grid legend {
-  padding: 0 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted);
+.card[data-assessment-phase="post"] {
+  background: linear-gradient(rgba(46, 125, 79, 0.07), rgba(46, 125, 79, 0.07)), var(--color-surface);
+  border-color: rgba(46, 125, 79, 0.3);
+}
+
+/* Contingency table: highlight the median row. */
+.data-table tr.row-emphasis td {
+  background: var(--color-accent-bg);
 }

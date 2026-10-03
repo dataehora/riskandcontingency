@@ -421,10 +421,12 @@ export function blankRiskRecord() {
     id: null,
     lastActionNumber: 0,
     title: "",
-    riskType: "Threat",
-    recordType: "Regular Pooled Record",
-    // Blank on purpose: Status is chosen in the form (required by default);
-    // if it's left blank and not required, saveRiskRecord stores "Open".
+    // Blank on purpose: Risk Type, Record Type and Status are chosen in
+    // the form (Record Type and Status are required by default). Left
+    // blank and not required, saveRiskRecord stores Threat / Regular
+    // Pooled Record / Open.
+    riskType: "",
+    recordType: "",
     status: "",
     description: "",
     cause: "",
@@ -465,6 +467,8 @@ export async function saveRiskRecord(record, { originalId = record.id ?? null } 
   const base = {
     ...(isNew ? { ...record, lastActionNumber: 0, createdAt: now } : record),
     status: RISK_STATUSES.includes(record.status) ? record.status : DEFAULT_STATUS,
+    riskType: record.riskType || "Threat",
+    recordType: record.recordType || "Regular Pooled Record",
   };
   const { actions, lastActionNumber } = finalizeActions(base, id, record.actions, isNew ? id : originalId);
   const saved = {

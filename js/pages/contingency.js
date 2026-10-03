@@ -1,5 +1,5 @@
 import { getRegisterState, onRegisterChange, updateSettings } from "../storage/register-store.js";
-import { PERCENTILE_STEPS } from "../storage/monte-carlo.js";
+import { FULL_PERCENTILE_STEPS, percentile, percentileKey } from "../storage/monte-carlo.js";
 import { renderSCurve } from "../charts/s-curve.js";
 import { t, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
@@ -21,20 +21,29 @@ function parseLastRun(settings) {
   }
 }
 
-// Highest of the computed percentiles (P05-P50) the budget covers. We
-// only have percentiles up to P50 (per the user's spec), so anything
-// above the modelled median just reports "covers the full modelled
-// range" rather than a specific higher percentile we don't have.
-function confidenceLabel(summary, budget) {
+// Every P05..P95 value for a stored run. Runs saved before 2026-10-03
+// only stored up to P50; the higher ones are then read off the stored
+// curve (200 evenly spaced sorted trial values), a close approximation.
+function fullPercentiles(summary, curve) {
+  const out = {};
+  for (const p of FULL_PERCENTILE_STEPS) {
+    const key = percentileKey(p);
+    out[key] = Number.isFinite(summary.percentiles?.[key]) ? summary.percentiles[key] : percentile(curve ?? [], p);
+  }
+  return out;
+}
+
+// Highest of P05..P95 the budget meets or exceeds; above the modelled
+// max it says it covers the whole modelled range.
+function confidenceLabel(summary, percentiles, budget) {
   if (!Number.isFinite(budget)) return "—";
   if (budget < summary.min) return t("cont.conf.belowMin");
   if (budget >= summary.max) return t("cont.conf.full");
   let covered = null;
-  for (const p of PERCENTILE_STEPS) {
-    const key = `P${String(p).padStart(2, "0")}`;
-    if (summary.percentiles[key] <= budget) covered = p;
+  for (const p of FULL_PERCENTILE_STEPS) {
+    if (percentiles[percentileKey(p)] <= budget) covered = p;
   }
-  return covered === null ? t("cont.conf.belowP05") : t("cont.conf.upTo", { p: `P${String(covered).padStart(2, "0")}` });
+  return covered === null ? t("cont.conf.belowP05") : t("cont.conf.upTo", { p: percentileKey(covered) });
 }
 
 function resolveComparePhase(lastRun) {
@@ -85,28 +94,35 @@ function renderResults() {
     date: settings.lastModelledAt ? new Date(settings.lastModelledAt).toLocaleString(locale()) : "—",
   });
   document.querySelector("[data-contingency-budget]").textContent = fmtNumber(budget);
-  document.querySelector("[data-contingency-confidence]").textContent = confidenceLabel(summary, budget);
+  const percentiles = fullPercentiles(summary, curve);
+  document.querySelector("[data-contingency-confidence]").textContent = confidenceLabel(summary, percentiles, budget);
   document.querySelector("[data-contingency-headroom]").textContent = fmtNumber(budget - p50);
 
   renderSCurve(document.querySelector("[data-contingency-chart]"), curve ?? [], summary, {
     referenceLine: { value: budget, label: t("cont.budget.label") },
   });
 
-  const cols = [t("dist.min"), ...PERCENTILE_STEPS.map((p) => `P${String(p).padStart(2, "0")}`), t("dist.max")];
-  const costs = [
-    summary.min,
-    ...PERCENTILE_STEPS.map((p) => summary.percentiles[`P${String(p).padStart(2, "0")}`]),
-    summary.max,
+  // One row per level (Min, P05..P95, Max) — 21 levels read far better
+  // down the page than across it.
+  const rows = [
+    [t("dist.min"), summary.min],
+    ...FULL_PERCENTILE_STEPS.map((p) => [percentileKey(p), percentiles[percentileKey(p)]]),
+    [t("dist.max"), summary.max],
   ];
   const table = document.querySelector("[data-contingency-table]");
   table.innerHTML = `
-    <thead><tr><th></th>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
+    <thead><tr><th>${t("cont.table.level")}</th><th>${t("cont.table.modelled")}</th><th>${t("cont.table.covered")}</th><th>${t("cont.table.headroom")}</th></tr></thead>
     <tbody>
-      <tr><td>${t("cont.table.modelled")}</td>${costs.map((v) => `<td>${fmtNumber(v)}</td>`).join("")}</tr>
-      <tr><td>${t("cont.table.covered")}</td>${costs
-        .map((v) => `<td>${budget >= v ? `<span class="badge badge-low">${t("common.yes")}</span>` : `<span class="badge badge-high">${t("common.no")}</span>`}</td>`)
-        .join("")}</tr>
-      <tr><td>${t("cont.table.headroom")}</td>${costs.map((v) => `<td>${fmtNumber(budget - v)}</td>`).join("")}</tr>
+      ${rows
+        .map(
+          ([label, v]) => `<tr class="${label === "P50" ? "row-emphasis" : ""}">
+        <td><strong>${label}</strong></td>
+        <td>${fmtNumber(v)}</td>
+        <td>${budget >= v ? `<span class="badge badge-low">${t("common.yes")}</span>` : `<span class="badge badge-high">${t("common.no")}</span>`}</td>
+        <td>${fmtNumber(budget - v)}</td>
+      </tr>`
+        )
+        .join("")}
     </tbody>
   `;
 }

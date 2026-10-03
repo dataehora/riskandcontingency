@@ -235,7 +235,14 @@ const SEVERITY_BADGE = { low: "badge-low", medium: "badge-medium", high: "badge-
 function render() {
   const matrixEl = document.querySelector("[data-ram-matrix]");
   if (!matrixEl || currentState.status !== "ready") return;
-  renderSummary();
+  try {
+    renderSummary();
+  } catch (err) {
+    // Never leave the summary silently blank — say so, and log the cause.
+    console.error(err);
+    const textEl = document.querySelector("[data-report-narrative]");
+    if (textEl) textEl.textContent = t("rep.summary.error");
+  }
 
   // Bins are resolved against the *whole* register, not the filtered
   // subset, so the Cost Impact span matches Configuration and cells
