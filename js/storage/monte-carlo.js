@@ -68,11 +68,11 @@ export function percentile(sortedValues, p) {
   return sortedValues[lo] + (sortedValues[hi] - sortedValues[lo]) * frac;
 }
 
-// Modelling's table: Min, P05..P50 in steps of 5, and Max (the user's
-// original spec). Contingency shows the full range — P05..P95 then Max
-// (2026-10-03) — so summarize() stores every step up to P95.
-export const PERCENTILE_STEPS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
-export const FULL_PERCENTILE_STEPS = Array.from({ length: 19 }, (_, i) => (i + 1) * 5);
+// Modelling and Contingency both show a summary table (Min, P10..P90 in
+// steps of 10, Max) and the full distribution (Min, P01..P99, Max) —
+// see js/charts/percentile-tables.js — so summarize() stores every 1%
+// step (persisted with the run, ~99 numbers per phase).
+export const FULL_PERCENTILE_STEPS = Array.from({ length: 99 }, (_, i) => i + 1);
 
 export function percentileKey(p) {
   return `P${String(p).padStart(2, "0")}`;

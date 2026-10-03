@@ -1,6 +1,7 @@
 import { getRegisterState, onRegisterChange, updateSettings } from "../storage/register-store.js";
 import { FULL_PERCENTILE_STEPS, percentile, percentileKey } from "../storage/monte-carlo.js";
 import { renderSCurve } from "../charts/s-curve.js";
+import { renderPercentileTable, SUMMARY_LEVELS, FULL_LEVELS } from "../charts/percentile-tables.js";
 import { t, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
 const phaseLabel = (phase) => t(`phase.${phase}`);
@@ -21,8 +22,8 @@ function parseLastRun(settings) {
   }
 }
 
-// Every P05..P95 value for a stored run. Runs saved before 2026-10-03
-// only stored up to P50; the higher ones are then read off the stored
+// Every P01..P99 value for a stored run. Older runs stored fewer steps
+// (up to P50, later every 5%); missing ones are read off the stored
 // curve (200 evenly spaced sorted trial values), a close approximation.
 function fullPercentiles(summary, curve) {
   const out = {};
@@ -33,7 +34,7 @@ function fullPercentiles(summary, curve) {
   return out;
 }
 
-// Highest of P05..P95 the budget meets or exceeds; above the modelled
+// Highest of P01..P99 the budget meets or exceeds; above the modelled
 // max it says it covers the whole modelled range.
 function confidenceLabel(summary, percentiles, budget) {
   if (!Number.isFinite(budget)) return "—";
@@ -102,29 +103,22 @@ function renderResults() {
     referenceLine: { value: budget, label: t("cont.budget.label") },
   });
 
-  // One row per level (Min, P05..P95, Max) — 21 levels read far better
-  // down the page than across it.
-  const rows = [
-    [t("dist.min"), summary.min],
-    ...FULL_PERCENTILE_STEPS.map((p) => [percentileKey(p), percentiles[percentileKey(p)]]),
-    [t("dist.max"), summary.max],
+  // Same two tables as Modelling: summary (Min, P10..P90, Max) here,
+  // the full 1%-step distribution at the end of the page.
+  const value = (level) => (level === "min" ? summary.min : level === "max" ? summary.max : percentiles[percentileKey(level)]);
+  const columns = [
+    { label: t("cont.table.modelled"), cell: (level) => fmtNumber(value(level)) },
+    {
+      label: t("cont.table.covered"),
+      cell: (level) =>
+        budget >= value(level)
+          ? `<span class="badge badge-low">${t("common.yes")}</span>`
+          : `<span class="badge badge-high">${t("common.no")}</span>`,
+    },
+    { label: t("cont.table.headroom"), cell: (level) => fmtNumber(budget - value(level)) },
   ];
-  const table = document.querySelector("[data-contingency-table]");
-  table.innerHTML = `
-    <thead><tr><th>${t("cont.table.level")}</th><th>${t("cont.table.modelled")}</th><th>${t("cont.table.covered")}</th><th>${t("cont.table.headroom")}</th></tr></thead>
-    <tbody>
-      ${rows
-        .map(
-          ([label, v]) => `<tr class="${label === "P50" ? "row-emphasis" : ""}">
-        <td><strong>${label}</strong></td>
-        <td>${fmtNumber(v)}</td>
-        <td>${budget >= v ? `<span class="badge badge-low">${t("common.yes")}</span>` : `<span class="badge badge-high">${t("common.no")}</span>`}</td>
-        <td>${fmtNumber(budget - v)}</td>
-      </tr>`
-        )
-        .join("")}
-    </tbody>
-  `;
+  renderPercentileTable(document.querySelector("[data-contingency-table]"), SUMMARY_LEVELS, columns);
+  renderPercentileTable(document.querySelector("[data-contingency-full-table]"), FULL_LEVELS, columns);
 }
 
 function wireBudgetInput() {

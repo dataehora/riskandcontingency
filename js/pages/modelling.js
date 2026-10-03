@@ -7,10 +7,11 @@ import {
   histogram,
   mean,
   stdev,
-  PERCENTILE_STEPS,
+  percentile,
 } from "../storage/monte-carlo.js";
 import { POOLED_RECORD_TYPE } from "../storage/workbook.js";
 import { renderDistributionChart } from "../charts/distribution-chart.js";
+import { renderPercentileTable, SUMMARY_LEVELS, FULL_LEVELS } from "../charts/percentile-tables.js";
 import { t, tn, tv, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
 const PHASE_META = {
@@ -115,24 +116,17 @@ function renderScope(scope) {
     : `<p style="font-size:0.85rem; margin-top: var(--space-2);">${t("mod.scope.noHighImpact")}</p>`;
 }
 
-function renderTable(runs, phases) {
-  const table = document.querySelector("[data-mc-table]");
-  if (!table) return;
-  const cols = ["", t("dist.min"), ...PERCENTILE_STEPS.map((p) => `P${String(p).padStart(2, "0")}`), t("dist.max")];
-  const rows = phases.map((phase) => {
-    const { summary } = runs[phase];
-    const values = [
-      phaseLabel(phase),
-      summary.min,
-      ...PERCENTILE_STEPS.map((p) => summary.percentiles[`P${String(p).padStart(2, "0")}`]),
-      summary.max,
-    ];
-    return `<tr>${values.map((v, i) => (i === 0 ? `<td>${v}</td>` : `<td>${fmtNumber(v)}</td>`)).join("")}</tr>`;
+// Summary (Min, P10..P90, Max) under the chart and the full 1%-step
+// distribution at the end of the page — one column per phase, computed
+// exactly from this run's sorted trials.
+function renderTables(runs, phases) {
+  const columns = phases.map((phase) => {
+    const { sorted } = runs[phase];
+    const value = (level) => (level === "min" ? sorted[0] : level === "max" ? sorted[sorted.length - 1] : percentile(sorted, level));
+    return { label: phaseLabel(phase), cell: (level) => fmtNumber(value(level) ?? 0) };
   });
-  table.innerHTML = `
-    <thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
-    <tbody>${rows.join("")}</tbody>
-  `;
+  renderPercentileTable(document.querySelector("[data-mc-table]"), SUMMARY_LEVELS, columns);
+  renderPercentileTable(document.querySelector("[data-mc-full-table]"), FULL_LEVELS, columns);
 }
 
 function renderResults() {
@@ -161,7 +155,7 @@ function renderResults() {
   });
   renderScope(scope);
   renderDistributionChart(document.querySelector("[data-mc-chart]"), series);
-  renderTable(runs, phases);
+  renderTables(runs, phases);
 }
 
 async function runSimulation() {
