@@ -37,7 +37,7 @@ js/shell.js                       Shared nav + connection-status wiring
 js/theme.js                       Dark/light toggle
 js/setup-sequence.js              4-step setup stepper + per-page gating
 js/storage/                       File System Access folder connection, .xlsx read/write, register state, Monte Carlo engine
-js/charts/s-curve.js              Shared S-curve chart (used by Modelling + Contingency)
+js/charts/                        SVG charts: distribution (histogram + S-curve, Modelling + Contingency), RAM, percentile tables
 js/pages/                         Per-page UI logic (configuration, risk-register, modelling, reporting, contingency)
 js/vendor/                        Vendored SheetJS (xlsx.full.min.js), no CDN dependency
 PROGRESS.md                       Session-by-session status log (what's built, what's next)

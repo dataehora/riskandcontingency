@@ -688,39 +688,38 @@ Pre, green (`--color-risk-low`) for Post — which is a real accessibility
 concern (red/green is the classic color-blind-unsafe pairing per the
 dataviz skill), mitigated with a secondary encoding: Post is always
 dashed (bars and curve), Pre always solid, plus a legend whenever both
-are shown. **The S-curve (`js/charts/s-curve.js`) still exists** and is
-used by **Contingency only** — a cumulative view is what "what confidence
-does my budget give me" actually needs; Modelling and Contingency
-intentionally use two different chart types for two different questions.
+are shown.
 
-The S-curve's x-domain is the modelled range plus the budget line,
-padded 5% each side, with the path extended flat at 0% from the left
-edge and flat at 100% to the right edge (2026-09-27 fix — before, a
-budget above the modelled max left the curve stopping mid-chart, and
-a zero-inflated run's first step hid inside the y-axis). X ticks are
-"nice" 1/2/5 x 10^n values rather than Min/P25/P50/Max, which collided
-whenever those percentiles were all 0.
-`curvePoints()` subsamples to ≤200 points for the S-curve so a
-10k-trial run doesn't render 10k SVG points. The S-curve is a single-
-series line chart (no legend needed per the dataviz skill's rule for
-single series), using `--color-primary-alt` (already dark-mode-themed
-in `tokens.css`) for the line, with a hover crosshair+tooltip and the
-percentile table always shown alongside as the accessible/tabular
-fallback. Every run persists `lastModelledAt`/`lastModelledTrials`/
+**Contingency uses the same chart** (2026-10-03, 5th PR — the old
+single-series `s-curve.js` was deleted): Pre and Post histograms + S-curves
+overlaid, the budget as a red reference line, and marked percentiles
+(dotted line up to each phase's S-curve + "P50" label). A panel on the
+right (`[data-chart-controls]`, `contingency.js`) toggles each phase,
+histograms and S-curves, sets the bin size (currency per bin; blank =
+auto, 30 bins; capped at 200 bins) and edits the plotted percentiles
+(default P20, P50, P80; chips with ×, add 1–99). Options persist per
+browser in `localStorage['contingency-chart-options']` — a viewing
+preference, not register data. `renderDistributionChart(container,
+series, options)` takes `showHistogram` / `showSCurve` / `showBell` /
+`markers` / `referenceLine`; Modelling passes none (defaults). The
+histograms are rebuilt from the stored quantile curve: each curve point
+is an equal share of the trials, so a bin's count = points in bin ÷
+points × trials. The stat tile is **"Gap to P50"** = budget − P50,
+red when negative (budget below the median), green otherwise.
+
+`curvePoints()` subsamples the sorted trials for drawing. Every run persists `lastModelledAt`/`lastModelledTrials`/
 `lastModelledResultsJson` to the workbook's `Settings` sheet via
 `updateSettings()` — this marks setup-sequence step 4 done, and is what
 the Contingency page reads rather than re-running the simulation.
 `lastModelledResultsJson` holds `{ phases: ["pre"|"post", ...],
 results: { pre?: {summary, curve, mean, stdev}, post?: {...} } }` (v2
-schema, 2026-09-20 — was flat `{phase, summary, curve}` before dual-phase
-support existed; nothing reads the old shape anymore since this app has
-no real users yet). `curve` is `curvePoints(sorted, 200).map(p =>
-p.value)` per phase — the **subsampled** ≤200 values, not the raw
-trials array. This matters: an xlsx cell caps out around 32,767
-characters, and 10,000 raw trial numbers as JSON would exceed that.
-`js/charts/s-curve.js` re-derives cumulative % from array *position*,
-so feeding it these 200 already-sorted, evenly-spaced values reproduces
-the same curve shape without needing the full trial data.
+schema, 2026-09-20). `curve` is `curvePoints(sorted, 500)` values per
+phase, rounded to cents (500 since 2026-10-03, was 200 — enough to
+re-bin the Contingency histograms) — the **subsampled** evenly spaced
+quantiles, not the raw trials: an xlsx cell caps out around 32,767
+characters, and 10,000 raw numbers as JSON would exceed that (2 x 500
+values + 2 x 99 percentiles stays well under). Charts read cumulative %
+from array *position*, so these quantiles reproduce the curve shape.
 
 **Risk Reporting summary** (2026-10-03, `js/pages/reporting.js`
 `registerFacts()`/`narrative()`): above the RAM, KPI tiles + generated
@@ -745,9 +744,8 @@ select appears (`resolveComparePhase()` — defaults to Post-mitigation,
 the residual risk left after response actions, which is what a
 budget more typically needs to cover; falls back to whichever single
 phase exists). Once both a budget and a stored Monte Carlo run exist,
-shows: the S-curve for the chosen phase with the budget as a second
-(red, `--color-danger`) reference line distinct from the median
-crosshair; a "Confidence Covered" reading — the highest of P01–P99 the
+shows: the chart described under Modelling's chart above (both phases,
+options panel, budget line); "Gap to P50"; a "Confidence Covered" reading — the highest of P01–P99 the
 budget meets or exceeds (a budget above the modelled max says "covers
 full modelled range"); and the two percentile tables described under
 Monte Carlo above (modelled cost / covered? / headroom per level).

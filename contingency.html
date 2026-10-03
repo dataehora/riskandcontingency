@@ -113,11 +113,39 @@
                 <div class="stat-value" data-contingency-confidence>—</div>
               </div>
               <div class="stat-tile">
-                <div class="stat-label" data-i18n="cont.headroomP50">Headroom at P50</div>
-                <div class="stat-value" data-contingency-headroom>—</div>
+                <div class="stat-label" data-i18n="cont.gapP50">Gap to P50</div>
+                <div class="stat-value" data-contingency-gap>—</div>
+                <div class="stat-sub" data-i18n="cont.gapP50Sub">Budget minus P50 — negative when the budget is below P50</div>
               </div>
             </div>
-            <div data-contingency-chart style="margin-top: var(--space-4);"></div>
+            <div class="chart-with-controls" style="margin-top: var(--space-4);">
+              <div data-contingency-chart></div>
+              <aside class="chart-controls" data-chart-controls>
+                <fieldset>
+                  <legend data-i18n="cont.chart.phases">Show</legend>
+                  <label class="inline-check"><input type="checkbox" data-chart-phase="pre"> <span data-i18n="phase.pre">Pre-mitigation</span></label>
+                  <label class="inline-check"><input type="checkbox" data-chart-phase="post"> <span data-i18n="phase.post">Post-mitigation</span></label>
+                </fieldset>
+                <fieldset>
+                  <legend data-i18n="cont.chart.layers">Layers</legend>
+                  <label class="inline-check"><input type="checkbox" data-chart-layer="histogram"> <span data-i18n="cont.chart.histograms">Histograms</span></label>
+                  <label class="inline-check"><input type="checkbox" data-chart-layer="scurve"> <span data-i18n="cont.chart.scurves">S-curves</span></label>
+                </fieldset>
+                <fieldset>
+                  <legend data-i18n="cont.chart.binSize">Bin size</legend>
+                  <input type="number" min="0" step="any" data-chart-bin-width data-i18n-attr="placeholder:cont.chart.binAuto;aria-label:cont.chart.binSize" placeholder="Auto">
+                  <p class="chart-controls-note" data-chart-bin-note></p>
+                </fieldset>
+                <fieldset>
+                  <legend data-i18n="cont.chart.markers">Plotted percentiles</legend>
+                  <div class="marker-chips" data-chart-markers></div>
+                  <form class="marker-add" data-chart-marker-add>
+                    <input type="number" min="1" max="99" step="1" data-chart-marker-input placeholder="P" data-i18n-attr="aria-label:cont.chart.markerAdd">
+                    <button class="btn btn-secondary btn-sm" type="submit" data-i18n="common.add">Add</button>
+                  </form>
+                </fieldset>
+              </aside>
+            </div>
             <h4 style="margin: var(--space-5) 0 var(--space-2);" data-i18n="pct.summaryTitle">Summary — Min, P10 to P90, Max</h4>
             <div style="overflow-x:auto;">
               <table class="data-table percentile-table" data-contingency-table></table>
