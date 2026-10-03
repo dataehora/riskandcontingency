@@ -13,6 +13,13 @@ const SHEETS = {
   riskRecords: "RiskRegister",
   actions: "Actions",
   settings: "Settings",
+  // Saved snapshots (2026-10-03): risk register baselines (header row in
+  // Baselines, their records/actions in the same columns as RiskRegister/
+  // Actions plus a baselineId) and named Monte Carlo runs.
+  baselines: "Baselines",
+  baselineRecords: "BaselineRecords",
+  baselineActions: "BaselineActions",
+  savedModels: "SavedModels",
 };
 
 // The 4 quantitative (Min/ML/Max) assessment dimensions. QHSE is a
@@ -79,6 +86,9 @@ const SETTINGS_COLUMNS = [
   "requiredFieldsJson",
 ];
 
+const BASELINE_COLUMNS = ["id", "name", "createdAt", "recordCount"];
+const SAVED_MODEL_COLUMNS = ["id", "name", "createdAt", "trials", "phases", "resultsJson", "scopeJson"];
+
 function emptyRegister() {
   return {
     rbs: [],
@@ -88,6 +98,10 @@ function emptyRegister() {
     riskRecords: [],
     actions: [],
     settings: {},
+    baselines: [],
+    baselineRecords: [],
+    baselineActions: [],
+    savedModels: [],
   };
 }
 
@@ -137,6 +151,10 @@ export async function loadWorkbook(dirHandle) {
     riskRecords: sheetToRows(workbook, SHEETS.riskRecords),
     actions: sheetToRows(workbook, SHEETS.actions),
     settings: settingsRows[0] ?? {},
+    baselines: sheetToRows(workbook, SHEETS.baselines),
+    baselineRecords: sheetToRows(workbook, SHEETS.baselineRecords),
+    baselineActions: sheetToRows(workbook, SHEETS.baselineActions),
+    savedModels: sheetToRows(workbook, SHEETS.savedModels),
   };
 }
 
@@ -154,6 +172,10 @@ export async function saveWorkbook(dirHandle, data) {
   addSheet(data.riskRecords, SHEETS.riskRecords, RISK_RECORD_COLUMNS);
   addSheet(data.actions, SHEETS.actions, ACTION_COLUMNS);
   addSheet([data.settings ?? {}], SHEETS.settings, SETTINGS_COLUMNS);
+  addSheet(data.baselines ?? [], SHEETS.baselines, BASELINE_COLUMNS);
+  addSheet(data.baselineRecords ?? [], SHEETS.baselineRecords, ["baselineId", ...RISK_RECORD_COLUMNS]);
+  addSheet(data.baselineActions ?? [], SHEETS.baselineActions, ["baselineId", ...ACTION_COLUMNS]);
+  addSheet(data.savedModels ?? [], SHEETS.savedModels, SAVED_MODEL_COLUMNS);
 
   const arrayBuffer = window.XLSX.write(workbook, {
     bookType: "xlsx",

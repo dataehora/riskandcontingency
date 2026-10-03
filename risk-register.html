@@ -93,6 +93,17 @@
 
           <div class="notice notice-warning" data-id-repairs hidden style="margin-bottom: var(--space-5);"></div>
 
+          <div class="baseline-bar" data-baseline-bar hidden>
+            <div>
+              <label for="rr-baseline" data-i18n="rr.baseline.view">Showing</label>
+              <select id="rr-baseline" data-baseline-select></select>
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" data-baseline-save data-i18n="rr.baseline.save">Save baseline</button>
+            <button class="btn btn-accent btn-sm" type="button" data-baseline-restore hidden data-i18n="rr.baseline.restore">Restore this baseline</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-baseline-delete hidden data-i18n="rr.baseline.delete">Delete baseline</button>
+          </div>
+          <div class="notice" data-baseline-notice hidden style="margin-bottom: var(--space-4);"></div>
+
           <div class="empty-state" data-records-empty hidden>
             <h3 data-i18n="rr.empty.title">No risk records yet</h3>
             <p data-i18n="rr.empty.body">Create your first risk record, or load one of the generic templates to see the fields in action.</p>
