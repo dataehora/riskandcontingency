@@ -434,7 +434,7 @@ export default {
   "cont.noBudget.body": "En cuanto introduzca un presupuesto disponible arriba, se comparará automáticamente con la última simulación Monte Carlo.",
   "cont.conf.belowMin": "Por debajo del mínimo modelado",
   "cont.conf.full": "Cubre todo el rango modelado",
-  "cont.conf.belowP05": "Por debajo de P05",
+  "cont.conf.belowP05": "Por debajo de P01",
   "cont.conf.upTo": "Hasta {p}",
   "cont.runMeta": "Comparado con {trials} iteraciones · {phase} · modelado el {date}",
   "cont.table.modelled": "Costo modelado",
@@ -549,4 +549,9 @@ export default {
   "conf.required.choose": "Elija un campo para hacerlo obligatorio…",
   "cont.table.level": "Nivel de confianza",
   "rep.summary.error": "No se pudo generar el resumen — recargue la página (Ctrl+F5). Si persiste, avísenos.",
+
+  // --- Percentile tables (Modelling + Contingency) ---------------------
+  "pct.summaryTitle": "Resumen — Mín, P10 a P90, Máx",
+  "pct.fullTitle": "Distribución completa — P01 a P99",
+  "pct.fullBody": "Todos los percentiles del Costo total simulado, de 1% en 1%: el valor que el costo no supera con esa probabilidad.",
 };

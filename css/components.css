@@ -1009,3 +1009,24 @@ textarea.is-missing {
 .data-table tr.row-emphasis td {
   background: var(--color-accent-bg);
 }
+
+/* Percentile tables (js/charts/percentile-tables.js): numbers right-
+   aligned; the 101-row full distribution scrolls inside its card with
+   a sticky header rather than stretching the page. */
+.percentile-table td:not(:first-child),
+.percentile-table th:not(:first-child) {
+  text-align: right;
+}
+
+.percentile-scroll {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.percentile-scroll .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}

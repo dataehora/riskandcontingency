@@ -123,8 +123,17 @@
             </div>
             <div data-mc-scope-notes></div>
             <div data-mc-chart style="margin-top: var(--space-5);"></div>
-            <div style="overflow-x:auto; margin-top: var(--space-5);">
-              <table class="data-table" data-mc-table></table>
+            <h4 style="margin: var(--space-5) 0 var(--space-2);" data-i18n="pct.summaryTitle">Summary — Min, P10 to P90, Max</h4>
+            <div style="overflow-x:auto;">
+              <table class="data-table percentile-table" data-mc-table></table>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: var(--space-5);">
+            <h3 data-i18n="pct.fullTitle">Full distribution — P01 to P99</h3>
+            <p data-i18n="pct.fullBody">Every percentile of the simulated Total Cost, 1% at a time: the value the cost stays at or below with that probability.</p>
+            <div class="percentile-scroll">
+              <table class="data-table percentile-table" data-mc-full-table></table>
             </div>
           </div>
         </div>

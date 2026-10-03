@@ -649,13 +649,18 @@ cases (always-occurs, never-occurs) and statistical ones (50% likelihood
 → ~50% nonzero trials; triangular sample mean converges to
 (min+ml+max)/3) — see test transcript in this session if it needs
 re-deriving.
-Output: Modelling's table shows Min, P05–P50 in steps of 5, Max (the
-user's original spec), one row per selected phase. `summarize()` stores
-every step **P05–P95** (`FULL_PERCENTILE_STEPS`, 2026-10-03) because
-Contingency now lists Min, P05…P95, Max — one row per level, P50
-highlighted, "Confidence Covered" up to P95. Runs saved before then only
-have up to P50; Contingency reads the higher ones off the stored
-200-point curve (`fullPercentiles()`). Both phases are checked by
+Output (2026-10-03, 4th PR): **Modelling and Contingency both show the
+same two percentile tables** (`js/charts/percentile-tables.js`, one row
+per level, P50 highlighted): a **summary** — Min, P10…P90 in steps of
+10, Max — under the chart, and the **full distribution** — Min,
+P01…P99, Max — in its own card at the end of the page (scrolls inside
+the card, sticky header). Modelling: one column per phase, computed
+exactly from the run's sorted trials. Contingency: modelled cost /
+covered by budget? / headroom for the chosen phase, from the stored run.
+`summarize()` stores every 1% step (`FULL_PERCENTILE_STEPS` = 1…99);
+older stored runs (only P05–P50, or every 5%) get the missing steps read
+off the stored 200-point curve (`fullPercentiles()` in contingency.js).
+"Confidence Covered" walks P01…P99. Both phases are checked by
 default (2026-10-03; was Post only).
 
 **Modelling's chart (2026-09-27 v2): histogram (iterations, left
@@ -742,12 +747,10 @@ budget more typically needs to cover; falls back to whichever single
 phase exists). Once both a budget and a stored Monte Carlo run exist,
 shows: the S-curve for the chosen phase with the budget as a second
 (red, `--color-danger`) reference line distinct from the median
-crosshair; a "Confidence Covered" reading — the highest of P05–P50 the
-budget meets or exceeds, walking `PERCENTILE_STEPS` ascending (there's
-no percentile above P50 to report against, by the user's own spec, so a
-budget above the modelled max just says "covers full modelled range"
-rather than inventing a number); and a comparison table (modelled cost
-/ covered? / headroom) for Min, each P05–P50, and Max.
+crosshair; a "Confidence Covered" reading — the highest of P01–P99 the
+budget meets or exceeds (a budget above the modelled max says "covers
+full modelled range"); and the two percentile tables described under
+Monte Carlo above (modelled cost / covered? / headroom per level).
 
 **Testing note**: the whole connected-state flow (Configuration CRUD,
 Risk Register save/edit/delete, EMV) was verified end-to-end in-browser
