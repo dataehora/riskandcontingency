@@ -22,7 +22,7 @@ current build status and architecture.
 index.html                        Home / dashboard
 risk-register.html                Risk record creation & management, filters, baselines
 modelling.html                    Monte Carlo simulation of Total Cost (open Regular Pooled Records), saved modellings
-reporting.html                    Risk Reporting: automated register summary + 5x5 Risk Assessment Matrix
+reporting.html                    Executive Summary: automated register summary + 5x5 Risk Assessment Matrix
 contingency.html                  Available budget vs. the latest or a saved Monte Carlo run
 configuration.html                RBS / impact areas / owners / QHSE levels, required form fields, matrix bins
 about.html                        Description + FAQ (incl. the single-editor / conflict-detection design)
@@ -35,6 +35,7 @@ css/                               Design system (tokens, base, components, shel
 js/i18n/                          Translation engine (i18n.js) + en/pt/es dictionaries
 js/shell.js                       Shared nav + connection-status wiring
 js/theme.js                       Labelled Light/Dark theme switch
+js/inline-name.js                 Inline "name this" field (baselines, saved modellings)
 js/setup-sequence.js              4-step setup stepper + per-page gating
 js/storage/                       File System Access folder connection, .xlsx read/write, register state, Monte Carlo engine
 js/charts/                        SVG charts: distribution (histogram + S-curve), run-chart (chart + options panel, Modelling + Contingency), RAM, percentile tables

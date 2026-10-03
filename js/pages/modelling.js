@@ -4,6 +4,7 @@ import { POOLED_RECORD_TYPE } from "../storage/workbook.js";
 import { createRunChart } from "../charts/run-chart.js";
 import { renderPercentileTable, SUMMARY_LEVELS, FULL_LEVELS } from "../charts/percentile-tables.js";
 import { t, tn, tv, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
+import { askName } from "../inline-name.js";
 
 const phaseLabel = (phase) => t(`phase.${phase}`);
 // 500 evenly spaced quantiles per phase (rounded to cents) are what gets
@@ -240,10 +241,15 @@ async function runSimulation() {
 
 async function saveShownModel() {
   if (!shown || shown.savedId) return;
-  const suggested = t("mod.save.defaultName", { date: new Date(shown.ranAt).toLocaleString(locale()) });
-  const name = window.prompt(t("mod.save.prompt"), suggested);
-  if (name === null) return;
-  const saved = await saveModel(name.trim() || suggested, {
+  const saveBtn = document.querySelector("[data-mc-save]");
+  saveBtn.disabled = true;
+  const name = await askName(document.querySelector("[data-mc-save-form]"), {
+    label: t("mod.save.prompt"),
+    value: t("mod.save.defaultName", { date: new Date(shown.ranAt).toLocaleString(locale()) }),
+  });
+  saveBtn.disabled = false;
+  if (name === null || !shown || shown.savedId) return;
+  const saved = await saveModel(name, {
     phases: shown.phases,
     results: storableResults(shown),
     trials: shown.trials,

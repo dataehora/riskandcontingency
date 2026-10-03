@@ -5,9 +5,9 @@ For *how things work* (architecture, data model, gotchas, decisions),
 see [CLAUDE.md](CLAUDE.md) — that's the living technical reference and
 is kept current; this file is the higher-level "where are we" summary.
 
-**Last updated:** 2026-10-03, end of session (PRs #17–#22 + this log,
-all merged to `main` and live on riskandcontingency.com). Nothing is
-pending: `git status` clean, local `main` = `origin/main`.
+**Last updated:** 2026-10-04 (PRs #17–#24, all merged to `main` and
+live on riskandcontingency.com). Nothing is pending: `git status`
+clean, local `main` = `origin/main`.
 
 ## What the app is
 
@@ -22,11 +22,11 @@ the live [About page](https://riskandcontingency.com/about.html).
 
 | Area | Status |
 |---|---|
-| Shell | R&C logo (header, footer, favicon, og-image); EN/PT/ES flag switch; labelled Light/Dark theme switch; folder connection pill; update / conflict / save-error banners |
+| Shell | Two-row header: R&C logo + connection + language/theme switches on top, page tabs below (active tab flows into the page); R&C logo (header, footer, favicon, og-image); EN/PT/ES flag switch; labelled Light/Dark theme switch; folder connection pill; update / conflict / save-error banners |
 | Home | Folder connection, setup-sequence stepper (dismissible once complete), area cards |
 | Risk Register | Full CRUD of risk records ("Formulário de Risco" in PT): Status, Risk/Record Type, owner, RBS, pre & post assessments (Likelihood, Direct Cost, Knock On, Schedule, QHSE) with sign rule by risk type, read-only Total Cost, response actions; configurable required fields shown in red; filters + record-count summary above/below the table; sortable EMV/Cost/Schedule/QHSE views; Duplicate; **baselines** (save named, view read-only, restore, delete) |
 | Modelling | Monte Carlo (1k/5k/10k) over **Open + Regular Pooled** risks, Pre + Post by default; "Risks in this run" table + High Impact warning; histograms + S-curves + normal curve with options panel (phases, layers, bin size, plotted percentiles with values); summary table (Min, P10–P90, Max) + full P01–P99 distribution; **saved modellings** (save named, reload, delete) |
-| Risk Reporting | Risk Register Executive Summary (KPIs + generated text) + 5x5 Risk Assessment Matrix with Impact Area / Record Type / phase filters. **Top-N ranking table not built yet.** |
+| Executive Summary (`reporting.html`, was "Risk Reporting"; nav after Contingency) | Risk Register Executive Summary (KPIs + generated text) + 5x5 Risk Assessment Matrix with Impact Area / Record Type / phase filters. **Top-N ranking table not built yet.** |
 | Contingency | Budget vs. latest **or any saved** modelling; same chart + options panel as Modelling with the budget line; Confidence Covered (to 1%); Gap to P50; summary + full percentile tables with covered?/headroom |
 | Configuration | RBS, Impact Areas, Owners, QHSE Levels (CRUD + starter template in the current language); required form fields (list + dropdown); Risk Assessment Matrix bins |
 | About | Description + 7-question FAQ (data storage, browsers, concurrency, EMV, Monte Carlo scope, languages, accounts) |
@@ -40,7 +40,10 @@ the live [About page](https://riskandcontingency.com/about.html).
 5. **#21** Contingency chart: overlaid Pre/Post **histograms + S-curves** with an options panel (phases, layers, bin size, plotted percentiles P20/P50/P80 by default); **Gap to P50** (negative = budget below P50) replaces Headroom; 500-point stored curve.
 6. **#22** Histogram tallest bar at **75%** height; **percentile values** on the chart (toggle); Modelling gets the same chart + panel (shared `js/charts/run-chart.js`); **Risk Register baselines**; **saved modellings**; Contingency "Modelling to compare".
 
-Final review (this log): every page scanned in PT and ES for leftover
+7. **#23** Final review + session log.
+8. **#24** (2026-10-04) Answers to the open questions applied: PT "Registro de Risco" / "Tipo de Registro" / **"Pool de Riscos Regulares"** (ES "Pool de riesgos regulares"); inline name field instead of the browser prompt; "Risk Reporting" → **Executive Summary / Sumário Executivo**, moved after Contingency in the nav and on the home cards; **two-row header** with tab-style nav whose active tab continues into the page.
+
+Final review (2026-10-03): every page scanned in PT and ES for leftover
 English (only proper names remain: "Risk & Contingency", "Monte Carlo",
 "Primavera Risk Analysis", CAPEX/OPEX) — 558 keys in each dictionary,
 none missing; no console errors on any page; CLAUDE.md / README brought
@@ -82,20 +85,20 @@ reports; resolved by itself / Ctrl+F5.
 - **Knock On**: indirect/downstream cost, `EMV = Likelihood% × (DirectCost + KnockOn)` — inferred, not specified; flag if EMV looks off.
 - **Monte Carlo scope**: Open + Regular Pooled Record only; Likelihood itself sampled each trial.
 - **Stored data stays English** (risk type, record type, status, strategy); only the display is translated. Templates are created in the current language.
-- **PT terms (user's choice)**: Registro de Riscos (register), Formulário de Risco (record), Tipo de Formulário, Formulário Regular Agrupado; PMI/ISO terms elsewhere (VME, EAR, Cronograma, QSMS).
+- **PT terms (user's choice)**: Registro de Riscos (register), Registro de Risco (record), Tipo de Registro, Pool de Riscos Regulares; PMI/ISO terms elsewhere (VME, EAR, Cronograma, QSMS). "Risk Reporting" is now **Sumário Executivo**.
 - **Sign rule**: threat cost/schedule ≥ 0, opportunity ≤ 0 (zero allowed).
 - **Required fields** come from Configuration (default ID, Title, Record Type, Status, Owner); new records start with Risk Type / Record Type / Status blank.
 
-## Open questions for the user
+## Answered questions (2026-10-04)
 
-- Summary assumption: an open risk with **no post-mitigation assessment** uses its pre-mitigation EMV as its post value. Confirm or change.
-- **QSMS / CSSMA** chosen for QHSE in PT/ES — the user's organisation may prefer another acronym (SMS, SSMA, HSEQ…).
-- "Tipo de Formulário" / "Formulário Regular Agrupado" were extended from "Formulário de Risco" by analogy — confirm.
-- Baseline / modelling names are asked with the browser's `prompt()`; an inline field could replace it.
+- Open risk with no post-mitigation assessment → its pre-mitigation EMV is used as post: **confirmed**.
+- QSMS (PT) / CSSMA (ES) for QHSE: **confirmed**.
+- Risk Record = "Registro de Risco", Record Type = "Tipo de Registro", Regular Pooled Record = "Pool de Riscos Regulares": **user's choice, applied**.
+- Names via an inline field instead of `prompt()`: **applied**.
 
 ## Next steps (suggested)
 
-- **Risk Reporting top-N ranking** table (EMV / Max Total Cost / Schedule Exposure / Max Schedule) — the last originally planned area.
+- **Executive Summary top-N ranking** table (EMV / Max Total Cost / Schedule Exposure / Max Schedule) — the last originally planned area.
 - Compare a baseline with the current register (differences per risk, EMV delta) — baselines can be viewed and restored, not yet diffed.
 - Compare two saved modellings side by side on Modelling (today: one at a time; Contingency compares one against the budget).
 - Multi-project support (one workbook per folder today).
