@@ -92,114 +92,103 @@
   cursor: pointer;
 }
 
-/* Language switch (built by js/i18n/i18n.js). Flags are inline SVG,
-   never emoji — Windows has no flag emoji and shows "US"/"BR"/"ES". */
-.lang-switch {
+/* Header switches — language (js/i18n/i18n.js) and theme (js/theme.js).
+   Same look as the beatconfused.com language switcher: a light pill
+   floating on the navy header, the active option a raised gold chip.
+   Flags are inline SVG, never emoji — Windows has no flag emoji and
+   shows "US"/"BR"/"ES" letters instead. */
+.lang-switch,
+.theme-switch {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  gap: 4px;
+  padding: 4px;
   border-radius: 999px;
-  background: rgba(244, 246, 248, 0.08);
-  border: 1px solid rgba(244, 246, 248, 0.22);
+  background: rgba(255, 251, 244, 0.95);
+  border: 1px solid rgba(62, 45, 30, 0.28);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
   flex: none;
 }
 
-.lang-switch-btn {
+.lang-switch-btn,
+.switch-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  gap: 6px;
+  padding: 5px 10px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
-  color: rgba(244, 246, 248, 0.75);
+  color: #4a4036;
   font: inherit;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   line-height: 1;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: transform 100ms ease, background-color 100ms ease, border-color 100ms ease, color 100ms ease;
 }
 
-.lang-switch-btn:hover {
-  background: rgba(244, 246, 248, 0.12);
-  color: var(--color-text-on-primary);
+.lang-switch-btn:hover,
+.switch-btn:hover {
+  background: rgba(184, 134, 46, 0.16);
 }
 
-.lang-switch-btn.is-active {
-  background: var(--color-accent);
-  color: #1f1604;
+.lang-switch-btn.is-active,
+.switch-btn.is-active {
+  background: linear-gradient(140deg, #c9973f, #94661f);
+  border-color: rgba(115, 78, 20, 0.7);
+  color: #fffdf7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(80, 55, 10, 0.35);
 }
 
-.lang-switch-btn:focus-visible {
-  outline: 2px solid var(--color-accent);
+.lang-switch-btn:focus-visible,
+.switch-btn:focus-visible {
+  outline: 2px solid #c9973f;
   outline-offset: 2px;
 }
 
 .lang-flag {
   display: inline-flex;
-  width: 18px;
-  height: 12px;
+  width: 1.35rem;
+  height: 0.9rem;
   border-radius: 2px;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 1px rgba(60, 40, 20, 0.25);
   flex: none;
 }
 
-.lang-flag svg {
+.lang-flag svg,
+.switch-icon svg {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-/* Theme toggle switch */
-.theme-toggle {
+/* Theme switch: "Theme  ☀ Light | ☾ Dark" — the caption says what it's
+   for, the labelled options how to use it, the gold chip what's on. */
+.switch-caption {
+  padding: 0 4px 0 8px;
+  color: #7a6a58;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.switch-icon {
   display: inline-flex;
-  align-items: center;
-  cursor: pointer;
+  width: 14px;
+  height: 14px;
   flex: none;
 }
 
-.theme-toggle-track {
-  position: relative;
-  width: 40px;
-  height: 22px;
-  border-radius: 999px;
-  background: rgba(244, 246, 248, 0.16);
-  border: 1px solid rgba(244, 246, 248, 0.3);
-  transition: background-color 0.15s ease;
-}
-
-.theme-toggle-thumb {
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--color-text-on-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.62rem;
-  line-height: 1;
-  transition: transform 0.18s ease;
-}
-
-.theme-toggle input:checked ~ .theme-toggle-track {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.theme-toggle input:checked ~ .theme-toggle-track .theme-toggle-thumb {
-  transform: translateX(18px);
-}
-
-.theme-toggle input:focus-visible ~ .theme-toggle-track {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+@media (prefers-reduced-motion: reduce) {
+  .lang-switch-btn,
+  .switch-btn {
+    transition: none;
+  }
 }
 
 .app-main {
@@ -259,30 +248,6 @@
   display: inline-block;
 }
 
-/* Home hero: logo beside the headline, stacked on narrow screens. */
-.home-hero {
-  display: flex;
-  align-items: center;
-  gap: var(--space-6);
-}
-
-.home-hero-logo img {
-  width: 220px;
-  height: auto;
-}
-
-@media (max-width: 760px) {
-  .home-hero {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
-  }
-
-  .home-hero-logo img {
-    width: 150px;
-  }
-}
-
 @media (max-width: 860px) {
   .app-header-inner {
     gap: var(--space-3);
@@ -293,20 +258,23 @@
     font-size: 0.9rem;
   }
 
-  .app-brand-name {
-    display: none;
+  .lang-switch-btn,
+  .switch-btn {
+    padding: 5px 7px;
   }
 
-  .lang-switch-btn {
-    padding: 4px 6px;
-  }
-
-  .lang-code {
+  .lang-code,
+  .switch-label,
+  .switch-caption {
     display: none;
   }
 
   .app-header-actions {
     gap: var(--space-2);
+    /* Full row, so the pill/buttons/switches wrap inside it instead of
+       overflowing a phone-width screen. */
+    flex: 1 1 100%;
+    justify-content: flex-end;
   }
 
   .status-pill [data-connection-label] {

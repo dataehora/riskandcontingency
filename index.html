@@ -68,9 +68,8 @@
 <body data-page="home">
   <header class="app-header">
     <div class="app-header-inner">
-      <a class="app-brand" href="/index.html">
-        <img class="app-brand-logo" src="/images/logo-light.png" alt="R&amp;C" width="68" height="28">
-        <span class="app-brand-name">Risk &amp; Contingency</span>
+      <a class="app-brand" href="/index.html" title="Risk &amp; Contingency">
+        <img class="app-brand-logo" src="/images/logo-light.png" alt="Risk &amp; Contingency" width="68" height="28">
       </a>
       <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation" data-i18n-attr="aria-label:header.toggleNav">&#9776;</button>
       <nav class="app-nav" aria-label="Primary" data-i18n-attr="aria-label:header.primaryNav">
@@ -89,28 +88,16 @@
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
         <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden data-i18n="header.disconnect">Disconnect</button>
-        <label class="theme-toggle" title="Toggle dark mode" data-i18n-attr="title:header.toggleTheme">
-          <input type="checkbox" data-theme-toggle class="visually-hidden">
-          <span class="theme-toggle-track" aria-hidden="true">
-            <span class="theme-toggle-thumb"></span>
-          </span>
-          <span class="visually-hidden" data-i18n="header.toggleTheme">Toggle dark mode</span>
-        </label>
+        <div class="theme-switch" data-theme-switch></div>
       </div>
     </div>
   </header>
 
   <main class="app-main">
-    <div class="page-header home-hero">
-      <div class="home-hero-logo">
-        <img src="/images/logo.png" alt="R&amp;C — Risk &amp; Contingency" width="290" height="120" data-logo-for="light-bg">
-        <img src="/images/logo-light.png" alt="R&amp;C — Risk &amp; Contingency" width="290" height="120" data-logo-for="dark-bg">
-      </div>
-      <div>
-        <span class="eyebrow" data-i18n="home.eyebrow">Risk &amp; Contingency Management</span>
-        <h1 data-i18n="home.title">A project risk register that lives on your machine, not in someone else's cloud</h1>
-        <p data-i18n="home.lead">Record, assess and respond to project risks under a Risk Breakdown Structure, calculate EMV pre- and post‑mitigation, and report on exposure — all reading and writing directly to an Excel workbook in a folder you choose. No accounts, no server, no uploads.</p>
-      </div>
+    <div class="page-header">
+      <span class="eyebrow" data-i18n="home.eyebrow">Risk &amp; Contingency Management</span>
+      <h1 data-i18n="home.title">A project risk register that lives on your machine, not in someone else's cloud</h1>
+      <p data-i18n="home.lead">Record, assess and respond to project risks under a Risk Breakdown Structure, calculate EMV pre- and post‑mitigation, and report on exposure — all reading and writing directly to an Excel workbook in a folder you choose. No accounts, no server, no uploads.</p>
     </div>
 
     <div id="unsupported-notice" class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
@@ -169,9 +156,9 @@
   </main>
 
   <footer class="app-footer">
-    <img class="app-footer-logo" src="/images/logo.png" alt="R&amp;C" width="58" height="24" data-logo-for="light-bg">
-    <img class="app-footer-logo" src="/images/logo-light.png" alt="R&amp;C" width="58" height="24" data-logo-for="dark-bg">
-    <span data-i18n="footer.text">Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
+    <img class="app-footer-logo" src="/images/logo.png" alt="Risk &amp; Contingency" width="58" height="24" data-logo-for="light-bg">
+    <img class="app-footer-logo" src="/images/logo-light.png" alt="Risk &amp; Contingency" width="58" height="24" data-logo-for="dark-bg">
+    <span data-i18n="footer.text">Runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
   </footer>
 
   <script defer src="/js/vendor/xlsx.full.min.js"></script>

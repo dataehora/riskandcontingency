@@ -21,9 +21,8 @@
 <body data-page="not-found">
   <header class="app-header">
     <div class="app-header-inner">
-      <a class="app-brand" href="/index.html">
-        <img class="app-brand-logo" src="/images/logo-light.png" alt="R&amp;C" width="68" height="28">
-        <span class="app-brand-name">Risk &amp; Contingency</span>
+      <a class="app-brand" href="/index.html" title="Risk &amp; Contingency">
+        <img class="app-brand-logo" src="/images/logo-light.png" alt="Risk &amp; Contingency" width="68" height="28">
       </a>
       <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation" data-i18n-attr="aria-label:header.toggleNav">&#9776;</button>
       <nav class="app-nav" aria-label="Primary" data-i18n-attr="aria-label:header.primaryNav">
@@ -42,13 +41,7 @@
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
         <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden data-i18n="header.disconnect">Disconnect</button>
-        <label class="theme-toggle" title="Toggle dark mode" data-i18n-attr="title:header.toggleTheme">
-          <input type="checkbox" data-theme-toggle class="visually-hidden">
-          <span class="theme-toggle-track" aria-hidden="true">
-            <span class="theme-toggle-thumb"></span>
-          </span>
-          <span class="visually-hidden" data-i18n="header.toggleTheme">Toggle dark mode</span>
-        </label>
+        <div class="theme-switch" data-theme-switch></div>
       </div>
     </div>
   </header>
@@ -67,9 +60,9 @@
   </main>
 
   <footer class="app-footer">
-    <img class="app-footer-logo" src="/images/logo.png" alt="R&amp;C" width="58" height="24" data-logo-for="light-bg">
-    <img class="app-footer-logo" src="/images/logo-light.png" alt="R&amp;C" width="58" height="24" data-logo-for="dark-bg">
-    <span data-i18n="footer.text">Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
+    <img class="app-footer-logo" src="/images/logo.png" alt="Risk &amp; Contingency" width="58" height="24" data-logo-for="light-bg">
+    <img class="app-footer-logo" src="/images/logo-light.png" alt="Risk &amp; Contingency" width="58" height="24" data-logo-for="dark-bg">
+    <span data-i18n="footer.text">Runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
   </footer>
 
   <script defer src="/js/vendor/xlsx.full.min.js"></script>

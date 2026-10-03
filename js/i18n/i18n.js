@@ -172,7 +172,7 @@ function buildSwitch() {
     const btn = event.target.closest("[data-lang]");
     if (btn) setLang(btn.dataset.lang);
   });
-  const themeToggle = host.querySelector(".theme-toggle");
+  const themeToggle = host.querySelector(".theme-switch");
   host.insertBefore(group, themeToggle ?? null);
   syncSwitch();
 }
