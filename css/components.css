@@ -948,3 +948,66 @@ label.inline-check {
 .report-narrative p:last-child {
   margin-bottom: 0;
 }
+
+/* Risk record form: required fields. Labels get a red asterisk; a
+   required field that's still empty gets a red background (live), on top
+   of the error message shown when saving. */
+label.is-required::after,
+.dist-group.is-required .dist-group-header h4::after,
+.qhse-group.is-required .dist-group-header h4::after {
+  content: " *";
+  color: var(--color-danger);
+}
+
+input.is-missing,
+select.is-missing,
+textarea.is-missing {
+  background: var(--color-risk-high-bg);
+  border-color: var(--color-danger);
+}
+
+/* Total Cost: computed, not an input — muted, dashed "read-only" tiles so
+   it doesn't look like something to type into. */
+.computed-tiles .stat-tile {
+  background: repeating-linear-gradient(135deg, rgba(128, 128, 128, 0.12) 0 6px, transparent 6px 12px), var(--color-surface-alt);
+  border: 1px dashed var(--color-accent);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.computed-tiles .stat-value {
+  color: var(--color-text-muted);
+}
+
+.computed-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--space-2) 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* Configuration: required-field checklist. */
+.required-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.required-fields-grid fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+}
+
+.required-fields-grid legend {
+  padding: 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}

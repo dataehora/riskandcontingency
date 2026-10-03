@@ -41,6 +41,7 @@ let knownFileModifiedAt = null;
 function emptyState(status) {
   return {
     status,
+    saveError: null,
     rbs: [],
     impactAreas: [],
     owners: [],
@@ -194,6 +195,40 @@ async function checkConflict() {
   return false;
 }
 
+// Every mutator goes through here: refuses while the workbook isn't loaded
+// (a change applied to the empty pre-load state would be overwritten when
+// the load lands — that's how quick clicks right after connecting got
+// lost), runs the conflict check, then applies + persists. A failed write
+// (file open/locked in Excel, OneDrive sync lock, permission revoked…)
+// is surfaced as state.saveError (banner, js/conflict-banner.js) and the
+// in-memory state is re-read from disk so it never shows unsaved changes.
+async function mutate(apply) {
+  if (state.status !== "ready") return false;
+  if (await checkConflict()) return false;
+  const result = apply();
+  notify();
+  try {
+    await persist();
+  } catch (err) {
+    console.error(err);
+    state = { ...state, saveError: err?.message || String(err) };
+    notify();
+    await load({ silent: true, keepSaveError: true });
+    return false;
+  }
+  if (state.saveError) {
+    state = { ...state, saveError: null };
+    notify();
+  }
+  return result ?? true;
+}
+
+export function clearSaveError() {
+  if (!state.saveError) return;
+  state = { ...state, saveError: null };
+  notify();
+}
+
 async function persist() {
   const handle = getDirectoryHandle();
   if (!handle) return;
@@ -269,7 +304,7 @@ function finalizeActions(record, riskId, actions, oldRiskId = riskId) {
   return { actions: finalized, lastActionNumber: last };
 }
 
-async function load({ silent = false } = {}) {
+async function load({ silent = false, keepSaveError = false } = {}) {
   const handle = getDirectoryHandle();
   if (!handle) return;
   if (!silent) {
@@ -294,6 +329,7 @@ async function load({ silent = false } = {}) {
       settings: { ...settings, lastRiskNumber: highestRiskNumber(records, settings.lastRiskNumber) },
       conflict: false,
       idRepairs: repairs,
+      saveError: keepSaveError ? state.saveError : null,
     };
   } catch (err) {
     state = { ...state, status: "error" };
@@ -340,31 +376,23 @@ onConnectionChange((connection) => {
 
 // --- Config -----------------------------------------------------------
 export async function applyConfigTemplate() {
-  if (await checkConflict()) return false;
-  const template = configTemplate();
-  state = { ...state, ...template };
-  notify();
-  await persist();
-  return true;
+  return mutate(() => {
+    state = { ...state, ...configTemplate() };
+  });
 }
 
 function namedListMutators(key) {
   return {
     async add(name) {
-      if (await checkConflict()) return false;
-      const list = state[key];
-      const id = nextId(list, key.slice(0, 4));
-      state = { ...state, [key]: [...list, { id, name }] };
-      notify();
-      await persist();
-      return true;
+      return mutate(() => {
+        const list = state[key];
+        state = { ...state, [key]: [...list, { id: nextId(list, key.slice(0, 4)), name }] };
+      });
     },
     async remove(id) {
-      if (await checkConflict()) return false;
-      state = { ...state, [key]: state[key].filter((item) => item.id !== id) };
-      notify();
-      await persist();
-      return true;
+      return mutate(() => {
+        state = { ...state, [key]: state[key].filter((item) => item.id !== id) };
+      });
     },
   };
 }
@@ -376,11 +404,9 @@ export const qhseLevelList = namedListMutators("qhseLevels");
 
 // --- Settings (available budget, last modelling run) -------------------
 export async function updateSettings(patch) {
-  if (await checkConflict()) return false;
-  state = { ...state, settings: { ...state.settings, ...patch } };
-  notify();
-  await persist();
-  return true;
+  return mutate(() => {
+    state = { ...state, settings: { ...state.settings, ...patch } };
+  });
 }
 
 // --- Risk records -------------------------------------------------------
@@ -397,7 +423,9 @@ export function blankRiskRecord() {
     title: "",
     riskType: "Threat",
     recordType: "Regular Pooled Record",
-    status: DEFAULT_STATUS,
+    // Blank on purpose: Status is chosen in the form (required by default);
+    // if it's left blank and not required, saveRiskRecord stores "Open".
+    status: "",
     description: "",
     cause: "",
     effect: "",
@@ -426,6 +454,7 @@ export function suggestRiskId() {
 // already taken; that check runs after the conflict check, so it's made
 // against state that matches what's on disk.
 export async function saveRiskRecord(record, { originalId = record.id ?? null } = {}) {
+  if (state.status !== "ready") return false;
   if (await checkConflict()) return false;
   const now = new Date().toISOString();
   const isNew = !originalId || !state.riskRecords.some((r) => r.id === originalId);
@@ -433,7 +462,10 @@ export async function saveRiskRecord(record, { originalId = record.id ?? null } 
   const error = riskIdError(id, state.riskRecords, isNew ? null : originalId);
   if (error) throw new RiskIdError(error);
 
-  const base = isNew ? { ...record, lastActionNumber: 0, createdAt: now } : record;
+  const base = {
+    ...(isNew ? { ...record, lastActionNumber: 0, createdAt: now } : record),
+    status: RISK_STATUSES.includes(record.status) ? record.status : DEFAULT_STATUS,
+  };
   const { actions, lastActionNumber } = finalizeActions(base, id, record.actions, isNew ? id : originalId);
   const saved = {
     ...base,
@@ -444,29 +476,29 @@ export async function saveRiskRecord(record, { originalId = record.id ?? null } 
     computed: { pre: calculateAssessment(record.pre), post: calculateAssessment(record.post) },
   };
 
-  state = {
-    ...state,
-    riskRecords: isNew
-      ? [...state.riskRecords, saved]
-      : state.riskRecords.map((r) => (r.id === originalId ? saved : r)),
-    settings: {
-      ...state.settings,
-      lastRiskNumber: highestRiskNumber([saved], state.settings?.lastRiskNumber),
-    },
-  };
-  notify();
-  await persist();
-  // Truthy like every other mutator's `true`, but returns the saved
-  // record itself so the form can pick up its final id / action ids.
-  return saved;
+  // The conflict check already ran above (before the ID check, so that
+  // ran against state matching disk); mutate() repeats it, which is cheap.
+  // Returns the saved record itself (truthy) so the form can pick up its
+  // final id / action ids, or false if the write didn't happen.
+  return mutate(() => {
+    state = {
+      ...state,
+      riskRecords: isNew
+        ? [...state.riskRecords, saved]
+        : state.riskRecords.map((r) => (r.id === originalId ? saved : r)),
+      settings: {
+        ...state.settings,
+        lastRiskNumber: highestRiskNumber([saved], state.settings?.lastRiskNumber),
+      },
+    };
+    return saved;
+  });
 }
 
 export async function deleteRiskRecord(id) {
-  if (await checkConflict()) return false;
-  state = { ...state, riskRecords: state.riskRecords.filter((r) => r.id !== id) };
-  notify();
-  await persist();
-  return true;
+  return mutate(() => {
+    state = { ...state, riskRecords: state.riskRecords.filter((r) => r.id !== id) };
+  });
 }
 
 export async function loadRiskRecordTemplate(index) {

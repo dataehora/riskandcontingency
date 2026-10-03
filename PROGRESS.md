@@ -43,6 +43,7 @@ dark mode, mobile-responsive header.
 - **Risk Register**: new **Status** field (Open, Draft, Proposed, Closed – Rejected/Impacted/Mitigated/Expired); existing records read as Open; templates are Open. Filters (search, status, type, record type, impact area) with the record-count summary above and below the table.
 - **Modelling**: only **Open + Regular Pooled Record** risks are simulated; a "Risks in this run" table (threats/opportunities included and excluded, by reason) sits before the chart, with an explicit note when High Impact risks were left out.
 - **Risk Reporting**: automated written summary before the RAM — totals by type and status (open / under review / closed), mitigation effect on open risks, response actions, top residual threat.
+- Same day, 2nd PR: header logo without repeated brand text; footer likewise; big logo removed from Home; beatconfused-style language switch; labelled Light/Dark theme switch; Portuguese uses "Formulário de Risco" for Risk Record; required fields configurable in Configuration (default ID, Title, Status, Owner) and shown in red on the form; Total Cost visibly read-only; save failures now show a banner instead of failing silently; template buttons confirm with a toast. Cloudflare Browser Cache TTL fixed by the user (verified `no-cache`).
 - Open question for the user: post-mitigation EMV of an open risk without a post assessment is taken as its pre-mitigation EMV in the summary.
 
 ## Session 2026-09-27
@@ -54,7 +55,7 @@ dark mode, mobile-responsive header.
 - Risk Reporting: RAM plot with Impact Area / Record Type (and Pre/Post) filters, plus a table of plotted risks. List + top-N ranking still not built.
 - Dev server switched to a threaded server (single-threaded one stalled).
 - Later the same day: Modelling chart = histogram (left axis, iterations) + S-curve (right axis, 0–100%), x-axis from 0; Configuration RAM preview now plots the risks; EMV totals row; editable, validated, unique Risk ID (never-reused auto numbers, load-time repair of bad IDs); hierarchical action IDs `R-0006-A-001`.
-- Open: Cloudflare zone Browser Cache TTL overrides `_headers` for JS/CSS (4h) — needs "Respect Existing Headers" in the dashboard.
+- ~~Open: Cloudflare Browser Cache TTL overrode `_headers` for JS/CSS (4h)~~ — fixed by the user 2026-10-03.
 
 ## Session 2026-09-20 — 10 PRs
 

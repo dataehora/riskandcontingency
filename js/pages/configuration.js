@@ -20,6 +20,13 @@ import {
   riskPoints,
 } from "../storage/ram.js";
 import { renderRiskMatrix } from "../charts/risk-matrix.js";
+import {
+  REQUIRED_FIELD_GROUPS,
+  ALWAYS_REQUIRED,
+  DEFAULT_REQUIRED_FIELDS,
+  parseRequiredFields,
+  serializeRequiredFields,
+} from "../storage/workbook.js";
 import { t, tn, fmtInt, fmtNum, onLangChange } from "../i18n/i18n.js";
 
 const LISTS = {
@@ -68,6 +75,8 @@ function render(state) {
         .join("") || `<li class="named-list-empty">${t("conf.noneYet")}</li>`;
   }
 
+  renderRequiredFields(state);
+
   try {
     renderRam(state);
   } catch (err) {
@@ -76,6 +85,39 @@ function render(state) {
     const preview = document.querySelector("[data-ram-preview]");
     if (preview) preview.textContent = t("conf.ram.drawError");
   }
+}
+
+// --- Required fields of the risk record form --------------------------
+function requiredFieldLabel(key) {
+  if (!key.includes(".")) return t(`rr.field.${key}`);
+  const dim = key.split(".")[1];
+  return dim === "qhse" ? "QHSE" : t(`dim.${dim}`);
+}
+
+function renderRequiredFields(state) {
+  const host = document.querySelector("[data-required-fields]");
+  if (!host) return;
+  const required = parseRequiredFields(state.settings);
+  host.innerHTML = REQUIRED_FIELD_GROUPS.map(
+    ({ group, keys }) => `
+    <fieldset>
+      <legend>${group === "details" ? t("rr.details") : t(`phase.${group}`)}</legend>
+      ${keys
+        .map((key) => {
+          const locked = ALWAYS_REQUIRED.includes(key);
+          return `<label class="inline-check">
+            <input type="checkbox" data-required-key="${key}" ${required.has(key) ? "checked" : ""} ${locked ? "disabled" : ""}>
+            ${escapeHtml(requiredFieldLabel(key))}${locked ? ` <span class="field-feedback" style="margin:0;">(${t("conf.required.always")})</span>` : ""}
+          </label>`;
+        })
+        .join("")}
+    </fieldset>`
+  ).join("");
+}
+
+async function saveRequiredFields() {
+  const keys = [...document.querySelectorAll("[data-required-key]")].filter((b) => b.checked).map((b) => b.dataset.requiredKey);
+  await updateSettings({ requiredFieldsJson: serializeRequiredFields(new Set(keys)) });
 }
 
 // --- Risk Assessment Matrix bins -------------------------------------
@@ -213,6 +255,13 @@ function wire() {
       input.focus();
     });
   });
+
+  document.body.addEventListener("change", (event) => {
+    if (event.target.closest("[data-required-key]")) saveRequiredFields();
+  });
+  document.querySelector("[data-required-reset]")?.addEventListener("click", () =>
+    updateSettings({ requiredFieldsJson: serializeRequiredFields(new Set(DEFAULT_REQUIRED_FIELDS)) })
+  );
 
   document.body.addEventListener("change", (event) => {
     const input = event.target.closest("[data-ram-threshold]");

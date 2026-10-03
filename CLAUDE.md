@@ -40,6 +40,12 @@ Real build underway (started 2026-09-20). Landed so far:
   Register filters + record-count summary, Modelling "Risks in this run"
   table, Risk Reporting automated register summary.
 
+- **2026-10-03 (2nd PR)**: header/footer show the logo without the
+  repeated "Risk & Contingency" text, labelled Light/Dark theme switch,
+  beatconfused-style language switch, configurable required fields with
+  red highlighting, read-only styling for Total Cost, visible save
+  errors, "Formulário de Risco" terminology in Portuguese.
+
 Still not built: Risk Reporting's top-N ranking table (the summary and
 the RAM are on that page). Update this section as it ships.
 
@@ -192,11 +198,30 @@ a flag switch built into the header next to the theme toggle.
 - Not localised: URLs (one URL per page, client-side switch), JSON-LD,
   `og:*` tags (English).
 
+- **Portuguese terminology (user's choice)**: Risk Register = "Registro
+  de Riscos", Risk Record = "Formulário de Risco" — and by extension
+  Record Type = "Tipo de Formulário", Regular Pooled Record = "Formulário
+  Regular Agrupado". "registro" alone in pt.js means the register.
+
+**Header switches** (2026-10-03): language (`i18n.js`) and theme
+(`js/theme.js`, builds `[data-theme-switch]`: caption "Theme" + "☀ Light
+| ☾ Dark" buttons, the active one a raised gold chip, tooltip says
+whether it's following the OS) share one look copied from the
+beatconfused.com switcher (light pill on the navy header, `shell.css`).
+Under 860px only icons/flags show and `.app-header-actions` takes a full
+row so they wrap instead of overflowing.
+
 **Logo** (2026-10-03): the user's R&C logo (dark "R"/"C", green→gold
 ampersand). `images/logo.png` = original colours on transparent (light
 backgrounds); `images/logo-light.png` = off-white letters + lightened
 ampersand (navy header, dark mode). `[data-logo-for="light-bg"|"dark-bg"]`
-+ `shell.css` pick the right one per theme. Favicons and `og-image.png`
++ `shell.css` pick the right one per theme. The header shows the logo
+**alone** and the footer shows logo + sentence without "Risk &
+Contingency —": the user read the brand text right after the R&C logo
+as a duplicated "&". (Earlier "duplicate logos" reports were the stale
+4h CSS cache showing both theme variants at once — fixed in the
+Cloudflare dashboard on 2026-10-03, `curl -sI` now shows `no-cache` for
+JS/CSS/images.) Favicons and `og-image.png`
 were regenerated from it with PIL (source image isn't in the repo — the
 transparent `logo.png` is the master now).
 
@@ -441,6 +466,33 @@ would-be conflict into a silent overwrite of someone else's edit.
   first record using that id — the Actions sheet can't disambiguate).
 - EMV view of the list has a `<tfoot>` total row (net: opportunities
   are negative EMV).
+
+**Required fields** (2026-10-03): `settings.requiredFieldsJson` (Settings
+sheet column) lists the mandatory form fields, edited on Configuration
+("Risk record form — required fields"); `parseRequiredFields()` /
+`REQUIRED_FIELD_GROUPS` in `workbook.js`. Default **ID, Title, Status,
+Owner** (ID always, can't be unticked). Keys are Details field names,
+`<phase>.<dimension>` (a distribution counts as filled when any cell is)
+or `<phase>.qhse`. The form marks required labels with a red asterisk
+and paints every still-empty required field red **live** (`.is-missing`,
+`updateMissingRequired()` on every input), and on save lists the missing
+ones in the error box. The old hard-coded rule (pre Likelihood / Direct
+Cost / Schedule required) is gone — tick them in Configuration to get it
+back. Native `required` attributes were removed from the form (they
+blocked the submit event, so the app's own message never showed). New
+records start with a **blank Status** (placeholder option) so it's a
+real choice; a blank Status that isn't required saves as Open.
+Total Cost tiles are styled read-only (`.computed-tiles`: striped,
+dashed gold border, muted values, lock note).
+
+**Store hardening** (2026-10-03, `register-store.js` `mutate()`): every
+mutator refuses while the workbook isn't loaded (`status !== "ready"` —
+a template click right after connecting used to be applied to the empty
+pre-load state and then wiped by the load), and a failed write (file open
+in Excel, OneDrive lock…) sets `state.saveError`, re-reads the file so
+the UI never shows an unsaved change, and `conflict-banner.js` shows a
+"Couldn't save" banner. Template buttons confirm with a toast ("Example
+added as R-000x") or say the workbook is still loading.
 
 **Risk Register save** (2026-09-27): Save buttons at the top
 (`.form-toolbar`, `form="record-form"`) and bottom; a successful save

@@ -22,14 +22,19 @@ import {
   REVIEW_STATUSES,
   POOLED_RECORD_TYPE,
   riskIdError,
+  parseRequiredFields,
 } from "../storage/workbook.js";
 import { t, tn, tv, fmtNum, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
 const DIMENSION_BOUNDS = { likelihood: { min: 1, max: 100 } };
-// Required in Pre-mitigation: a risk isn't really assessed without these.
-// Knock On and every Post-mitigation group are optional (a new risk may
-// not have mitigation assessed yet, or no knock-on effect at all).
-const REQUIRED_GROUPS = new Set(["pre:likelihood", "pre:costImpact", "pre:scheduleImpact"]);
+
+// Which form fields are mandatory is chosen on the Configuration page
+// (settings.requiredFieldsJson; default ID, Title, Status, Owner). Keys:
+// detail field names, "<phase>.<dimension>" and "<phase>.qhse".
+function requiredFields() {
+  return parseRequiredFields(currentState.settings);
+}
+const DETAIL_FIELDS = ["id", "title", "status", "owner", "impactArea", "rbsCategory", "description", "cause", "effect"];
 
 // Stored values (English, in the workbook); labels come from tv("strategy", s).
 const STRATEGIES = {
@@ -377,20 +382,21 @@ function populateOptions(select, items, placeholder, value) {
 }
 
 // Fixed enum select: stored value, translated label.
-function populateEnum(select, values, group, value) {
-  select.innerHTML = values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(tv(group, v))}</option>`).join("");
+function populateEnum(select, values, group, value, placeholder = null) {
+  select.innerHTML =
+    (placeholder ? `<option value="">${escapeHtml(placeholder)}</option>` : "") +
+    values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(tv(group, v))}</option>`).join("");
   if (value != null) select.value = value;
 }
 
 // --- Assessment (distribution) groups -------------------------------------
 function distGroupHtml(phase, dim) {
-  const key = `${phase}:${dim}`;
-  const required = REQUIRED_GROUPS.has(key);
+  const required = requiredFields().has(`${phase}.${dim}`);
   const showsMax = dim === "costImpact" || dim === "knockOn" || dim === "scheduleImpact";
   return `
-    <div class="dist-group" data-phase="${phase}" data-dim="${dim}">
+    <div class="dist-group${required ? " is-required" : ""}" data-phase="${phase}" data-dim="${dim}">
       <div class="dist-group-header">
-        <h4>${t(`dim.${dim}`)}${required ? " *" : ""}</h4>
+        <h4>${t(`dim.${dim}`)}</h4>
         <span class="dist-group-unit">${t(`dim.${dim}.unit`)}</span>
       </div>
       <div class="dist-inputs">
@@ -406,7 +412,7 @@ function distGroupHtml(phase, dim) {
 
 function qhseGroupHtml(phase) {
   return `
-    <div class="qhse-group" data-phase="${phase}">
+    <div class="qhse-group${requiredFields().has(`${phase}.qhse`) ? " is-required" : ""}" data-phase="${phase}">
       <div class="dist-group-header">
         <h4>QHSE</h4>
         <span class="dist-group-unit">${t("dim.qhse.unit")}</span>
@@ -429,7 +435,7 @@ function assessmentSectionHtml(phase) {
           <h4>${t("dim.totalCost")}</h4>
           <span class="dist-group-unit">${t("dim.totalCost.unit")}</span>
         </div>
-        <div class="assessment-summary">
+        <div class="assessment-summary computed-tiles" title="${escapeHtml(t("rr.totalCost.note"))}">
           <div class="stat-tile">
             <div class="stat-label">${t("dist.min")}</div>
             <div class="stat-value" data-total-cost="min">—</div>
@@ -447,6 +453,7 @@ function assessmentSectionHtml(phase) {
             <div class="stat-value" data-summary="emv">—</div>
           </div>
         </div>
+        <p class="computed-note"><span aria-hidden="true">&#128274;</span>${t("rr.totalCost.note")}</p>
 
         <div class="indented-group">
           ${distGroupHtml(phase, "costImpact")}
@@ -474,8 +481,7 @@ function updateDistGroup(groupEl) {
   const ml = readCell(groupEl.querySelector('[data-cell="ml"]'));
   const max = readCell(groupEl.querySelector('[data-cell="max"]'));
   const result = validateDistribution({ min, ml, max }, DIMENSION_BOUNDS[dim]);
-  const key = `${phase}:${dim}`;
-  const required = REQUIRED_GROUPS.has(key);
+  const required = requiredFields().has(`${phase}.${dim}`);
 
   draft[phase][dim] = { min, ml, max, type: result.valid ? result.type : null };
 
@@ -623,11 +629,12 @@ function renderForm() {
   form.querySelector('[data-field="title"]').value = draft.title;
   populateEnum(form.querySelector('[data-field="riskType"]'), RISK_TYPES, "riskType", draft.riskType);
   populateEnum(form.querySelector('[data-field="recordType"]'), RECORD_TYPES, "recordType", draft.recordType);
-  populateEnum(form.querySelector('[data-field="status"]'), RISK_STATUSES, "status", draft.status);
+  populateEnum(form.querySelector('[data-field="status"]'), RISK_STATUSES, "status", draft.status ?? "", t("rr.select.status"));
   form.querySelector('[data-field="description"]').value = draft.description;
   form.querySelector('[data-field="cause"]').value = draft.cause;
   form.querySelector('[data-field="effect"]').value = draft.effect;
   updateStatusHint();
+  markRequiredLabels();
 
   populateOptions(form.querySelector('[data-field="owner"]'), currentState.owners, t("rr.select.owner"), draft.owner);
   populateOptions(form.querySelector('[data-field="impactArea"]'), currentState.impactAreas, t("rr.select.impactArea"), draft.impactArea);
@@ -643,6 +650,7 @@ function renderForm() {
   }
 
   renderActions();
+  updateMissingRequired();
 }
 
 function showList() {
@@ -707,12 +715,49 @@ function formHasErrors() {
   return !!document.querySelector('.dist-feedback[data-valid="false"]');
 }
 
-function requiredGroupsMissing() {
-  return [...REQUIRED_GROUPS].some((key) => {
-    const [phase, dim] = key.split(":");
-    const d = draft[phase][dim];
-    return d.ml === null && d.min === null && d.max === null;
-  });
+// Marks required Details labels with an asterisk (CSS) for the current
+// configuration.
+function markRequiredLabels() {
+  const required = requiredFields();
+  for (const field of DETAIL_FIELDS) {
+    document.querySelector(`label[for="f-${field}"]`)?.classList.toggle("is-required", required.has(field));
+  }
+}
+
+// Every required field that's still empty: [{ key, label, elements }].
+// Also paints them (red background, .is-missing) — runs live on every
+// input, so the highlight clears as soon as a field is filled.
+function updateMissingRequired() {
+  const form = els().form;
+  if (!form || !draft) return [];
+  const required = requiredFields();
+  const missing = [];
+  form.querySelectorAll(".is-missing").forEach((el) => el.classList.remove("is-missing"));
+  for (const key of required) {
+    let elements = [];
+    let label = "";
+    if (DETAIL_FIELDS.includes(key)) {
+      const el = form.querySelector(`[data-field="${key}"]`);
+      if (el && !el.value.trim()) elements = [el];
+      label = t(`rr.field.${key}`);
+    } else {
+      const [phase, dim] = key.split(".");
+      label = `${t(dim === "qhse" ? "rr.view.qhse" : `dim.${dim}`)} (${t(`phase.${phase}`)})`;
+      if (dim === "qhse") {
+        const el = document.querySelector(`.qhse-group[data-phase="${phase}"] [data-qhse-select]`);
+        if (el && !el.value) elements = [el];
+      } else {
+        const group = document.querySelector(`.dist-group[data-phase="${phase}"][data-dim="${dim}"]`);
+        const inputs = group ? [...group.querySelectorAll("input")] : [];
+        if (inputs.length && inputs.every((i) => !i.value.trim())) elements = inputs;
+      }
+    }
+    if (elements.length) {
+      elements.forEach((el) => el.classList.add("is-missing"));
+      missing.push({ key, label });
+    }
+  }
+  return missing;
 }
 
 // Copies the Details fields (everything but the ID) into the draft.
@@ -744,14 +789,11 @@ async function submitForm(event) {
     errorBox.hidden = false;
     return;
   }
-  if (!draft.title) {
-    errorBox.textContent = t("rr.error.title");
+  const missing = updateMissingRequired();
+  if (missing.length) {
+    errorBox.textContent = t("rr.error.missing", { fields: missing.map((m) => m.label).join(", ") });
     errorBox.hidden = false;
-    return;
-  }
-  if (requiredGroupsMissing()) {
-    errorBox.textContent = t("rr.error.required");
-    errorBox.hidden = false;
+    document.querySelector(".is-missing")?.focus();
     return;
   }
   if (formHasErrors()) {
@@ -818,7 +860,9 @@ function wire() {
   document.querySelector("[data-new-record]")?.addEventListener("click", startNewRecord);
   document.querySelectorAll("[data-load-template]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      await loadRiskRecordTemplate(Number(btn.dataset.loadTemplate));
+      const saved = await loadRiskRecordTemplate(Number(btn.dataset.loadTemplate));
+      if (saved) showSaveToast(t("rr.templateAdded", { id: saved.id, title: saved.title }));
+      else if (!currentState.conflict && !currentState.saveError) showSaveToast(t("rr.notReady"));
     });
   });
 
@@ -882,6 +926,8 @@ function wire() {
   });
 
   form?.addEventListener("submit", submitForm);
+  form?.addEventListener("input", updateMissingRequired);
+  form?.addEventListener("change", updateMissingRequired);
   form?.querySelector('[data-field="id"]')?.addEventListener("input", updateIdFeedback);
 
   form?.querySelector('[data-field="riskType"]')?.addEventListener("change", (e) => {
