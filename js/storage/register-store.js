@@ -50,6 +50,8 @@ function emptyState(status) {
     settings: {},
     conflict: false,
     idRepairs: [],
+    baselines: [],
+    savedModels: [],
   };
 }
 
@@ -240,6 +242,10 @@ async function persist() {
     riskRecords: state.riskRecords.map(recordToRow),
     actions: actionsToRows(state.riskRecords),
     settings: state.settings,
+    baselines: state.baselines.map((b) => ({ id: b.id, name: b.name, createdAt: b.createdAt, recordCount: b.records.length })),
+    baselineRecords: state.baselines.flatMap((b) => b.records.map((rec) => ({ baselineId: b.id, ...recordToRow(rec) }))),
+    baselineActions: state.baselines.flatMap((b) => actionsToRows(b.records).map((a) => ({ baselineId: b.id, ...a }))),
+    savedModels: state.savedModels.map(savedModelToRow),
   });
   // Our own write just changed the file's mtime — record that as
   // "known" so it isn't mistaken for an external change next time.
@@ -304,6 +310,122 @@ function finalizeActions(record, riskId, actions, oldRiskId = riskId) {
   return { actions: finalized, lastActionNumber: last };
 }
 
+// --- Saved snapshots: register baselines + named Monte Carlo runs ---------
+function parseJson(text, fallback) {
+  try {
+    return text ? JSON.parse(text) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function rowsToBaselines(data) {
+  return (data.baselines ?? []).map((b) => {
+    const actions = (data.baselineActions ?? []).filter((a) => a.baselineId === b.id);
+    return {
+      id: b.id,
+      name: String(b.name ?? ""),
+      createdAt: b.createdAt || "",
+      records: (data.baselineRecords ?? []).filter((row) => row.baselineId === b.id).map((row) => rowToRecord(row, actions)),
+    };
+  });
+}
+
+function rowToSavedModel(row) {
+  return {
+    id: row.id,
+    name: String(row.name ?? ""),
+    createdAt: row.createdAt || "",
+    trials: Number(row.trials) || 0,
+    phases: String(row.phases || "").split(",").filter(Boolean),
+    results: parseJson(row.resultsJson, {}),
+    scope: parseJson(row.scopeJson, null),
+  };
+}
+
+// One xlsx cell holds at most ~32,767 characters: if a run's JSON would
+// overflow, its stored curves are thinned until it fits.
+function savedModelToRow(model) {
+  let results = model.results;
+  let json = JSON.stringify(results);
+  for (let points = 300; json.length > 32000 && points >= 50; points -= 50) {
+    results = Object.fromEntries(
+      Object.entries(model.results).map(([phase, r]) => {
+        const curve = r.curve ?? [];
+        const step = (curve.length - 1) / (points - 1);
+        return [phase, { ...r, curve: curve.length > points ? Array.from({ length: points }, (_, i) => curve[Math.round(i * step)]) : curve }];
+      })
+    );
+    json = JSON.stringify(results);
+  }
+  return {
+    id: model.id,
+    name: model.name,
+    createdAt: model.createdAt,
+    trials: model.trials,
+    phases: model.phases.join(","),
+    resultsJson: json,
+    scopeJson: JSON.stringify(model.scope ?? null),
+  };
+}
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+export async function saveBaseline(name) {
+  let created = null;
+  const ok = await mutate(() => {
+    created = { id: nextId(state.baselines, "BL"), name, createdAt: new Date().toISOString(), records: clone(state.riskRecords) };
+    state = { ...state, baselines: [...state.baselines, created] };
+  });
+  return ok ? created : false;
+}
+
+// Replaces the current records with the baseline's (the baseline itself
+// stays saved). Auto risk numbers keep their high-water mark, so an ID
+// used after the baseline was taken is still never reissued.
+export async function restoreBaseline(id) {
+  const baseline = state.baselines.find((b) => b.id === id);
+  if (!baseline) return false;
+  return mutate(() => {
+    const records = clone(baseline.records);
+    state = {
+      ...state,
+      riskRecords: records,
+      settings: { ...state.settings, lastRiskNumber: highestRiskNumber(records, state.settings?.lastRiskNumber) },
+    };
+  });
+}
+
+export async function deleteBaseline(id) {
+  return mutate(() => {
+    state = { ...state, baselines: state.baselines.filter((b) => b.id !== id) };
+  });
+}
+
+// run: { phases, results: {phase: {summary, curve, mean, stdev}}, trials, scope, ranAt }
+export async function saveModel(name, run) {
+  let created = null;
+  const ok = await mutate(() => {
+    created = {
+      id: nextId(state.savedModels, "MC"),
+      name,
+      createdAt: run.ranAt || new Date().toISOString(),
+      trials: run.trials,
+      phases: run.phases,
+      results: run.results,
+      scope: run.scope ?? null,
+    };
+    state = { ...state, savedModels: [...state.savedModels, created] };
+  });
+  return ok ? created : false;
+}
+
+export async function deleteModel(id) {
+  return mutate(() => {
+    state = { ...state, savedModels: state.savedModels.filter((m) => m.id !== id) };
+  });
+}
+
 async function load({ silent = false, keepSaveError = false } = {}) {
   const handle = getDirectoryHandle();
   if (!handle) return;
@@ -330,6 +452,8 @@ async function load({ silent = false, keepSaveError = false } = {}) {
       conflict: false,
       idRepairs: repairs,
       saveError: keepSaveError ? state.saveError : null,
+      baselines: rowsToBaselines(data),
+      savedModels: (data.savedModels ?? []).map(rowToSavedModel),
     };
   } catch (err) {
     state = { ...state, status: "error" };

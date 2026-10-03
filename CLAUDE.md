@@ -690,6 +690,41 @@ dataviz skill), mitigated with a secondary encoding: Post is always
 dashed (bars and curve), Pre always solid, plus a legend whenever both
 are shown.
 
+**Shared run chart** (2026-10-03, 6th PR): `js/charts/run-chart.js`
+(`createRunChart({chartEl, panelEl, storageKey, defaults})`) owns the
+chart *and* its options panel, so **Modelling and Contingency have the
+same chart and options**: phase toggles, histograms / S-curves / normal
+curve on-off, bin size, plotted percentiles (add/remove) and "show
+percentile values" (labels read "P50 · 45,000"; on by default). Options
+persist per page (`modelling-chart-options` / `contingency-chart-options`
+in localStorage); the normal curve defaults on in Modelling, off in
+Contingency. Histogram scale: the tallest bar (or bell peak) reaches
+**75% of the plot height** — level with 75% on the cumulative axis —
+`maxY = tallest / 0.75`.
+
+**Saved snapshots** (2026-10-03, 6th PR), stored in the workbook:
+- **Risk register baselines** — sheets `Baselines` (id `BL-0001`, name,
+  createdAt, recordCount), `BaselineRecords` / `BaselineActions` (same
+  columns as RiskRegister / Actions plus `baselineId`). Risk Register
+  "Save baseline" asks a name (`prompt`); the "Showing" select switches
+  the list to a baseline **read-only** (no row click / duplicate /
+  delete, New + templates disabled, notice explains), with "Restore this
+  baseline" (confirm; replaces the current records, keeps the risk-number
+  high-water mark, baseline stays saved) and "Delete baseline".
+  Store: `saveBaseline` / `restoreBaseline` / `deleteBaseline`.
+- **Saved modellings** — sheet `SavedModels` (id `MC-0001`, name,
+  createdAt, trials, phases, `resultsJson` = per phase {summary, curve
+  (500-point stored curve), mean, stdev}, `scopeJson` = the "Risks in
+  this run" counts). Modelling: "Save modelling" (prompt for a name)
+  appears on an unsaved run; "Saved modellings" select reloads one
+  (scope, chart, tables), with Delete. A fresh run draws from its full
+  sorted trials; saved/stored runs from the stored curve. If a run's
+  JSON would exceed ~32k chars (one xlsx cell) `savedModelToRow` thins
+  the curves until it fits. Store: `saveModel` / `deleteModel`.
+- **Contingency** "Modelling to compare": the latest run (Settings) or
+  any saved modelling; budget, confidence, gap, chart and tables all
+  follow the choice.
+
 **Contingency uses the same chart** (2026-10-03, 5th PR — the old
 single-series `s-curve.js` was deleted): Pre and Post histograms + S-curves
 overlaid, the budget as a red reference line, and marked percentiles

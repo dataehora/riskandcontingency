@@ -1,37 +1,47 @@
-import { getRegisterState, onRegisterChange, updateSettings } from "../storage/register-store.js";
-import {
-  pooledRecords,
-  runMonteCarlo,
-  summarize,
-  curvePoints,
-  histogram,
-  mean,
-  stdev,
-  percentile,
-} from "../storage/monte-carlo.js";
+import { getRegisterState, onRegisterChange, updateSettings, saveModel, deleteModel } from "../storage/register-store.js";
+import { pooledRecords, runMonteCarlo, summarize, curvePoints, mean, stdev, percentileKey } from "../storage/monte-carlo.js";
 import { POOLED_RECORD_TYPE } from "../storage/workbook.js";
-import { renderDistributionChart } from "../charts/distribution-chart.js";
+import { createRunChart } from "../charts/run-chart.js";
 import { renderPercentileTable, SUMMARY_LEVELS, FULL_LEVELS } from "../charts/percentile-tables.js";
 import { t, tn, tv, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
-const PHASE_META = {
-  pre: { color: "var(--color-risk-high)", dash: false },
-  post: { color: "var(--color-risk-low)", dash: true },
-};
 const phaseLabel = (phase) => t(`phase.${phase}`);
-const BIN_COUNT = 30;
+// 500 evenly spaced quantiles per phase (rounded to cents) are what gets
+// stored — enough to redraw the histograms at any bin size, small enough
+// for one xlsx cell (~32k chars) with both phases.
 const CURVE_POINTS = 500;
 
 let currentState = getRegisterState();
-// The last run on this page, kept so a language switch can redraw it.
-let lastRun = null;
+// The run on screen: a fresh one (savedId null) or a loaded saved model.
+// { phases, results: {phase: {summary, curve, storedCurve?, mean, stdev}},
+//   trials, ranAt, scope, name, savedId }
+let shown = null;
 
 const fmtNumber = fmtInt;
 
-// Which records a run includes, and why the others are left out. A
-// partition of the whole register: every record lands in exactly one
-// row (record type is checked first, then status).
-function modelScope(records) {
+const chart = createRunChart({
+  chartEl: document.querySelector("[data-mc-chart]"),
+  panelEl: document.querySelector("[data-chart-controls]"),
+  storageKey: "modelling-chart-options",
+  defaults: { bell: true },
+});
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+// Which records a run includes, and why the others are left out — as
+// counts, so a saved model keeps its scope. A partition of the whole
+// register: every record lands in exactly one row (record type is
+// checked first, then status).
+function countTypes(records) {
+  const threats = records.filter((r) => r.riskType === "Threat").length;
+  return { threats, opportunities: records.length - threats, total: records.length };
+}
+
+function scopeCounts(records) {
   const rows = { included: [], highImpact: [], benchmark: [], notOpen: [] };
   for (const r of records) {
     if (r.recordType === "High Impact") rows.highImpact.push(r);
@@ -39,12 +49,12 @@ function modelScope(records) {
     else if (r.status !== "Open") rows.notOpen.push(r);
     else rows.included.push(r);
   }
-  return rows;
-}
-
-function countTypes(records) {
-  const threats = records.filter((r) => r.riskType === "Threat").length;
-  return { threats, opportunities: records.length - threats, total: records.length };
+  return {
+    included: countTypes(rows.included),
+    highImpact: countTypes(rows.highImpact),
+    benchmark: countTypes(rows.benchmark),
+    notOpen: { ...countTypes(rows.notOpen), statuses: [...new Set(rows.notOpen.map((r) => r.status))] },
+  };
 }
 
 function updatePooledCount() {
@@ -52,9 +62,7 @@ function updatePooledCount() {
   const notice = document.querySelector("[data-mc-empty-notice]");
   const runBtn = document.querySelector("[data-run-simulation]");
   const count = pooledRecords(currentState.riskRecords).length;
-  if (el) {
-    el.textContent = tn("mod.pooledCount", count, { total: fmtInt(currentState.riskRecords.length) });
-  }
+  if (el) el.textContent = tn("mod.pooledCount", count, { total: fmtInt(currentState.riskRecords.length) });
   if (notice) notice.hidden = count > 0;
   if (runBtn) runBtn.disabled = count === 0;
 }
@@ -66,9 +74,7 @@ function localizeTrialOptions() {
 }
 
 function getSelectedPhases() {
-  return [...document.querySelectorAll("[data-mc-phase-checkbox]")]
-    .filter((b) => b.checked)
-    .map((b) => b.value);
+  return [...document.querySelectorAll("[data-mc-phase-checkbox]")].filter((b) => b.checked).map((b) => b.value);
 }
 
 // At least one phase must always stay selected.
@@ -87,15 +93,18 @@ function renderScope(scope) {
   const table = document.querySelector("[data-mc-scope-table]");
   const notes = document.querySelector("[data-mc-scope-notes]");
   if (!table || !notes) return;
-  const row = (label, records, cls = "") => {
-    const c = countTypes(records);
-    return `<tr class="${cls}"><td>${label}</td><td>${fmtInt(c.threats)}</td><td>${fmtInt(c.opportunities)}</td><td><strong>${fmtInt(c.total)}</strong></td></tr>`;
-  };
-  const statuses = [...new Set(scope.notOpen.map((r) => r.status))].map((s) => tv("status", s)).join(", ");
+  if (!scope) {
+    table.innerHTML = "";
+    notes.innerHTML = "";
+    return;
+  }
+  const row = (label, c, cls = "") =>
+    `<tr class="${cls}"><td>${label}</td><td>${fmtInt(c.threats)}</td><td>${fmtInt(c.opportunities)}</td><td><strong>${fmtInt(c.total)}</strong></td></tr>`;
+  const statuses = (scope.notOpen.statuses ?? []).map((s) => tv("status", s)).join(", ");
   const excluded = [
-    scope.highImpact.length ? row(t("mod.scope.excludedHighImpact"), scope.highImpact) : "",
-    scope.benchmark.length ? row(t("mod.scope.excludedBenchmark"), scope.benchmark) : "",
-    scope.notOpen.length ? row(t("mod.scope.excludedStatus", { statuses }), scope.notOpen) : "",
+    scope.highImpact.total ? row(t("mod.scope.excludedHighImpact"), scope.highImpact) : "",
+    scope.benchmark.total ? row(t("mod.scope.excludedBenchmark"), scope.benchmark) : "",
+    scope.notOpen.total ? row(t("mod.scope.excludedStatus", { statuses }), scope.notOpen) : "",
   ].join("");
   table.innerHTML = `
     <thead><tr><th></th><th>${t("mod.scope.threats")}</th><th>${t("mod.scope.opportunities")}</th><th>${t("mod.scope.total")}</th></tr></thead>
@@ -104,8 +113,7 @@ function renderScope(scope) {
       ${excluded}
     </tbody>
   `;
-
-  const hi = countTypes(scope.highImpact);
+  const hi = scope.highImpact;
   notes.innerHTML = hi.total
     ? `<div class="notice notice-warning" style="margin-top: var(--space-3);">
         <span aria-hidden="true">&#9888;&#65039;</span>
@@ -118,12 +126,12 @@ function renderScope(scope) {
 }
 
 // Summary (Min, P10..P90, Max) under the chart and the full 1%-step
-// distribution at the end of the page — one column per phase, computed
-// exactly from this run's sorted trials.
-function renderTables(runs, phases) {
-  const columns = phases.map((phase) => {
-    const { sorted } = runs[phase];
-    const value = (level) => (level === "min" ? sorted[0] : level === "max" ? sorted[sorted.length - 1] : percentile(sorted, level));
+// distribution at the end of the page — one column per phase, read from
+// each phase's summary (every P01..P99 is stored with the run).
+function renderTables(run) {
+  const columns = run.phases.map((phase) => {
+    const { summary } = run.results[phase];
+    const value = (level) => (level === "min" ? summary.min : level === "max" ? summary.max : summary.percentiles[percentileKey(level)]);
     return { label: phaseLabel(phase), cell: (level) => fmtNumber(value(level) ?? 0) };
   });
   renderPercentileTable(document.querySelector("[data-mc-table]"), SUMMARY_LEVELS, columns);
@@ -131,32 +139,66 @@ function renderTables(runs, phases) {
 }
 
 function renderResults() {
-  if (!lastRun) return;
-  const { runs, phases, trials, ranAt, scope, binWidth, domainMin, domainMax } = lastRun;
-  const series = phases.map((phase) => {
-    const { sorted } = runs[phase];
-    return {
-      label: phaseLabel(phase),
-      color: PHASE_META[phase].color,
-      dash: PHASE_META[phase].dash,
-      histogram: histogram(sorted, BIN_COUNT, domainMin, domainMax),
-      mean: runs[phase].mean,
-      stdev: runs[phase].stdev,
-      trials,
-      binWidth,
-      sorted,
-    };
-  });
+  const resultsEl = document.querySelector("[data-mc-results]");
+  if (!shown) {
+    resultsEl.hidden = true;
+    return;
+  }
+  resultsEl.hidden = false;
+  const meta = {
+    trials: fmtInt(shown.trials),
+    phases: shown.phases.map(phaseLabel).join(" / "),
+    date: new Date(shown.ranAt).toLocaleString(locale()),
+    name: shown.name ?? "",
+  };
+  document.querySelector("[data-mc-run-meta]").textContent = t(shown.savedId ? "mod.runMetaSaved" : "mod.runMeta", meta);
+  const saveBtn = document.querySelector("[data-mc-save]");
+  saveBtn.hidden = !!shown.savedId;
+  renderScope(shown.scope);
+  chart.render(shown);
+  renderTables(shown);
+}
 
-  document.querySelector("[data-mc-results]").hidden = false;
-  document.querySelector("[data-mc-run-meta]").textContent = t("mod.runMeta", {
-    trials: fmtInt(trials),
-    phases: phases.map(phaseLabel).join(" / "),
-    date: new Date(ranAt).toLocaleString(locale()),
-  });
-  renderScope(scope);
-  renderDistributionChart(document.querySelector("[data-mc-chart]"), series);
-  renderTables(runs, phases);
+function renderSavedModels() {
+  const select = document.querySelector("[data-mc-saved]");
+  const del = document.querySelector("[data-mc-delete]");
+  if (!select) return;
+  const models = currentState.savedModels ?? [];
+  select.innerHTML =
+    `<option value="">${models.length ? t("mod.saved.choose") : t("mod.saved.none")}</option>` +
+    models
+      .map((m) => `<option value="${m.id}">${escapeHtml(m.name)} — ${new Date(m.createdAt).toLocaleString(locale())}</option>`)
+      .join("");
+  select.disabled = !models.length;
+  select.value = shown?.savedId && models.some((m) => m.id === shown.savedId) ? shown.savedId : "";
+  if (del) del.hidden = !select.value;
+}
+
+function loadSavedModel(id) {
+  const model = (currentState.savedModels ?? []).find((m) => m.id === id);
+  if (!model) return;
+  shown = {
+    phases: model.phases,
+    results: model.results,
+    trials: model.trials,
+    ranAt: model.createdAt,
+    scope: model.scope,
+    name: model.name,
+    savedId: model.id,
+  };
+  renderResults();
+  renderSavedModels();
+}
+
+// What gets stored (last run in Settings, or a saved model): the stored
+// quantile curve, never the raw trials.
+function storableResults(run) {
+  return Object.fromEntries(
+    run.phases.map((phase) => {
+      const r = run.results[phase];
+      return [phase, { summary: r.summary, curve: r.storedCurve ?? r.curve, mean: r.mean, stdev: r.stdev }];
+    })
+  );
 }
 
 async function runSimulation() {
@@ -169,50 +211,49 @@ async function runSimulation() {
   // Let the button label repaint before the (synchronous, CPU-bound) run.
   await new Promise((r) => setTimeout(r, 20));
 
-  const runs = {};
+  const results = {};
   for (const phase of phases) {
     const sorted = runMonteCarlo({ records: currentState.riskRecords, phase, trials });
-    runs[phase] = { sorted, summary: summarize(sorted) };
-  }
-
-  // Cost axis starts at 0 (only extends below it if opportunities push
-  // some trial totals negative).
-  const domainMin = Math.min(0, ...phases.map((p) => runs[p].sorted[0] ?? 0));
-  const domainMax = Math.max(...phases.map((p) => runs[p].sorted[runs[p].sorted.length - 1] ?? 0));
-  const binWidth = (domainMax - domainMin || 1) / BIN_COUNT;
-
-  for (const phase of phases) {
-    const { sorted } = runs[phase];
     const m = mean(sorted);
-    // 500 evenly spaced quantiles (rounded to cents): enough for
-    // Contingency to redraw the histograms at any bin size, small enough
-    // for one xlsx cell (~32k chars) with both phases.
-    runs[phase].curve = curvePoints(sorted, CURVE_POINTS).map((p) => Math.round(p.value * 100) / 100);
-    runs[phase].mean = m;
-    runs[phase].stdev = stdev(sorted, m);
+    results[phase] = {
+      summary: summarize(sorted),
+      curve: sorted, // full trials for this page's chart
+      storedCurve: curvePoints(sorted, CURVE_POINTS).map((p) => Math.round(p.value * 100) / 100),
+      mean: m,
+      stdev: stdev(sorted, m),
+    };
   }
-
   const ranAt = new Date().toISOString();
-  lastRun = { runs, phases, trials, ranAt, scope: modelScope(currentState.riskRecords), binWidth, domainMin, domainMax };
+  shown = { phases, results, trials, ranAt, scope: scopeCounts(currentState.riskRecords), name: null, savedId: null };
   renderResults();
+  renderSavedModels();
 
   runBtn.disabled = false;
   runBtn.textContent = t("mod.runButton");
 
-  // Persist a subsampled curve per phase (<=200 points), not the raw
-  // trials array — xlsx cells cap out around 32,767 characters, and
-  // 10,000 raw numbers as JSON would blow past that. Contingency reads
-  // this to redraw an S-curve without re-running the simulation.
-  const results = {};
-  for (const phase of phases) {
-    const { summary, curve, mean: m, stdev: sd } = runs[phase];
-    results[phase] = { summary, curve, mean: m, stdev: sd };
-  }
   await updateSettings({
     lastModelledAt: ranAt,
     lastModelledTrials: trials,
-    lastModelledResultsJson: JSON.stringify({ phases, results }),
+    lastModelledResultsJson: JSON.stringify({ phases, results: storableResults(shown) }),
   });
+}
+
+async function saveShownModel() {
+  if (!shown || shown.savedId) return;
+  const suggested = t("mod.save.defaultName", { date: new Date(shown.ranAt).toLocaleString(locale()) });
+  const name = window.prompt(t("mod.save.prompt"), suggested);
+  if (name === null) return;
+  const saved = await saveModel(name.trim() || suggested, {
+    phases: shown.phases,
+    results: storableResults(shown),
+    trials: shown.trials,
+    scope: shown.scope,
+    ranAt: shown.ranAt,
+  });
+  if (!saved) return;
+  shown = { ...shown, name: saved.name, savedId: saved.id };
+  renderResults();
+  renderSavedModels();
 }
 
 function wire() {
@@ -226,15 +267,33 @@ function wire() {
       runBtn.textContent = t("mod.runButton");
     });
   });
+  document.querySelector("[data-mc-save]")?.addEventListener("click", saveShownModel);
+  document.querySelector("[data-mc-saved]")?.addEventListener("change", (event) => {
+    if (event.target.value) loadSavedModel(event.target.value);
+    else renderSavedModels();
+  });
+  document.querySelector("[data-mc-delete]")?.addEventListener("click", async () => {
+    const id = document.querySelector("[data-mc-saved]").value;
+    const model = (currentState.savedModels ?? []).find((m) => m.id === id);
+    if (!model || !window.confirm(t("mod.saved.confirmDelete", { name: model.name }))) return;
+    if (await deleteModel(id)) {
+      if (shown?.savedId === id) shown = { ...shown, savedId: null, name: null };
+      renderResults();
+      renderSavedModels();
+    }
+  });
 }
 
 onRegisterChange((state) => {
   currentState = state;
   updatePooledCount();
+  renderSavedModels();
 });
 onLangChange(() => {
   updatePooledCount();
   localizeTrialOptions();
+  renderSavedModels();
+  chart.relabel();
   renderResults();
 });
 wire();

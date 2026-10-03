@@ -109,6 +109,15 @@
           </div>
           <button class="btn btn-primary" type="button" data-run-simulation style="margin-top: var(--space-4);" data-i18n="mod.runButton">Run simulation</button>
           <p class="dist-feedback" data-mc-empty-notice hidden style="margin-top: var(--space-3);" data-i18n="mod.emptyNotice">No open Regular Pooled Record risks yet — set a risk record's Record Type to Regular Pooled Record and its Status to Open in the Risk Register to include it in modelling.</p>
+
+          <div class="saved-picker">
+            <label for="mc-saved" data-i18n="mod.saved.label">Saved modellings</label>
+            <div class="saved-picker-row">
+              <select id="mc-saved" data-mc-saved></select>
+              <button class="btn btn-ghost btn-sm" type="button" data-mc-delete hidden data-i18n="common.delete">Delete</button>
+            </div>
+            <p class="chart-controls-note" data-i18n="mod.saved.hint">Pick a saved modelling to show its distributions again. Run a simulation and use “Save modelling” to add one.</p>
+          </div>
         </div>
 
         <div data-mc-results hidden>
@@ -116,13 +125,17 @@
             <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap: var(--space-2);">
               <h3 style="margin-bottom:0;" data-i18n="mod.results">Results</h3>
               <span style="font-size:0.8rem; color: var(--color-text-subtle);" data-mc-run-meta></span>
+              <button class="btn btn-accent btn-sm" type="button" data-mc-save hidden data-i18n="mod.save.button">Save modelling</button>
             </div>
             <h4 style="margin: var(--space-4) 0 var(--space-2);" data-i18n="mod.scope.title">Risks in this run</h4>
             <div style="overflow-x:auto;">
               <table class="data-table scope-table" data-mc-scope-table></table>
             </div>
             <div data-mc-scope-notes></div>
-            <div data-mc-chart style="margin-top: var(--space-5);"></div>
+            <div class="chart-with-controls" style="margin-top: var(--space-5);">
+              <div data-mc-chart></div>
+              <aside class="chart-controls" data-chart-controls></aside>
+            </div>
             <h4 style="margin: var(--space-5) 0 var(--space-2);" data-i18n="pct.summaryTitle">Summary — Min, P10 to P90, Max</h4>
             <div style="overflow-x:auto;">
               <table class="data-table percentile-table" data-mc-table></table>

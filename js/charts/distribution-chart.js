@@ -13,11 +13,12 @@
 //   showHistogram / showSCurve / showBell — draw those layers (default true)
 //   markers: [20, 50, 80] — percentiles marked on each series (dotted
 //            line + dot on its S-curve + "P50" label), in the series colour
+//   showValues — add each marked percentile's cost to its label ("P50 · 45,000")
 //   referenceLine: { value, label } — e.g. the available budget (red)
 // Series `sorted` may be the full sorted trials or a stored, evenly spaced
 // quantile curve — both read the same by position.
 import { normalPdf, curvePoints, percentile } from "../storage/monte-carlo.js";
-import { niceTicks, niceMax } from "./axis.js";
+import { niceTicks } from "./axis.js";
 import { t, fmtInt as fmtNumber } from "../i18n/i18n.js";
 
 // Share of sorted values <= x, as a %.
@@ -39,7 +40,7 @@ export function renderDistributionChart(container, series, options = {}) {
     container.innerHTML = `<p class="chart-empty">${t("chart.dist.noSeries")}</p>`;
     return;
   }
-  const { showHistogram = true, showSCurve = true, showBell = true, markers = [], referenceLine = null } = options;
+  const { showHistogram = true, showSCurve = true, showBell = true, markers = [], showValues = false, referenceLine = null } = options;
 
   const width = 640;
   const height = 340;
@@ -59,13 +60,17 @@ export function renderDistributionChart(container, series, options = {}) {
   const maxBellHeight = showBell
     ? Math.max(0, ...series.map((s) => (s.stdev > 0 ? normalPdf(s.mean, s.mean, s.stdev) * s.trials * s.binWidth : 0)))
     : 0;
-  const maxY = niceMax(Math.max(maxCount, maxBellHeight, 1), 5);
+  // The tallest bar (or bell peak) reaches 75% of the plot height — the
+  // same height as 75% on the cumulative axis — so bars never crowd the
+  // top where the S-curve flattens out towards 100%.
+  const maxY = Math.max(maxCount, maxBellHeight, 1) / 0.75;
   const yOf = (c) => padTop + (1 - c / maxY) * plotH;
   const yPct = (pct) => padTop + (1 - pct / 100) * plotH;
 
   const leftTicks = !showHistogram
     ? ""
     : niceTicks(0, maxY, 5)
+    .filter((v) => v <= maxY + 1e-9)
     .map(
       (t) => `
       <line x1="${padLeft}" y1="${yOf(t)}" x2="${width - padRight}" y2="${yOf(t)}" stroke="var(--color-border)" stroke-width="1" />
@@ -158,7 +163,7 @@ export function renderDistributionChart(container, series, options = {}) {
           const labelY = showSCurve ? yTop - 6 - si * 12 : padTop + 10 + si * 12;
           return `<line x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${yTop.toFixed(1)}" stroke="${s.color}" stroke-width="1.25" stroke-dasharray="2,3" />
             ${showSCurve ? `<circle cx="${x}" cy="${yTop.toFixed(1)}" r="3.5" fill="${s.color}" />` : ""}
-            <text x="${x}" y="${labelY.toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="${s.color}">P${String(p).padStart(2, "0")}</text>`;
+            <text x="${x}" y="${labelY.toFixed(1)}" text-anchor="${Number(x) > width - padRight - 50 ? "end" : Number(x) < padLeft + 50 ? "start" : "middle"}" font-size="10" font-weight="700" fill="${s.color}" paint-order="stroke" stroke="var(--color-surface)" stroke-width="3">P${String(p).padStart(2, "0")}${showValues ? ` · ${fmtNumber(value)}` : ""}</text>`;
         })
         .join("")
     )

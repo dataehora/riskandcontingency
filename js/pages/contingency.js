@@ -1,174 +1,72 @@
 import { getRegisterState, onRegisterChange, updateSettings } from "../storage/register-store.js";
-import { FULL_PERCENTILE_STEPS, percentile, percentileKey, histogram } from "../storage/monte-carlo.js";
-import { renderDistributionChart } from "../charts/distribution-chart.js";
+import { FULL_PERCENTILE_STEPS, percentile, percentileKey } from "../storage/monte-carlo.js";
+import { createRunChart } from "../charts/run-chart.js";
 import { renderPercentileTable, SUMMARY_LEVELS, FULL_LEVELS } from "../charts/percentile-tables.js";
 import { t, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
 const phaseLabel = (phase) => t(`phase.${phase}`);
+const LATEST = "__latest__";
 
 let currentState = getRegisterState();
 let budgetInputWired = false;
-let comparePhaseWired = false;
+let selectsWired = false;
 let comparePhase = null; // user's chosen phase when a run has both
+let compareSource = LATEST; // LATEST = last run on Modelling, else a saved model id
 
 const fmtNumber = fmtInt;
 
-// --- Chart options (right-hand panel) -----------------------------------
-// Pre/Post histograms + S-curves overlaid, like Modelling, plus the budget
-// line and marked percentiles. Kept per browser (a viewing preference,
-// not register data).
-const PHASE_STYLE = {
-  pre: { color: "var(--color-risk-high)", dash: false },
-  post: { color: "var(--color-risk-low)", dash: true },
-};
-const OPTIONS_KEY = "contingency-chart-options";
-const DEFAULT_OPTIONS = { phases: { pre: true, post: true }, histogram: true, scurve: true, binWidth: null, markers: [20, 50, 80] };
-const AUTO_BINS = 30;
-const MAX_BINS = 200;
+const chart = createRunChart({
+  chartEl: document.querySelector("[data-contingency-chart]"),
+  panelEl: document.querySelector("[data-chart-controls]"),
+  storageKey: "contingency-chart-options",
+  defaults: { bell: false },
+});
 
-function loadOptions() {
+function parseJson(text) {
   try {
-    const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY) || "null");
-    if (saved && typeof saved === "object") return { ...DEFAULT_OPTIONS, ...saved, phases: { ...DEFAULT_OPTIONS.phases, ...saved.phases } };
-  } catch {
-    // ignore — fall back to defaults
-  }
-  return structuredClone(DEFAULT_OPTIONS);
-}
-
-let chartOptions = loadOptions();
-
-function saveOptions() {
-  try {
-    localStorage.setItem(OPTIONS_KEY, JSON.stringify(chartOptions));
-  } catch {
-    // storage blocked — options just won't persist
-  }
-}
-
-// Bins over [domainMin, domainMax] at the chosen width (or AUTO_BINS equal
-// bins). Each stored curve point is an equal share of the trials, so a
-// bin's height = points in it / points x trials.
-function binning(domainMin, domainMax) {
-  const span = domainMax - domainMin || 1;
-  const width = chartOptions.binWidth > 0 ? Math.max(chartOptions.binWidth, span / MAX_BINS) : span / AUTO_BINS;
-  const count = Math.max(1, Math.ceil(span / width - 1e-9));
-  return { width, count, max: domainMin + count * width };
-}
-
-function renderChart(lastRun, budget, trials) {
-  const container = document.querySelector("[data-contingency-chart]");
-  const available = (lastRun.phases ?? []).filter((p) => lastRun.results[p]?.curve?.length);
-  const phases = available.filter((p) => chartOptions.phases[p]);
-  const curves = phases.map((p) => lastRun.results[p].curve);
-  const domainMin = Math.min(0, budget, ...curves.map((c) => c[0]));
-  const rawMax = Math.max(budget, ...curves.map((c) => c[c.length - 1]));
-  const bins = binning(domainMin, rawMax);
-  const series = phases.map((phase) => {
-    const curve = lastRun.results[phase].curve;
-    const scale = (trials || curve.length) / curve.length;
-    return {
-      label: phaseLabel(phase),
-      color: PHASE_STYLE[phase].color,
-      dash: PHASE_STYLE[phase].dash,
-      histogram: histogram(curve, bins.count, domainMin, bins.max).map((b) => ({ ...b, count: b.count * scale })),
-      trials: trials || curve.length,
-      binWidth: bins.width,
-      sorted: curve,
-    };
-  });
-  renderDistributionChart(container, series, {
-    showHistogram: chartOptions.histogram,
-    showSCurve: chartOptions.scurve,
-    showBell: false,
-    markers: chartOptions.markers,
-    referenceLine: { value: budget, label: t("cont.budget.label") },
-  });
-  renderControls(available, bins.width);
-}
-
-function renderControls(available, binWidth) {
-  const panel = document.querySelector("[data-chart-controls]");
-  if (!panel) return;
-  panel.querySelectorAll("[data-chart-phase]").forEach((box) => {
-    const phase = box.dataset.chartPhase;
-    box.closest("label").hidden = !available.includes(phase);
-    box.checked = !!chartOptions.phases[phase];
-  });
-  panel.querySelector('[data-chart-layer="histogram"]').checked = chartOptions.histogram;
-  panel.querySelector('[data-chart-layer="scurve"]').checked = chartOptions.scurve;
-  const binInput = panel.querySelector("[data-chart-bin-width]");
-  if (document.activeElement !== binInput) binInput.value = chartOptions.binWidth ?? "";
-  panel.querySelector("[data-chart-bin-note]").textContent = t(chartOptions.binWidth ? "cont.chart.binCurrent" : "cont.chart.binAutoNote", {
-    width: fmtNumber(binWidth),
-  });
-  panel.querySelector("[data-chart-markers]").innerHTML = chartOptions.markers.length
-    ? chartOptions.markers
-        .map(
-          (p) =>
-            `<span class="marker-chip">${percentileKey(p)}<button type="button" data-chart-marker-remove="${p}" aria-label="${t("cont.chart.markerRemove", { p: percentileKey(p) })}">&times;</button></span>`
-        )
-        .join("")
-    : `<span class="chart-controls-note">${t("cont.chart.noMarkers")}</span>`;
-}
-
-let chartControlsWired = false;
-function wireChartControls() {
-  if (chartControlsWired) return;
-  const panel = document.querySelector("[data-chart-controls]");
-  if (!panel) return;
-  chartControlsWired = true;
-  const update = () => {
-    saveOptions();
-    renderResults();
-  };
-  panel.addEventListener("change", (event) => {
-    const phaseBox = event.target.closest("[data-chart-phase]");
-    if (phaseBox) {
-      chartOptions.phases[phaseBox.dataset.chartPhase] = phaseBox.checked;
-      return update();
-    }
-    const layerBox = event.target.closest("[data-chart-layer]");
-    if (layerBox) {
-      chartOptions[layerBox.dataset.chartLayer] = layerBox.checked;
-      return update();
-    }
-    const bin = event.target.closest("[data-chart-bin-width]");
-    if (bin) {
-      const v = Number(bin.value);
-      chartOptions.binWidth = bin.value === "" || !(v > 0) ? null : v;
-      return update();
-    }
-  });
-  panel.addEventListener("click", (event) => {
-    const remove = event.target.closest("[data-chart-marker-remove]");
-    if (!remove) return;
-    chartOptions.markers = chartOptions.markers.filter((p) => p !== Number(remove.dataset.chartMarkerRemove));
-    update();
-  });
-  panel.querySelector("[data-chart-marker-add]").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const input = panel.querySelector("[data-chart-marker-input]");
-    const p = Math.round(Number(input.value));
-    if (!(p >= 1 && p <= 99)) return;
-    if (!chartOptions.markers.includes(p)) chartOptions.markers = [...chartOptions.markers, p].sort((a, b) => a - b);
-    input.value = "";
-    update();
-  });
-}
-
-function parseLastRun(settings) {
-  if (!settings?.lastModelledResultsJson) return null;
-  try {
-    return JSON.parse(settings.lastModelledResultsJson);
+    return text ? JSON.parse(text) : null;
   } catch {
     return null;
   }
 }
 
+// The run the budget is compared against: the last one stored by
+// Modelling, or a saved (named) model chosen in "Modelling to compare".
+// Same shape either way: { phases, results, trials, at, name }.
+function selectedRun(settings) {
+  if (compareSource !== LATEST) {
+    const model = currentState.savedModels.find((m) => m.id === compareSource);
+    if (model) return { phases: model.phases, results: model.results, trials: model.trials, at: model.createdAt, name: model.name };
+    compareSource = LATEST;
+  }
+  const last = parseJson(settings.lastModelledResultsJson);
+  if (!last) return null;
+  return { ...last, trials: Number(settings.lastModelledTrials), at: settings.lastModelledAt, name: null };
+}
+
+function renderSourceSelector(settings) {
+  const select = document.querySelector("[data-contingency-source]");
+  if (!select) return;
+  const latestLabel = settings.lastModelledAt
+    ? t("cont.source.latest", { date: new Date(settings.lastModelledAt).toLocaleString(locale()) })
+    : t("cont.source.latestNone");
+  select.innerHTML =
+    `<option value="${LATEST}">${latestLabel}</option>` +
+    currentState.savedModels
+      .map((m) => `<option value="${m.id}">${escapeHtml(m.name)} — ${new Date(m.createdAt).toLocaleDateString(locale())}</option>`)
+      .join("");
+  select.value = compareSource;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
 // Every P01..P99 value for a stored run. Older runs stored fewer steps
 // (up to P50, later every 5%); missing ones are read off the stored
-// curve (200 evenly spaced sorted trial values), a close approximation.
+// curve (evenly spaced sorted trial values), a close approximation.
 function fullPercentiles(summary, curve) {
   const out = {};
   for (const p of FULL_PERCENTILE_STEPS) {
@@ -191,36 +89,37 @@ function confidenceLabel(summary, percentiles, budget) {
   return covered === null ? t("cont.conf.belowP05") : t("cont.conf.upTo", { p: percentileKey(covered) });
 }
 
-function resolveComparePhase(lastRun) {
-  const available = lastRun.phases ?? [];
+function resolveComparePhase(run) {
+  const available = run.phases ?? [];
   if (comparePhase && available.includes(comparePhase)) return comparePhase;
   // Default to post-mitigation (residual risk) when both are available.
   return available.includes("post") ? "post" : available[0];
 }
 
-function renderPhaseSelector(lastRun) {
+function renderPhaseSelector(run) {
   const wrap = document.querySelector("[data-contingency-phase-select-wrap]");
   const select = document.querySelector("[data-contingency-phase-select]");
   if (!wrap || !select) return;
-  const available = lastRun.phases ?? [];
+  const available = run.phases ?? [];
   if (available.length < 2) {
     wrap.hidden = true;
     return;
   }
   wrap.hidden = false;
   select.innerHTML = available.map((p) => `<option value="${p}">${phaseLabel(p)}</option>`).join("");
-  select.value = resolveComparePhase(lastRun);
+  select.value = resolveComparePhase(run);
 }
 
 function renderResults() {
   const settings = currentState.settings ?? {};
   const budget = Number(settings.availableBudget);
-  const lastRun = parseLastRun(settings);
+  renderSourceSelector(settings);
+  const run = selectedRun(settings);
   const resultsEl = document.querySelector("[data-contingency-results]");
   const noBudgetEl = document.querySelector("[data-contingency-no-budget]");
 
   const hasBudget = Number.isFinite(budget) && settings.availableBudget !== "" && settings.availableBudget != null;
-  if (!lastRun || !hasBudget) {
+  if (!run || !hasBudget) {
     if (resultsEl) resultsEl.hidden = true;
     if (noBudgetEl) noBudgetEl.hidden = false;
     return;
@@ -228,15 +127,16 @@ function renderResults() {
   if (resultsEl) resultsEl.hidden = false;
   if (noBudgetEl) noBudgetEl.hidden = true;
 
-  renderPhaseSelector(lastRun);
-  const phase = resolveComparePhase(lastRun);
-  const { summary, curve } = lastRun.results[phase];
+  renderPhaseSelector(run);
+  const phase = resolveComparePhase(run);
+  const { summary, curve } = run.results[phase];
   const p50 = summary.percentiles.P50 ?? summary.min;
 
-  document.querySelector("[data-contingency-run-meta]").textContent = t("cont.runMeta", {
-    trials: fmtInt(Number(settings.lastModelledTrials)),
+  document.querySelector("[data-contingency-run-meta]").textContent = t(run.name ? "cont.runMetaSaved" : "cont.runMeta", {
+    name: run.name ?? "",
+    trials: fmtInt(run.trials),
     phase: phaseLabel(phase),
-    date: settings.lastModelledAt ? new Date(settings.lastModelledAt).toLocaleString(locale()) : "—",
+    date: run.at ? new Date(run.at).toLocaleString(locale()) : "—",
   });
   document.querySelector("[data-contingency-budget]").textContent = fmtNumber(budget);
   const percentiles = fullPercentiles(summary, curve);
@@ -248,8 +148,7 @@ function renderResults() {
   gapEl.textContent = fmtNumber(gap);
   gapEl.style.color = gap < 0 ? "var(--color-danger)" : "var(--color-success)";
 
-  wireChartControls();
-  renderChart(lastRun, budget, Number(settings.lastModelledTrials));
+  chart.render(run, { referenceLine: { value: budget, label: t("cont.budget.label") } });
 
   // Same two tables as Modelling: summary (Min, P10..P90, Max) here,
   // the full 1%-step distribution at the end of the page.
@@ -280,13 +179,15 @@ function wireBudgetInput() {
   });
 }
 
-function wireComparePhaseSelect() {
-  if (comparePhaseWired) return;
-  const select = document.querySelector("[data-contingency-phase-select]");
-  if (!select) return;
-  comparePhaseWired = true;
-  select.addEventListener("change", () => {
-    comparePhase = select.value;
+function wireSelects() {
+  if (selectsWired) return;
+  selectsWired = true;
+  document.querySelector("[data-contingency-phase-select]")?.addEventListener("change", (event) => {
+    comparePhase = event.target.value;
+    renderResults();
+  });
+  document.querySelector("[data-contingency-source]")?.addEventListener("change", (event) => {
+    compareSource = event.target.value;
     renderResults();
   });
 }
@@ -303,10 +204,12 @@ function syncBudgetInput() {
 onRegisterChange((state) => {
   currentState = state;
   wireBudgetInput();
-  wireComparePhaseSelect();
+  wireSelects();
   syncBudgetInput();
   renderResults();
 });
 onLangChange(() => {
-  if (currentState.status === "ready") renderResults();
+  if (currentState.status !== "ready") return;
+  chart.relabel();
+  renderResults();
 });

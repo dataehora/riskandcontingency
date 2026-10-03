@@ -47,6 +47,7 @@ dark mode, mobile-responsive header.
 - Same day, 3rd PR: pre/post cards tinted red/green; Monte Carlo Pre + Post by default; "Risk Register Executive Summary" (the empty summary the user saw was stale cached JS from before the Cloudflare fix — files cached under the old 4h header stay up to 4h); Contingency table P05–P95 + Max; PMI/ISO terms in pt/es (VME, EAR, Cronograma, QSMS…); required fields as list + dropdown (default adds Record Type); threats only accept positive cost/schedule values, opportunities only negative.
 - Same day, 4th PR: Modelling and Contingency both show a summary table (Min, P10–P90, Max) and the full distribution (Min, P01–P99, Max) at the end of the page; Confidence Covered now to 1% resolution.
 - Same day, 5th PR: Contingency chart = Pre/Post histograms + S-curves overlaid with an options panel (phase toggles, histograms/S-curves on-off, bin size, plotted percentiles — default P20/P50/P80, add/remove); "Gap to P50" (negative = budget below P50) replaces "Headroom at P50"; Modelling now stores a 500-point curve.
+- Same day, 6th PR: histogram's tallest bar = 75% height; percentile values on the plotted P's (toggle); Modelling gets the same chart + options panel as Contingency; Risk Register baselines (save named / view read-only / restore / delete); saved modellings (save named / reload / delete); Contingency can compare against any saved modelling.
 - Open question for the user: post-mitigation EMV of an open risk without a post assessment is taken as its pre-mitigation EMV in the summary.
 
 ## Session 2026-09-27

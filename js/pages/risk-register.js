@@ -7,6 +7,9 @@ import {
   blankRiskRecord,
   createLocalAction,
   holdAutoRefresh,
+  saveBaseline,
+  restoreBaseline,
+  deleteBaseline,
   suggestRiskId,
   RiskIdError,
   validateDistribution,
@@ -70,6 +73,20 @@ const ALL = "__all__";
 const filters = { search: "", status: ALL, riskType: ALL, recordType: ALL, impactArea: ALL };
 
 const VIEW_MODES = ["emv", "cost", "schedule", "qhse"];
+
+// Baselines: named snapshots of the whole register (saved in the
+// workbook). Picking one shows its records read-only in the list — same
+// filters, views and totals — with the option to restore it.
+let viewBaselineId = null;
+
+function viewedBaseline() {
+  return viewBaselineId ? (currentState.baselines ?? []).find((b) => b.id === viewBaselineId) ?? null : null;
+}
+
+// The records the list shows: the current register, or the baseline picked.
+function listRecords() {
+  return viewedBaseline()?.records ?? currentState.riskRecords;
+}
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -190,7 +207,7 @@ function filtersActive() {
 
 function filteredRecords() {
   const q = filters.search.trim().toLowerCase();
-  return currentState.riskRecords.filter((r) => {
+  return listRecords().filter((r) => {
     if (filters.status !== ALL && r.status !== filters.status) return false;
     if (filters.riskType !== ALL && r.riskType !== filters.riskType) return false;
     if (filters.recordType !== ALL && r.recordType !== filters.recordType) return false;
@@ -219,7 +236,7 @@ function renderFilters() {
   fillFilterSelect("riskType", RISK_TYPES.map((s) => ({ value: s, label: tv("riskType", s) })), t("rr.filter.allTypes"));
   fillFilterSelect("recordType", RECORD_TYPES.map((s) => ({ value: s, label: tv("recordType", s) })), t("rr.filter.allRecordTypes"));
   const impactAreas = [
-    ...new Set([...currentState.impactAreas.map((i) => i.name), ...currentState.riskRecords.map((r) => r.impactArea).filter(Boolean)]),
+    ...new Set([...currentState.impactAreas.map((i) => i.name), ...listRecords().map((r) => r.impactArea).filter(Boolean)]),
   ];
   fillFilterSelect("impactArea", impactAreas.map((v) => ({ value: v, label: v })), t("rr.filter.allImpactAreas"));
   const search = document.querySelector('[data-list-filter="search"]');
@@ -230,7 +247,7 @@ function renderFilters() {
 
 // "Showing 3 of 12 risk records · 2 threats, 1 opportunity · 2 open"
 function summaryText(records) {
-  const total = currentState.riskRecords.length;
+  const total = listRecords().length;
   const threats = records.filter((r) => r.riskType === "Threat").length;
   const open = records.filter((r) => r.status === "Open").length;
   const count = filtersActive()
@@ -296,7 +313,8 @@ function renderTableHead() {
 function renderTableBody() {
   const { recordsBody, recordsEmpty, listWrap } = els();
   if (!recordsBody) return;
-  const total = currentState.riskRecords.length;
+  const total = listRecords().length;
+  const readOnly = !!viewedBaseline();
   if (recordsEmpty) recordsEmpty.hidden = total > 0;
   if (listWrap) listWrap.hidden = total === 0;
 
@@ -306,11 +324,15 @@ function renderTableBody() {
     ? records
         .map(
           (r) => `
-    <tr data-row-id="${escapeHtml(r.id)}">
+    <tr ${readOnly ? "" : `data-row-id="${escapeHtml(r.id)}"`}>
       ${columns.map((col) => `<td class="${col.highlight ? "col-highlight" : ""}">${col.render(r)}</td>`).join("")}
-      <td style="white-space:nowrap;">
+      <td style="white-space:nowrap;">${
+        readOnly
+          ? ""
+          : `
         <button type="button" class="btn btn-ghost btn-sm" data-duplicate-record="${escapeHtml(r.id)}">${t("rr.duplicate")}</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${escapeHtml(r.id)}">${t("common.delete")}</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${escapeHtml(r.id)}">${t("common.delete")}</button>`
+      }
       </td>
     </tr>
   `
@@ -373,7 +395,34 @@ function renderIdRepairs() {
   `;
 }
 
+function renderBaselineBar() {
+  const bar = document.querySelector("[data-baseline-bar]");
+  const select = document.querySelector("[data-baseline-select]");
+  const notice = document.querySelector("[data-baseline-notice]");
+  if (!bar || !select) return;
+  const baselines = currentState.baselines ?? [];
+  if (viewBaselineId && !viewedBaseline()) viewBaselineId = null;
+  bar.hidden = currentState.riskRecords.length === 0 && baselines.length === 0;
+  select.innerHTML =
+    `<option value="">${t("rr.baseline.current")}</option>` +
+    baselines
+      .map((b) => `<option value="${b.id}">${escapeHtml(t("rr.baseline.option", { name: b.name, date: new Date(b.createdAt).toLocaleString(locale()), count: fmtInt(b.records.length) }))}</option>`)
+      .join("");
+  select.value = viewBaselineId ?? "";
+  const baseline = viewedBaseline();
+  document.querySelector("[data-baseline-save]").hidden = !!baseline;
+  document.querySelector("[data-baseline-restore]").hidden = !baseline;
+  document.querySelector("[data-baseline-delete]").hidden = !baseline;
+  document.querySelector("[data-new-record]").disabled = !!baseline;
+  document.querySelectorAll("[data-load-template]").forEach((b) => (b.disabled = !!baseline));
+  notice.hidden = !baseline;
+  if (baseline) {
+    notice.textContent = t("rr.baseline.viewing", { name: baseline.name, date: new Date(baseline.createdAt).toLocaleString(locale()) });
+  }
+}
+
 function renderList() {
+  renderBaselineBar();
   renderIdRepairs();
   renderFilters();
   renderModeToggle();
@@ -879,6 +928,35 @@ function wire() {
       if (saved) showSaveToast(t("rr.templateAdded", { id: saved.id, title: saved.title }));
       else if (!currentState.conflict && !currentState.saveError) showSaveToast(t("rr.notReady"));
     });
+  });
+
+  document.querySelector("[data-baseline-select]")?.addEventListener("change", (event) => {
+    viewBaselineId = event.target.value || null;
+    renderList();
+  });
+  document.querySelector("[data-baseline-save]")?.addEventListener("click", async () => {
+    const suggested = t("rr.baseline.defaultName", { date: new Date().toLocaleDateString(locale()) });
+    const name = window.prompt(t("rr.baseline.prompt"), suggested);
+    if (name === null) return;
+    const saved = await saveBaseline(name.trim() || suggested);
+    if (saved) showSaveToast(t("rr.baseline.saved", { name: saved.name, count: fmtInt(saved.records.length) }));
+  });
+  document.querySelector("[data-baseline-restore]")?.addEventListener("click", async () => {
+    const baseline = viewedBaseline();
+    if (!baseline || !window.confirm(t("rr.baseline.confirmRestore", { name: baseline.name }))) return;
+    if (await restoreBaseline(baseline.id)) {
+      viewBaselineId = null;
+      renderList();
+      showSaveToast(t("rr.baseline.restored", { name: baseline.name }));
+    }
+  });
+  document.querySelector("[data-baseline-delete]")?.addEventListener("click", async () => {
+    const baseline = viewedBaseline();
+    if (!baseline || !window.confirm(t("rr.baseline.confirmDelete", { name: baseline.name }))) return;
+    if (await deleteBaseline(baseline.id)) {
+      viewBaselineId = null;
+      renderList();
+    }
   });
 
   document.querySelector("[data-records-body]")?.addEventListener("click", async (event) => {
