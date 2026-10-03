@@ -20,11 +20,11 @@ current build status and architecture.
 
 ```
 index.html                        Home / dashboard
-risk-register.html                Risk record creation & management
-modelling.html                    Monte Carlo simulation of Total Cost (Regular Pooled Records)
+risk-register.html                Risk record creation & management, filters, baselines
+modelling.html                    Monte Carlo simulation of Total Cost (open Regular Pooled Records), saved modellings
 reporting.html                    Risk Reporting: automated register summary + 5x5 Risk Assessment Matrix
-contingency.html                  Available budget vs. Monte Carlo results
-configuration.html                RBS / impact area / owner / QHSE level setup
+contingency.html                  Available budget vs. the latest or a saved Monte Carlo run
+configuration.html                RBS / impact areas / owners / QHSE levels, required form fields, matrix bins
 about.html                        Description + FAQ (incl. the single-editor / conflict-detection design)
 404.html                          Not-found page (Cloudflare Pages serves it for unknown URLs)
 images/og-image.png               1200x630 social-share preview image
@@ -34,10 +34,10 @@ _headers                          Cloudflare Pages response headers (caching, se
 css/                               Design system (tokens, base, components, shell)
 js/i18n/                          Translation engine (i18n.js) + en/pt/es dictionaries
 js/shell.js                       Shared nav + connection-status wiring
-js/theme.js                       Dark/light toggle
+js/theme.js                       Labelled Light/Dark theme switch
 js/setup-sequence.js              4-step setup stepper + per-page gating
 js/storage/                       File System Access folder connection, .xlsx read/write, register state, Monte Carlo engine
-js/charts/                        SVG charts: distribution (histogram + S-curve, Modelling + Contingency), RAM, percentile tables
+js/charts/                        SVG charts: distribution (histogram + S-curve), run-chart (chart + options panel, Modelling + Contingency), RAM, percentile tables
 js/pages/                         Per-page UI logic (configuration, risk-register, modelling, reporting, contingency)
 js/vendor/                        Vendored SheetJS (xlsx.full.min.js), no CDN dependency
 PROGRESS.md                       Session-by-session status log (what's built, what's next)
