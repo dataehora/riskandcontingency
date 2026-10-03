@@ -46,6 +46,12 @@ Real build underway (started 2026-09-20). Landed so far:
   red highlighting, read-only styling for Total Cost, visible save
   errors, "Formulário de Risco" terminology in Portuguese.
 
+- **2026-10-03 (3rd PR)**: pre/post assessment cards tinted soft red /
+  soft green, Monte Carlo runs Pre + Post by default, Risk Reporting card
+  renamed "Risk Register Executive Summary", Contingency table P05–P95 +
+  Max (one row per level), PMI/ISO terminology in pt/es, required-fields
+  config as list + dropdown, sign rule for cost/schedule impacts.
+
 Still not built: Risk Reporting's top-N ranking table (the summary and
 the RAM are on that page). Update this section as it ships.
 
@@ -198,6 +204,13 @@ a flag switch built into the header next to the theme toggle.
 - Not localised: URLs (one URL per page, client-side switch), JSON-LD,
   `og:*` tags (English).
 
+- **PMI / ISO 31000 terminology** (2026-10-03, user request — no English
+  left in pt/es tables and forms): pt VME (Valor Monetário Esperado), EAR
+  (Estrutura Analítica dos Riscos), Cronograma (schedule; due date =
+  Data-limite), QSMS (QHSE), Custo Indireto (Knock On), Referência
+  (Benchmark), Prevenir (Eliminate, = PMI "avoid"); es VME, RBS,
+  Cronograma, CSSMA, Costo indirecto, Referencia, Evitar. English keeps
+  EMV / RBS / QHSE / Knock On. The QHSE section heading is `dim.qhse`.
 - **Portuguese terminology (user's choice)**: Risk Register = "Registro
   de Riscos", Risk Record = "Formulário de Risco" — and by extension
   Record Type = "Tipo de Formulário", Regular Pooled Record = "Formulário
@@ -482,6 +495,26 @@ back. Native `required` attributes were removed from the form (they
 blocked the submit event, so the app's own message never showed). New
 records start with a **blank Status** (placeholder option) so it's a
 real choice; a blank Status that isn't required saves as Open.
+Since the 3rd PR the default also includes **Record Type**, and Risk Type
+/ Record Type can be required too: new records start with Risk Type,
+Record Type and Status blank (placeholders); left blank and not required
+they save as Threat / Regular Pooled Record / Open. The Configuration UI
+is a list of the required fields with Remove buttons (ID shows "always
+required") plus a dropdown of the remaining form fields to add — same
+pattern as the RBS/owner lists, but a fixed choice, not free text.
+
+**Sign rule** (2026-10-03): Direct Cost, Knock On and Schedule must match
+the Risk Type — threats >= 0, opportunities <= 0 (zero allowed both
+ways; a 0 knock-on is common). `boundsFor()` in `risk-register.js` passes
+one-sided bounds to `validateDistribution()` (which now accepts `{min}` or
+`{max}` alone plus a custom `message`); changing Risk Type re-validates
+every group and updates the "values >= 0 / <= 0" hint in each header.
+No rule while Risk Type is blank. Stored records aren't migrated — a
+record that breaks the rule shows the error when opened.
+
+Pre-mitigation card is tinted soft red, post-mitigation soft green
+(`.card[data-assessment-phase]` in `components.css`).
+
 Total Cost tiles are styled read-only (`.computed-tiles`: striped,
 dashed gold border, muted values, lock note).
 
@@ -616,9 +649,14 @@ cases (always-occurs, never-occurs) and statistical ones (50% likelihood
 → ~50% nonzero trials; triangular sample mean converges to
 (min+ml+max)/3) — see test transcript in this session if it needs
 re-deriving.
-Output: `summarize()` returns Min, P05–P50 in steps of 5, Max (exactly
-the table the user asked for — deliberately stops at P50/median, not
-P100), one row per selected phase when both are run.
+Output: Modelling's table shows Min, P05–P50 in steps of 5, Max (the
+user's original spec), one row per selected phase. `summarize()` stores
+every step **P05–P95** (`FULL_PERCENTILE_STEPS`, 2026-10-03) because
+Contingency now lists Min, P05…P95, Max — one row per level, P50
+highlighted, "Confidence Covered" up to P95. Runs saved before then only
+have up to P50; Contingency reads the higher ones off the stored
+200-point curve (`fullPercentiles()`). Both phases are checked by
+default (2026-10-03; was Post only).
 
 **Modelling's chart (2026-09-27 v2): histogram (iterations, left
 y-axis) + S-curve per phase (0–100% cumulative, right y-axis) on one

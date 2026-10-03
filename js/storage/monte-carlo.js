@@ -68,14 +68,19 @@ export function percentile(sortedValues, p) {
   return sortedValues[lo] + (sortedValues[hi] - sortedValues[lo]) * frac;
 }
 
-// Min, P05..P50 in steps of 5, and Max — exactly the table the user asked
-// for. (P50 = median; results above the median aren't requested since
-// contingency planning here reads up to the 50th percentile threshold.)
+// Modelling's table: Min, P05..P50 in steps of 5, and Max (the user's
+// original spec). Contingency shows the full range — P05..P95 then Max
+// (2026-10-03) — so summarize() stores every step up to P95.
 export const PERCENTILE_STEPS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+export const FULL_PERCENTILE_STEPS = Array.from({ length: 19 }, (_, i) => (i + 1) * 5);
+
+export function percentileKey(p) {
+  return `P${String(p).padStart(2, "0")}`;
+}
 
 export function summarize(sortedValues) {
   const percentiles = {};
-  for (const p of PERCENTILE_STEPS) {
+  for (const p of FULL_PERCENTILE_STEPS) {
     percentiles[`P${String(p).padStart(2, "0")}`] = percentile(sortedValues, p);
   }
   return {

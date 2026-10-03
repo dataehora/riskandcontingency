@@ -128,9 +128,14 @@
 
         <section class="card" style="margin-top: var(--space-5);" data-required-config>
           <h3 data-i18n="conf.required.title">Risk record form — required fields</h3>
-          <p data-i18n="conf.required.body">Choose which fields must be filled in before a risk record can be saved. Missing required fields are highlighted in red on the form. Changes save automatically.</p>
-          <div class="required-fields-grid" data-required-fields></div>
-          <button class="btn btn-ghost btn-sm" type="button" data-required-reset style="margin-top: var(--space-3);" data-i18n="conf.required.reset">Restore defaults (ID, Title, Status, Owner)</button>
+          <p data-i18n="conf.required.body">Fields that must be filled in before a risk record can be saved. Missing required fields are highlighted in red on the form. Changes save automatically.</p>
+          <ul class="named-list" data-required-list></ul>
+          <form class="named-list-form" data-required-add>
+            <label class="visually-hidden" for="required-field-select" data-i18n="conf.required.selectLabel">Field to make required</label>
+            <select id="required-field-select" data-required-select></select>
+            <button class="btn btn-secondary btn-sm" type="submit" data-i18n="common.add">Add</button>
+          </form>
+          <button class="btn btn-ghost btn-sm" type="button" data-required-reset style="margin-top: var(--space-3);" data-i18n="conf.required.reset">Restore defaults</button>
         </section>
 
         <section class="card" style="margin-top: var(--space-5);" data-ram-config>

@@ -75,7 +75,11 @@ function render(state) {
         .join("") || `<li class="named-list-empty">${t("conf.noneYet")}</li>`;
   }
 
-  renderRequiredFields(state);
+  try {
+    renderRequiredFields(state);
+  } catch (err) {
+    console.error(err);
+  }
 
   try {
     renderRam(state);
@@ -88,36 +92,59 @@ function render(state) {
 }
 
 // --- Required fields of the risk record form --------------------------
+// Same pattern as the named lists above: the current required fields
+// with Remove buttons, and an Add form — here a dropdown of the form's
+// existing fields (not free text). ID is always required.
+let requiredState = null;
+
+function groupLabel(group) {
+  return group === "details" ? t("rr.details") : t(`phase.${group}`);
+}
+
 function requiredFieldLabel(key) {
   if (!key.includes(".")) return t(`rr.field.${key}`);
-  const dim = key.split(".")[1];
-  return dim === "qhse" ? "QHSE" : t(`dim.${dim}`);
+  const [phase, dim] = key.split(".");
+  return `${t(`dim.${dim}`)} (${t(`phase.${phase}`)})`;
 }
 
 function renderRequiredFields(state) {
-  const host = document.querySelector("[data-required-fields]");
-  if (!host) return;
+  const list = document.querySelector("[data-required-list]");
+  const select = document.querySelector("[data-required-select]");
+  if (!list || !select) return;
+  requiredState = state;
   const required = parseRequiredFields(state.settings);
-  host.innerHTML = REQUIRED_FIELD_GROUPS.map(
-    ({ group, keys }) => `
-    <fieldset>
-      <legend>${group === "details" ? t("rr.details") : t(`phase.${group}`)}</legend>
-      ${keys
-        .map((key) => {
-          const locked = ALWAYS_REQUIRED.includes(key);
-          return `<label class="inline-check">
-            <input type="checkbox" data-required-key="${key}" ${required.has(key) ? "checked" : ""} ${locked ? "disabled" : ""}>
-            ${escapeHtml(requiredFieldLabel(key))}${locked ? ` <span class="field-feedback" style="margin:0;">(${t("conf.required.always")})</span>` : ""}
-          </label>`;
-        })
-        .join("")}
-    </fieldset>`
-  ).join("");
+  const ordered = REQUIRED_FIELD_GROUPS.flatMap((g) => g.keys).filter((k) => required.has(k));
+  list.innerHTML = ordered
+    .map(
+      (key) => `
+      <li class="named-list-item">
+        <span>${escapeHtml(requiredFieldLabel(key))}</span>
+        ${
+          ALWAYS_REQUIRED.includes(key)
+            ? `<span class="badge badge-neutral">${t("conf.required.always")}</span>`
+            : `<button type="button" class="btn btn-ghost btn-sm" data-required-remove="${key}">${t("common.remove")}</button>`
+        }
+      </li>`
+    )
+    .join("");
+  const available = REQUIRED_FIELD_GROUPS.map((g) => ({ ...g, keys: g.keys.filter((k) => !required.has(k)) })).filter((g) => g.keys.length);
+  select.innerHTML =
+    `<option value="">${t("conf.required.choose")}</option>` +
+    available
+      .map(
+        (g) => `<optgroup label="${escapeHtml(groupLabel(g.group))}">${g.keys
+          .map((k) => `<option value="${k}">${escapeHtml(requiredFieldLabel(k))}</option>`)
+          .join("")}</optgroup>`
+      )
+      .join("");
+  select.disabled = available.length === 0;
 }
 
-async function saveRequiredFields() {
-  const keys = [...document.querySelectorAll("[data-required-key]")].filter((b) => b.checked).map((b) => b.dataset.requiredKey);
-  await updateSettings({ requiredFieldsJson: serializeRequiredFields(new Set(keys)) });
+async function setRequiredFields(mutateSet) {
+  if (!requiredState) return;
+  const set = parseRequiredFields(requiredState.settings);
+  mutateSet(set);
+  await updateSettings({ requiredFieldsJson: serializeRequiredFields(set) });
 }
 
 // --- Risk Assessment Matrix bins -------------------------------------
@@ -256,8 +283,14 @@ function wire() {
     });
   });
 
-  document.body.addEventListener("change", (event) => {
-    if (event.target.closest("[data-required-key]")) saveRequiredFields();
+  document.querySelector("[data-required-add]")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const key = document.querySelector("[data-required-select]").value;
+    if (key) setRequiredFields((set) => set.add(key));
+  });
+  document.querySelector("[data-required-list]")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-required-remove]");
+    if (btn) setRequiredFields((set) => set.delete(btn.dataset.requiredRemove));
   });
   document.querySelector("[data-required-reset]")?.addEventListener("click", () =>
     updateSettings({ requiredFieldsJson: serializeRequiredFields(new Set(DEFAULT_REQUIRED_FIELDS)) })
