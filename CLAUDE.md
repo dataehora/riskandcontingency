@@ -46,6 +46,12 @@ Real build underway (started 2026-09-20). Landed so far:
   red highlighting, read-only styling for Total Cost, visible save
   errors, "Formulário de Risco" terminology in Portuguese.
 
+- **2026-10-03 (4th–6th PRs)**: P10–P90 summary + P01–P99 tables on
+  Modelling and Contingency; shared histogram + S-curve chart with an
+  options panel on both pages (75% bar height, percentile values);
+  Risk Register baselines and saved modellings (see "Saved snapshots").
+  Final session log + open questions: PROGRESS.md.
+
 - **2026-10-03 (3rd PR)**: pre/post assessment cards tinted soft red /
   soft green, Monte Carlo runs Pre + Post by default, Risk Reporting card
   renamed "Risk Register Executive Summary", Contingency table P05–P95 +
@@ -391,7 +397,8 @@ Closed - Rejected / Closed - Impacted / Closed - Mitigated / Closed -
 Expired; `status` column after `recordType`; blank or unknown values —
 i.e. every row saved before Status existed — load as **Open**, so old
 registers model exactly as before; new records and both templates
-default to Open; "under review" = Draft + Proposed, `REVIEW_STATUSES`),
+are Open; a **new** record starts with Status blank (see "Required
+fields"); "under review" = Draft + Proposed, `REVIEW_STATUSES`),
 Description, Cause, Effect, Risk Owner, Impact Area, RBS Category.
 
 **Pre- and post-mitigation assessment**, 6 groups in this order —
@@ -403,7 +410,7 @@ On indented inside that block (they're its components); Schedule and
 QHSE together in a separate grey box below, visually distinct because
 neither feeds EMV.
 - **Likelihood**: a %, 1–100 (changed from a 0–1 probability
-  2026-09-20) — `DIMENSION_BOUNDS` in `risk-register.js`, enforced by
+  2026-09-20) — `boundsFor()` in `risk-register.js`, enforced by
   `validateDistribution`'s optional `bounds` param in `workbook.js`.
   Divided by 100 in `calculateAssessment` wherever it's used as a
   probability weight.
@@ -412,15 +419,16 @@ neither feeds EMV.
   - **Single point** — Most Likely (ML) only.
   - **Uniform** — Min and Max only, with Max > Min.
   - **Triangular** — Min, ML, Max, strictly increasing (min < ml < max).
-  Pre-mitigation Likelihood/Direct Cost/Schedule are required; Knock On
-  and every post-mitigation dimension are optional.
+  Which groups are mandatory is configured (see "Required fields"); by
+  default none are. Cost/schedule values follow the sign rule.
 - **Total Cost**: *not* a user input — computed live from Direct Cost +
   Knock On (`totalCostRange()` in `workbook.js`), shown as read-only
   Min/Expected/Max tiles plus the EMV.
 - **QHSE**: qualitative, a single select from the configurable
   `qhseLevels` named list (Configuration page; same CRUD pattern as
-  RBS/Impact Areas/Owners), seeded from `QHSE_LEVEL_NAMES` — Negligible,
-  Minor, Medium, Major, Catastrophic. Stored as a plain string
+  RBS/Impact Areas/Owners), seeded by the starter template (`tpl.qhse.*`
+  keys, in the current language) — Negligible, Minor, Medium, Major,
+  Catastrophic. Stored as a plain string
   (`pre_qhse`/`post_qhse` columns), no calculation feeds off it (yet).
 
 **Risk Assessment Matrix** (2026-09-27; logic `js/storage/ram.js`, pure;
@@ -483,8 +491,8 @@ would-be conflict into a silent overwrite of someone else's edit.
 **Required fields** (2026-10-03): `settings.requiredFieldsJson` (Settings
 sheet column) lists the mandatory form fields, edited on Configuration
 ("Risk record form — required fields"); `parseRequiredFields()` /
-`REQUIRED_FIELD_GROUPS` in `workbook.js`. Default **ID, Title, Status,
-Owner** (ID always, can't be unticked). Keys are Details field names,
+`REQUIRED_FIELD_GROUPS` in `workbook.js`. Default **ID, Title, Record Type,
+Status, Owner** (ID always, can't be removed). Keys are Details field names,
 `<phase>.<dimension>` (a distribution counts as filled when any cell is)
 or `<phase>.qhse`. The form marks required labels with a red asterisk
 and paints every still-empty required field red **live** (`.is-missing`,
@@ -632,9 +640,8 @@ table (threats / opportunities / total) — included, then each excluded
 group (High Impact, Benchmark, not Open with the statuses listed; a
 partition of the whole register, record type checked before status) —
 plus an explicit warning whenever High Impact risks were left out. Phase is chosen via
-two checkboxes, not a single-select — **Post-mitigation is preselected**
-by default (2026-09-20; the user picked this over Pre after being asked
-to offer both rather than guess), at least one must stay checked
+two checkboxes, not a single-select — **both are checked by default**
+(2026-10-03; was Post only), at least one must stay checked
 (enforced by re-checking the box if an uncheck would leave zero
 selected), and **both can be selected at once**, running two independent
 simulations that render as two overlaid series. Trial count: 1,000/
@@ -819,7 +826,10 @@ Reporting itself (list + top-N ranking of EMV/Max Total Cost/Schedule
 Exposure/Max Schedule) — not started; 13) Risk Assessment Matrix
 (Configuration bins + Reporting plot with filters), save confirmation +
 top Save button, S-curve 0→100% edge fix, templates both Pooled (done,
-2026-09-27).
+2026-09-27); 14) EN/PT/ES i18n, logo, Status, filters, summaries,
+required fields, PMI/ISO terms, sign rule, percentile tables, shared
+run chart, baselines, saved modellings (done, 2026-10-03, PRs #17–#22).
+Item 12's top-N ranking is still open.
 
 ## Local dev server
 
