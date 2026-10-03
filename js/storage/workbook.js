@@ -1,6 +1,8 @@
 // Reads/writes the project's risk register as a real .xlsx workbook in
 // the connected folder, using the vendored SheetJS build (window.XLSX,
 // loaded via a plain <script> tag — see js/vendor/xlsx.full.min.js).
+import { t } from "../i18n/i18n.js";
+
 export const WORKBOOK_FILENAME = "risk-register.xlsx";
 
 const SHEETS = {
@@ -23,6 +25,7 @@ const RISK_RECORD_COLUMNS = [
   "title",
   "riskType",
   "recordType",
+  "status",
   "description",
   "cause",
   "effect",
@@ -165,32 +168,51 @@ export async function saveWorkbook(dirHandle, data) {
 }
 
 // --- Config template -------------------------------------------------
-export const QHSE_LEVEL_NAMES = ["Negligible", "Minor", "Medium", "Major", "Catastrophic"];
+// Template names are created in the language selected at the time
+// (they're ordinary user data afterwards — switching the UI language
+// doesn't rename them). The risk record templates reference the same
+// names, so loading both in one language keeps their owners/categories
+// matching the configured lists.
+const QHSE_LEVEL_KEYS = ["negligible", "minor", "medium", "major", "catastrophic"];
 
 export function configTemplate() {
+  const named = (prefix, keys, idPrefix) =>
+    keys.map((k, i) => ({ id: `${idPrefix}-${i + 1}`, name: t(`tpl.${prefix}.${k}`) }));
   return {
-    rbs: [
-      { id: "rbs-1", name: "Design" },
-      { id: "rbs-2", name: "Procurement" },
-      { id: "rbs-3", name: "Construction" },
-      { id: "rbs-4", name: "Commissioning" },
-    ],
-    impactAreas: [
-      { id: "ia-1", name: "CAPEX" },
-      { id: "ia-2", name: "OPEX" },
-      { id: "ia-3", name: "Revenue" },
-    ],
-    owners: [
-      { id: "own-1", name: "Project Manager" },
-      { id: "own-2", name: "Risk Manager" },
-    ],
-    qhseLevels: QHSE_LEVEL_NAMES.map((name, i) => ({ id: `qhse-${i + 1}`, name })),
+    rbs: named("rbs", ["design", "procurement", "construction", "commissioning"], "rbs"),
+    impactAreas: named("impactArea", ["capex", "opex", "revenue"], "ia"),
+    owners: named("owner", ["projectManager", "riskManager"], "own"),
+    qhseLevels: named("qhse", QHSE_LEVEL_KEYS, "qhse"),
   };
 }
 
-// Fixed enum, unlike RBS/Impact Areas/Owners/QHSE Levels which are
-// user-configurable named lists.
+// Fixed enums, unlike RBS/Impact Areas/Owners/QHSE Levels which are
+// user-configurable named lists. Stored in English in the workbook
+// whatever the UI language; displayed via tv("recordType"|"status", v).
 export const RECORD_TYPES = ["Regular Pooled Record", "High Impact", "Benchmark"];
+export const POOLED_RECORD_TYPE = "Regular Pooled Record";
+export const RISK_TYPES = ["Threat", "Opportunity"];
+
+// Risk record lifecycle. Only "Open" risks are live exposure: Monte
+// Carlo models Open + Regular Pooled Record only; Draft and Proposed
+// count as "under review" (not yet accepted into the register); the
+// Closed variants record how the risk ended. Rows saved before Status
+// existed load as "Open", so existing registers model exactly as before.
+export const RISK_STATUSES = [
+  "Open",
+  "Draft",
+  "Proposed",
+  "Closed - Rejected",
+  "Closed - Impacted",
+  "Closed - Mitigated",
+  "Closed - Expired",
+];
+export const DEFAULT_STATUS = "Open";
+export const REVIEW_STATUSES = ["Draft", "Proposed"];
+
+export function isClosedStatus(status) {
+  return String(status ?? "").startsWith("Closed");
+}
 
 // --- Risk record templates -------------------------------------------
 function distribution(min, ml, max, type) {
@@ -201,16 +223,16 @@ export function riskRecordTemplates() {
   const now = new Date().toISOString();
   return [
     {
-      title: "Delay in long-lead equipment delivery",
+      title: t("tpl.threat.title"),
       riskType: "Threat",
       recordType: "Regular Pooled Record",
-      description:
-        "Key equipment sourced from a single supplier may arrive later than the baseline schedule.",
-      cause: "Single-source supplier with limited manufacturing capacity.",
-      effect: "Downstream installation and commissioning activities delayed.",
-      owner: "Project Manager",
-      impactArea: "CAPEX",
-      rbsCategory: "Procurement",
+      status: "Open",
+      description: t("tpl.threat.description"),
+      cause: t("tpl.threat.cause"),
+      effect: t("tpl.threat.effect"),
+      owner: t("tpl.owner.projectManager"),
+      impactArea: t("tpl.impactArea.capex"),
+      rbsCategory: t("tpl.rbs.procurement"),
       createdAt: now,
       updatedAt: now,
       pre: {
@@ -218,19 +240,19 @@ export function riskRecordTemplates() {
         costImpact: distribution(20000, 45000, 80000, "triangular"),
         knockOn: distribution(5000, 15000, 30000, "triangular"),
         scheduleImpact: distribution(10, 20, 40, "triangular"),
-        qhse: "Minor",
+        qhse: t("tpl.qhse.minor"),
       },
       post: {
         likelihood: distribution(null, 15, null, "single-point"),
         costImpact: distribution(10000, 20000, 35000, "triangular"),
         knockOn: distribution(2000, 5000, 10000, "triangular"),
         scheduleImpact: distribution(5, 10, 15, "triangular"),
-        qhse: "Negligible",
+        qhse: t("tpl.qhse.negligible"),
       },
       actions: [
         {
-          title: "Qualify a second supplier",
-          owner: "Procurement Lead",
+          title: t("tpl.threat.action"),
+          owner: t("tpl.owner.procurementLead"),
           strategy: "Mitigate",
           dueDate: "",
           cost: 8000,
@@ -238,16 +260,16 @@ export function riskRecordTemplates() {
       ],
     },
     {
-      title: "Faster-than-planned regulatory approval",
+      title: t("tpl.opportunity.title"),
       riskType: "Opportunity",
       recordType: "Regular Pooled Record",
-      description:
-        "The permitting authority may clear the application ahead of the standard review cycle.",
-      cause: "Application submitted early with full supporting documentation.",
-      effect: "Site works could start ahead of schedule, reducing financing costs.",
-      owner: "Risk Manager",
-      impactArea: "OPEX",
-      rbsCategory: "Design",
+      status: "Open",
+      description: t("tpl.opportunity.description"),
+      cause: t("tpl.opportunity.cause"),
+      effect: t("tpl.opportunity.effect"),
+      owner: t("tpl.owner.riskManager"),
+      impactArea: t("tpl.impactArea.opex"),
+      rbsCategory: t("tpl.rbs.design"),
       createdAt: now,
       updatedAt: now,
       pre: {
@@ -255,19 +277,19 @@ export function riskRecordTemplates() {
         costImpact: distribution(-15000, -8000, -2000, "triangular"),
         knockOn: distribution(null, 0, null, "single-point"),
         scheduleImpact: distribution(-15, -8, -2, "triangular"),
-        qhse: "Negligible",
+        qhse: t("tpl.qhse.negligible"),
       },
       post: {
         likelihood: distribution(null, 20, null, "single-point"),
         costImpact: distribution(-15000, -8000, -2000, "triangular"),
         knockOn: distribution(null, 0, null, "single-point"),
         scheduleImpact: distribution(-15, -8, -2, "triangular"),
-        qhse: "Negligible",
+        qhse: t("tpl.qhse.negligible"),
       },
       actions: [
         {
-          title: "Pre-brief the permitting authority",
-          owner: "Risk Manager",
+          title: t("tpl.opportunity.action"),
+          owner: t("tpl.owner.riskManager"),
           strategy: "Enhance",
           dueDate: "",
           cost: 0,
@@ -297,7 +319,7 @@ export function validateDistribution({ min, ml, max }, bounds) {
     result =
       max > min
         ? { valid: true, type: "uniform" }
-        : { valid: false, type: null, message: "Max must be greater than Min for a uniform range." };
+        : { valid: false, type: null, message: t("dist.error.uniform") };
   } else if (hasMin && hasMl && hasMax) {
     result =
       min < ml && ml < max
@@ -305,16 +327,15 @@ export function validateDistribution({ min, ml, max }, bounds) {
         : {
             valid: false,
             type: null,
-            message: "Min, Most Likely and Max must be strictly increasing for a triangular range.",
+            message: t("dist.error.triangular"),
           };
   } else if (!hasMin && !hasMl && !hasMax) {
-    result = { valid: false, type: null, message: "Enter at least a Most Likely value.", empty: true };
+    result = { valid: false, type: null, message: t("dist.error.empty"), empty: true };
   } else {
     result = {
       valid: false,
       type: null,
-      message:
-        "Enter Most Likely only (single point), Min & Max only (uniform), or Min, Most Likely & Max (triangular).",
+      message: t("dist.error.shape"),
     };
   }
 
@@ -324,7 +345,7 @@ export function validateDistribution({ min, ml, max }, bounds) {
       return {
         valid: false,
         type: null,
-        message: `Enter values between ${bounds.min} and ${bounds.max}.`,
+        message: t("dist.error.bounds", { min: bounds.min, max: bounds.max }),
       };
     }
   }
@@ -406,14 +427,12 @@ export const RISK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/;
 
 export function riskIdError(id, riskRecords, originalId = null) {
   const value = String(id ?? "").trim();
-  if (!value) return "Risk ID is required.";
-  if (!RISK_ID_PATTERN.test(value)) {
-    return "Risk ID must start with a letter or digit and use only letters, digits, “-”, “_” or “.” (max 32 characters).";
-  }
+  if (!value) return t("riskId.error.required");
+  if (!RISK_ID_PATTERN.test(value)) return t("riskId.error.pattern");
   const clash = riskRecords.find(
     (r) => r.id && r.id.toLowerCase() === value.toLowerCase() && r.id !== originalId
   );
-  if (clash) return `Risk ID “${value}” is already used by “${clash.title}”. Each risk record needs a unique ID.`;
+  if (clash) return t("riskId.error.duplicate", { id: value, title: clash.title });
   return null;
 }
 

@@ -10,11 +10,7 @@
 // distinct line style (solid vs. dashed) and a legend.
 import { normalPdf, curvePoints } from "../storage/monte-carlo.js";
 import { niceTicks, niceMax } from "./axis.js";
-
-function fmtNumber(n) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+import { t, fmtInt as fmtNumber } from "../i18n/i18n.js";
 
 // Share of sorted values <= x, as a %.
 function cumulativeAt(sorted, x) {
@@ -149,16 +145,16 @@ export function renderDistributionChart(container, series) {
   container.style.position = "relative";
   container.innerHTML = `
     ${legend}
-    <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;" role="img" aria-label="Histogram of simulated Total Cost with cumulative S-curve" data-dc-svg>
+    <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;" role="img" aria-label="${t("chart.dist.aria")}" data-dc-svg>
       ${leftTicks}
       <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
       <line x1="${width - padRight}" y1="${padTop}" x2="${width - padRight}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
       <line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
       ${rightTicks}
       ${xTicks}
-      <text x="14" y="${padTop + plotH / 2}" transform="rotate(-90 14 ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">Iterations</text>
-      <text x="${width - 16}" y="${padTop + plotH / 2}" transform="rotate(90 ${width - 16} ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">Cumulative probability</text>
-      <text x="${padLeft + plotW / 2}" y="${height - 6}" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">Total Cost</text>
+      <text x="14" y="${padTop + plotH / 2}" transform="rotate(-90 14 ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.iterations")}</text>
+      <text x="${width - 16}" y="${padTop + plotH / 2}" transform="rotate(90 ${width - 16} ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.cumulative")}</text>
+      <text x="${padLeft + plotW / 2}" y="${height - 6}" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.totalCost")}</text>
       ${barsSvg}
       ${bellsSvg}
       ${sCurvesSvg}
@@ -166,7 +162,7 @@ export function renderDistributionChart(container, series) {
       <rect data-dc-hover x="${padLeft}" y="${padTop}" width="${plotW}" height="${plotH}" fill="transparent" />
     </svg>
     <div data-dc-tooltip class="notice" style="display:none; position:absolute; pointer-events:none; font-size:0.78rem; padding: 6px 10px; white-space:nowrap;"></div>
-    <p style="font-size:0.78rem; color: var(--color-text-subtle); margin-top: var(--space-2);">Bars: number of iterations per Total Cost bin (left axis). Bold line: S-curve — cumulative probability of Total Cost at or below that value (right axis). Thin line: fitted normal curve, for reference only.</p>
+    <p style="font-size:0.78rem; color: var(--color-text-subtle); margin-top: var(--space-2);">${t("chart.dist.caption")}</p>
   `;
 
   wireHover(container, series, { xOf, domainMin, span, padLeft, plotW, width });

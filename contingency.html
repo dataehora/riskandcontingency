@@ -5,10 +5,13 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DF5MS2G7H"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-2DF5MS2G7H');</script>
   <meta charset="utf-8">
-  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
+  <script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){d.dataset.theme=t;}var l=localStorage.getItem('lang-preference')||(navigator.language||'').slice(0,2).toLowerCase();if(l==='pt'||l==='es'){d.lang=l;d.setAttribute('data-i18n-pending','');}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Contingency Budget vs. Modelled Cost | Risk and Contingency</title>
-  <meta name="description" content="Compare your available contingency budget against the Monte Carlo modelled cost distribution and see which confidence level (P05 to P50) the budget covers.">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/images/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <title data-i18n="meta.contingency.title">Contingency Budget vs. Modelled Cost | Risk and Contingency</title>
+  <meta name="description" data-i18n-attr="content:meta.contingency.description" content="Compare your available contingency budget against the Monte Carlo modelled cost distribution and see which confidence level (P05 to P50) the budget covers.">
   <link rel="canonical" href="https://riskandcontingency.com/contingency.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Risk and Contingency">
@@ -24,23 +27,24 @@
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/shell.css">
+  <script type="module" src="/js/i18n/i18n.js"></script>
 </head>
 <body data-page="contingency">
   <header class="app-header">
     <div class="app-header-inner">
       <a class="app-brand" href="/index.html">
-        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
-        Risk &amp; Contingency
+        <img class="app-brand-logo" src="/images/logo-light.png" alt="R&amp;C" width="68" height="28">
+        <span class="app-brand-name">Risk &amp; Contingency</span>
       </a>
-      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
-      <nav class="app-nav" aria-label="Primary">
-        <a href="/index.html" data-nav="home">Home</a>
-        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
-        <a href="/modelling.html" data-nav="modelling">Modelling</a>
-        <a href="/reporting.html" data-nav="reporting">Risk Reporting</a>
-        <a href="/contingency.html" data-nav="contingency">Contingency</a>
-        <a href="/configuration.html" data-nav="configuration">Configuration</a>
-        <a href="/about.html" data-nav="about">About</a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation" data-i18n-attr="aria-label:header.toggleNav">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary" data-i18n-attr="aria-label:header.primaryNav">
+        <a href="/index.html" data-nav="home" data-i18n="nav.home">Home</a>
+        <a href="/risk-register.html" data-nav="risk-register" data-i18n="nav.riskRegister">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling" data-i18n="nav.modelling">Modelling</a>
+        <a href="/reporting.html" data-nav="reporting" data-i18n="nav.reporting">Risk Reporting</a>
+        <a href="/contingency.html" data-nav="contingency" data-i18n="nav.contingency">Contingency</a>
+        <a href="/configuration.html" data-nav="configuration" data-i18n="nav.configuration">Configuration</a>
+        <a href="/about.html" data-nav="about" data-i18n="nav.about">About</a>
       </nav>
       <div class="app-header-actions">
         <span class="status-pill" data-connection-pill data-state="checking">
@@ -48,13 +52,13 @@
           <span data-connection-label>Checking&hellip;</span>
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
-        <label class="theme-toggle" title="Toggle dark mode">
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden data-i18n="header.disconnect">Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode" data-i18n-attr="title:header.toggleTheme">
           <input type="checkbox" data-theme-toggle class="visually-hidden">
           <span class="theme-toggle-track" aria-hidden="true">
             <span class="theme-toggle-thumb"></span>
           </span>
-          <span class="visually-hidden">Toggle dark mode</span>
+          <span class="visually-hidden" data-i18n="header.toggleTheme">Toggle dark mode</span>
         </label>
       </div>
     </div>
@@ -62,36 +66,36 @@
 
   <main class="app-main">
     <div class="page-header">
-      <span class="eyebrow">Contingency</span>
-      <h1>Available budget vs. modelled cost</h1>
-      <p>Enter the budget available for risk, and compare it against the Monte Carlo cost distribution from Modelling.</p>
+      <span class="eyebrow" data-i18n="nav.contingency">Contingency</span>
+      <h1 data-i18n="cont.title">Available budget vs. modelled cost</h1>
+      <p data-i18n="cont.lead">Enter the budget available for risk, and compare it against the Monte Carlo cost distribution from Modelling.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
       <span aria-hidden="true">&#9888;&#65039;</span>
-      <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
+      <p style="margin:0;" data-i18n="common.unsupportedShort">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
-<div class="empty-state" data-requires-no-connection>
-      <h3>Connect a folder to get started</h3>
-      <p>Contingency compares against results stored in the Excel workbook in your connected folder.</p>
-      <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
+    <div class="empty-state" data-requires-no-connection>
+      <h3 data-i18n="common.connectFirst">Connect a folder to get started</h3>
+      <p data-i18n="cont.connectHint">Contingency compares against results stored in the Excel workbook in your connected folder.</p>
+      <a class="btn btn-primary" href="/index.html" data-i18n="common.goHomeToConnect">Go to Home to connect a folder</a>
     </div>
 
     <div data-requires-connection hidden>
       <div class="notice notice-warning" data-step-locked-notice="4" hidden style="margin-bottom: var(--space-5);">
         <span aria-hidden="true">&#9888;&#65039;</span>
-        <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before comparing budget to modelled cost. <a data-missing-step-link href="#">Go there &rarr;</a></p>
+        <p style="margin:0;" data-locked-purpose="setup.purpose.contingency"></p>
       </div>
 
       <div data-requires-step="4" hidden>
         <div class="card" style="margin-bottom: var(--space-5);">
-          <h3>Available budget</h3>
-          <p>Saved automatically to your risk register folder.</p>
+          <h3 data-i18n="cont.budget.title">Available budget</h3>
+          <p data-i18n="cont.budget.body">Saved automatically to your risk register folder.</p>
           <div class="form-grid" style="max-width: 320px;">
             <div>
-              <label for="budget-input">Available Budget</label>
-              <input id="budget-input" type="number" step="any" data-budget-input placeholder="e.g. 100000">
+              <label for="budget-input" data-i18n="cont.budget.label">Available Budget</label>
+              <input id="budget-input" type="number" step="any" data-budget-input placeholder="e.g. 100000" data-i18n-attr="placeholder:cont.budget.placeholder">
             </div>
           </div>
         </div>
@@ -99,24 +103,24 @@
         <div data-contingency-results hidden>
           <div class="card" style="margin-bottom: var(--space-5);">
             <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap: var(--space-2);">
-              <h3 style="margin-bottom:0;">Budget vs. modelled cost</h3>
+              <h3 style="margin-bottom:0;" data-i18n="cont.results.title">Budget vs. modelled cost</h3>
               <span style="font-size:0.8rem; color: var(--color-text-subtle);" data-contingency-run-meta></span>
             </div>
             <div data-contingency-phase-select-wrap hidden style="max-width: 260px; margin-top: var(--space-3);">
-              <label for="contingency-phase-select">Compare against</label>
+              <label for="contingency-phase-select" data-i18n="cont.compareAgainst">Compare against</label>
               <select id="contingency-phase-select" data-contingency-phase-select></select>
             </div>
             <div class="assessment-summary">
               <div class="stat-tile">
-                <div class="stat-label">Available Budget</div>
+                <div class="stat-label" data-i18n="cont.budget.label">Available Budget</div>
                 <div class="stat-value" data-contingency-budget>—</div>
               </div>
               <div class="stat-tile">
-                <div class="stat-label">Confidence Covered</div>
+                <div class="stat-label" data-i18n="cont.confidence">Confidence Covered</div>
                 <div class="stat-value" data-contingency-confidence>—</div>
               </div>
               <div class="stat-tile">
-                <div class="stat-label">Headroom at P50</div>
+                <div class="stat-label" data-i18n="cont.headroomP50">Headroom at P50</div>
                 <div class="stat-value" data-contingency-headroom>—</div>
               </div>
             </div>
@@ -128,18 +132,20 @@
         </div>
 
         <div class="empty-state" data-contingency-no-budget>
-          <h3>Enter a budget to compare</h3>
-          <p>Once you enter an available budget above, it'll be compared against the last Monte Carlo run automatically.</p>
+          <h3 data-i18n="cont.noBudget.title">Enter a budget to compare</h3>
+          <p data-i18n="cont.noBudget.body">Once you enter an available budget above, it'll be compared against the last Monte Carlo run automatically.</p>
         </div>
       </div>
     </div>
   </main>
 
   <footer class="app-footer">
-    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+    <img class="app-footer-logo" src="/images/logo.png" alt="R&amp;C" width="58" height="24" data-logo-for="light-bg">
+    <img class="app-footer-logo" src="/images/logo-light.png" alt="R&amp;C" width="58" height="24" data-logo-for="dark-bg">
+    <span data-i18n="footer.text">Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
   </footer>
 
-  <script src="/js/vendor/xlsx.full.min.js"></script>
+  <script defer src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>

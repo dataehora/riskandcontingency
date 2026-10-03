@@ -9,11 +9,20 @@
 // Cost + Knock On), the same quantity EMV is built from; opportunities
 // (negative costs) are placed by magnitude.
 import { expectedValue, totalCostRange } from "./workbook.js";
+import { t, fmtInt } from "../i18n/i18n.js";
 
 export const BIN_COUNT = 5;
 export const LIKELIHOOD_MAX = 100;
-export const LIKELIHOOD_LABELS = ["Rare", "Unlikely", "Possible", "Likely", "Almost certain"];
-export const COST_LABELS = ["Very low", "Low", "Medium", "High", "Very high"];
+const LIKELIHOOD_KEYS = ["rare", "unlikely", "possible", "likely", "almostCertain"];
+const COST_KEYS = ["veryLow", "low", "medium", "high", "veryHigh"];
+
+// Bin names (index 0..4), in the current UI language.
+export function likelihoodLabel(i) {
+  return t(`ram.likelihood.${LIKELIHOOD_KEYS[i]}`);
+}
+export function costLabel(i) {
+  return t(`ram.cost.${COST_KEYS[i]}`);
+}
 
 // The 4 inner boundaries that split [0, max] into 5 equal bins.
 export function equalThresholds(max) {
@@ -66,12 +75,12 @@ export function costAxisMax(riskRecords) {
 // message, or null when valid.
 export function validateThresholds(thresholds, max) {
   if (thresholds.length !== BIN_COUNT - 1 || thresholds.some((t) => !Number.isFinite(t))) {
-    return "Enter a number for every bin boundary.";
+    return t("ram.error.number");
   }
   const edges = [0, ...thresholds, max];
   for (let i = 1; i < edges.length; i++) {
     if (!(edges[i] > edges[i - 1])) {
-      return `Boundaries must increase from 0 to ${max.toLocaleString()} with every bin wider than zero.`;
+      return t("ram.error.increasing", { max: fmtInt(max) });
     }
   }
   return null;

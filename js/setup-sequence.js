@@ -5,13 +5,24 @@
 // its prerequisites are met.
 import { getConnectionState, onConnectionChange } from "./storage/folder-connection.js";
 import { getRegisterState, onRegisterChange } from "./storage/register-store.js";
+import { t, onLangChange } from "./i18n/i18n.js";
 
 export const STEPS = [
-  { key: "folder", label: "Select folder", page: "/index.html" },
-  { key: "config", label: "Create config file", page: "/configuration.html" },
-  { key: "risk-record", label: "Create risk record", page: "/risk-register.html" },
-  { key: "modelling", label: "Run modelling", page: "/modelling.html" },
+  { key: "folder", page: "/index.html" },
+  { key: "config", page: "/configuration.html" },
+  { key: "riskRecord", page: "/risk-register.html" },
+  { key: "modelling", page: "/modelling.html" },
 ];
+
+function stepLabel(step) {
+  return t(`setup.step.${step.key}`);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
 
 const DISMISSED_KEY = "setup-sequence-dismissed";
 
@@ -73,8 +84,8 @@ function renderSequence(doneFlags) {
   const html = `
     <div class="setup-sequence">
       <div class="setup-sequence-header">
-        <span class="eyebrow">Setup sequence</span>
-        ${allDone ? `<button type="button" class="btn btn-ghost btn-sm" data-dismiss-setup-sequence aria-label="Dismiss setup sequence">Dismiss &times;</button>` : ""}
+        <span class="eyebrow">${t("setup.title")}</span>
+        ${allDone ? `<button type="button" class="btn btn-ghost btn-sm" data-dismiss-setup-sequence aria-label="${t("setup.dismissAria")}">${t("setup.dismiss")} &times;</button>` : ""}
       </div>
       <ol class="setup-steps">
         ${STEPS.map((step, i) => {
@@ -86,8 +97,8 @@ function renderSequence(doneFlags) {
             <span class="setup-step-index" aria-hidden="true">${done ? "&#10003;" : i + 1}</span>
             ${
               locked
-                ? `<span class="setup-step-label">${step.label}</span>`
-                : `<a class="setup-step-label" href="${step.page}">${step.label}</a>`
+                ? `<span class="setup-step-label">${stepLabel(step)}</span>`
+                : `<a class="setup-step-label" href="${step.page}">${stepLabel(step)}</a>`
             }
           </li>`;
         }).join("")}
@@ -118,12 +129,14 @@ function applyGates(doneFlags) {
 
     const missingIndex = doneFlags.findIndex((d) => !d);
     const missingStep = STEPS[missingIndex] ?? STEPS[STEPS.length - 1];
-    const labelEl = el.querySelector("[data-missing-step-label]");
-    if (labelEl) labelEl.textContent = missingStep.label;
-    const link = el.querySelector("[data-missing-step-link]");
-    if (link) {
-      link.href = missingStep.page;
-      link.textContent = `Go to "${missingStep.label}"`;
+    // "You need to finish <step> before <purpose>. Go to "<step>" →"
+    const message = el.querySelector("[data-locked-purpose]");
+    if (message) {
+      const label = stepLabel(missingStep);
+      message.innerHTML = `${t("setup.locked", {
+        step: `<strong>${escapeHtml(label)}</strong>`,
+        purpose: escapeHtml(t(message.dataset.lockedPurpose)),
+      })} <a href="${missingStep.page}">${escapeHtml(t("setup.goTo", { step: label }))}</a>`;
     }
   });
 }
@@ -136,3 +149,4 @@ function update() {
 
 onConnectionChange(update);
 onRegisterChange(update);
+onLangChange(update);

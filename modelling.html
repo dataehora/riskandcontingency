@@ -5,10 +5,13 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DF5MS2G7H"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-2DF5MS2G7H');</script>
   <meta charset="utf-8">
-  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
+  <script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){d.dataset.theme=t;}var l=localStorage.getItem('lang-preference')||(navigator.language||'').slice(0,2).toLowerCase();if(l==='pt'||l==='es'){d.lang=l;d.setAttribute('data-i18n-pending','');}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Monte Carlo Modelling — Risk and Contingency</title>
-  <meta name="description" content="Run a Monte Carlo simulation across pooled project risks, pre- and post-mitigation, and view the total cost distribution with P05 to P50 percentile results.">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/images/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <title data-i18n="meta.modelling.title">Monte Carlo Modelling — Risk and Contingency</title>
+  <meta name="description" data-i18n-attr="content:meta.modelling.description" content="Run a Monte Carlo simulation across pooled project risks, pre- and post-mitigation, and view the total cost distribution with P05 to P50 percentile results.">
   <link rel="canonical" href="https://riskandcontingency.com/modelling.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Risk and Contingency">
@@ -24,23 +27,24 @@
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/shell.css">
+  <script type="module" src="/js/i18n/i18n.js"></script>
 </head>
 <body data-page="modelling">
   <header class="app-header">
     <div class="app-header-inner">
       <a class="app-brand" href="/index.html">
-        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
-        Risk &amp; Contingency
+        <img class="app-brand-logo" src="/images/logo-light.png" alt="R&amp;C" width="68" height="28">
+        <span class="app-brand-name">Risk &amp; Contingency</span>
       </a>
-      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
-      <nav class="app-nav" aria-label="Primary">
-        <a href="/index.html" data-nav="home">Home</a>
-        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
-        <a href="/modelling.html" data-nav="modelling">Modelling</a>
-        <a href="/reporting.html" data-nav="reporting">Risk Reporting</a>
-        <a href="/contingency.html" data-nav="contingency">Contingency</a>
-        <a href="/configuration.html" data-nav="configuration">Configuration</a>
-        <a href="/about.html" data-nav="about">About</a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation" data-i18n-attr="aria-label:header.toggleNav">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary" data-i18n-attr="aria-label:header.primaryNav">
+        <a href="/index.html" data-nav="home" data-i18n="nav.home">Home</a>
+        <a href="/risk-register.html" data-nav="risk-register" data-i18n="nav.riskRegister">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling" data-i18n="nav.modelling">Modelling</a>
+        <a href="/reporting.html" data-nav="reporting" data-i18n="nav.reporting">Risk Reporting</a>
+        <a href="/contingency.html" data-nav="contingency" data-i18n="nav.contingency">Contingency</a>
+        <a href="/configuration.html" data-nav="configuration" data-i18n="nav.configuration">Configuration</a>
+        <a href="/about.html" data-nav="about" data-i18n="nav.about">About</a>
       </nav>
       <div class="app-header-actions">
         <span class="status-pill" data-connection-pill data-state="checking">
@@ -48,13 +52,13 @@
           <span data-connection-label>Checking&hellip;</span>
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
-        <label class="theme-toggle" title="Toggle dark mode">
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden data-i18n="header.disconnect">Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode" data-i18n-attr="title:header.toggleTheme">
           <input type="checkbox" data-theme-toggle class="visually-hidden">
           <span class="theme-toggle-track" aria-hidden="true">
             <span class="theme-toggle-thumb"></span>
           </span>
-          <span class="visually-hidden">Toggle dark mode</span>
+          <span class="visually-hidden" data-i18n="header.toggleTheme">Toggle dark mode</span>
         </label>
       </div>
     </div>
@@ -62,47 +66,47 @@
 
   <main class="app-main">
     <div class="page-header">
-      <span class="eyebrow">Modelling</span>
-      <h1>Run the risk model</h1>
-      <p>Step 4 of the setup sequence — Monte Carlo simulation of Total Cost across every Regular Pooled Record risk, weighted by Likelihood.</p>
+      <span class="eyebrow" data-i18n="nav.modelling">Modelling</span>
+      <h1 data-i18n="mod.title">Run the risk model</h1>
+      <p data-i18n="mod.lead">Step 4 of the setup sequence — Monte Carlo simulation of Total Cost across every open Regular Pooled Record risk, weighted by Likelihood.</p>
     </div>
 
     <div class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
       <span aria-hidden="true">&#9888;&#65039;</span>
-      <p style="margin:0;">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
+      <p style="margin:0;" data-i18n="common.unsupportedShort">Folder connection isn't available in this browser. Open this page in Chrome, Edge or Opera.</p>
     </div>
 
-<div class="empty-state" data-requires-no-connection>
-      <h3>Connect a folder to get started</h3>
-      <p>Modelling runs against the Excel workbook in your connected folder.</p>
-      <a class="btn btn-primary" href="/index.html">Go to Home to connect a folder</a>
+    <div class="empty-state" data-requires-no-connection>
+      <h3 data-i18n="common.connectFirst">Connect a folder to get started</h3>
+      <p data-i18n="mod.connectHint">Modelling runs against the Excel workbook in your connected folder.</p>
+      <a class="btn btn-primary" href="/index.html" data-i18n="common.goHomeToConnect">Go to Home to connect a folder</a>
     </div>
 
     <div data-requires-connection hidden>
       <div class="notice notice-warning" data-step-locked-notice="3" hidden style="margin-bottom: var(--space-5);">
         <span aria-hidden="true">&#9888;&#65039;</span>
-        <p style="margin:0;">You need to finish <strong data-missing-step-label></strong> before running the model. <a data-missing-step-link href="#">Go there &rarr;</a></p>
+        <p style="margin:0;" data-locked-purpose="setup.purpose.modelling"></p>
       </div>
 
       <div data-requires-step="3" hidden>
         <div class="card" style="margin-bottom: var(--space-5);">
-          <h3>Run Monte Carlo simulation</h3>
-          <p>Simulates the Total Cost (Direct Cost + Knock On) of every <strong>Regular Pooled Record</strong> risk, weighted by its assessed Likelihood, across many trials to produce a cost distribution.</p>
+          <h3 data-i18n="mod.run.title">Run Monte Carlo simulation</h3>
+          <p data-i18n-html="mod.run.body">Simulates the Total Cost (Direct Cost + Knock On) of every <strong>Regular Pooled Record</strong> risk with Status <strong>Open</strong>, weighted by its assessed Likelihood, across many trials to produce a cost distribution.</p>
           <p data-pooled-count style="font-size:0.85rem;"></p>
           <div class="form-grid" style="max-width: 480px;">
             <div>
-              <label>Assessment</label>
+              <label data-i18n="common.assessment">Assessment</label>
               <div style="display:flex; gap: var(--space-4); margin-top: 8px;">
-                <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none; font-size:0.9rem;">
-                  <input type="checkbox" data-mc-phase-checkbox value="pre"> Pre-mitigation
+                <label class="inline-check">
+                  <input type="checkbox" data-mc-phase-checkbox value="pre"> <span data-i18n="phase.pre">Pre-mitigation</span>
                 </label>
-                <label style="display:flex; align-items:center; gap:6px; font-weight:400; text-transform:none; font-size:0.9rem;">
-                  <input type="checkbox" data-mc-phase-checkbox value="post" checked> Post-mitigation
+                <label class="inline-check">
+                  <input type="checkbox" data-mc-phase-checkbox value="post" checked> <span data-i18n="phase.post">Post-mitigation</span>
                 </label>
               </div>
             </div>
             <div>
-              <label for="mc-trials">Simulations</label>
+              <label for="mc-trials" data-i18n="mod.simulations">Simulations</label>
               <select id="mc-trials" data-mc-trials>
                 <option value="1000">1,000</option>
                 <option value="5000" selected>5,000</option>
@@ -110,17 +114,22 @@
               </select>
             </div>
           </div>
-          <button class="btn btn-primary" type="button" data-run-simulation style="margin-top: var(--space-4);">Run simulation</button>
-          <p class="dist-feedback" data-mc-empty-notice hidden style="margin-top: var(--space-3);">No Regular Pooled Record risks yet — add or change a risk record's Record Type in the Risk Register to include it in modelling.</p>
+          <button class="btn btn-primary" type="button" data-run-simulation style="margin-top: var(--space-4);" data-i18n="mod.runButton">Run simulation</button>
+          <p class="dist-feedback" data-mc-empty-notice hidden style="margin-top: var(--space-3);" data-i18n="mod.emptyNotice">No open Regular Pooled Record risks yet — set a risk record's Record Type to Regular Pooled Record and its Status to Open in the Risk Register to include it in modelling.</p>
         </div>
 
         <div data-mc-results hidden>
           <div class="card" style="margin-bottom: var(--space-5);">
             <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap: var(--space-2);">
-              <h3 style="margin-bottom:0;">Results</h3>
+              <h3 style="margin-bottom:0;" data-i18n="mod.results">Results</h3>
               <span style="font-size:0.8rem; color: var(--color-text-subtle);" data-mc-run-meta></span>
             </div>
-            <div data-mc-chart style="margin-top: var(--space-4);"></div>
+            <h4 style="margin: var(--space-4) 0 var(--space-2);" data-i18n="mod.scope.title">Risks in this run</h4>
+            <div style="overflow-x:auto;">
+              <table class="data-table scope-table" data-mc-scope-table></table>
+            </div>
+            <div data-mc-scope-notes></div>
+            <div data-mc-chart style="margin-top: var(--space-5);"></div>
             <div style="overflow-x:auto; margin-top: var(--space-5);">
               <table class="data-table" data-mc-table></table>
             </div>
@@ -131,10 +140,12 @@
   </main>
 
   <footer class="app-footer">
-    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+    <img class="app-footer-logo" src="/images/logo.png" alt="R&amp;C" width="58" height="24" data-logo-for="light-bg">
+    <img class="app-footer-logo" src="/images/logo-light.png" alt="R&amp;C" width="58" height="24" data-logo-for="dark-bg">
+    <span data-i18n="footer.text">Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
   </footer>
 
-  <script src="/js/vendor/xlsx.full.min.js"></script>
+  <script defer src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>

@@ -9,19 +9,40 @@ import {
   stdev,
   PERCENTILE_STEPS,
 } from "../storage/monte-carlo.js";
+import { POOLED_RECORD_TYPE } from "../storage/workbook.js";
 import { renderDistributionChart } from "../charts/distribution-chart.js";
+import { t, tn, tv, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
 const PHASE_META = {
-  pre: { label: "Pre-mitigation", color: "var(--color-risk-high)", dash: false },
-  post: { label: "Post-mitigation", color: "var(--color-risk-low)", dash: true },
+  pre: { color: "var(--color-risk-high)", dash: false },
+  post: { color: "var(--color-risk-low)", dash: true },
 };
+const phaseLabel = (phase) => t(`phase.${phase}`);
 const BIN_COUNT = 30;
 
 let currentState = getRegisterState();
+// The last run on this page, kept so a language switch can redraw it.
+let lastRun = null;
 
-function fmtNumber(n) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+const fmtNumber = fmtInt;
+
+// Which records a run includes, and why the others are left out. A
+// partition of the whole register: every record lands in exactly one
+// row (record type is checked first, then status).
+function modelScope(records) {
+  const rows = { included: [], highImpact: [], benchmark: [], notOpen: [] };
+  for (const r of records) {
+    if (r.recordType === "High Impact") rows.highImpact.push(r);
+    else if (r.recordType !== POOLED_RECORD_TYPE) rows.benchmark.push(r);
+    else if (r.status !== "Open") rows.notOpen.push(r);
+    else rows.included.push(r);
+  }
+  return rows;
+}
+
+function countTypes(records) {
+  const threats = records.filter((r) => r.riskType === "Threat").length;
+  return { threats, opportunities: records.length - threats, total: records.length };
 }
 
 function updatePooledCount() {
@@ -30,10 +51,16 @@ function updatePooledCount() {
   const runBtn = document.querySelector("[data-run-simulation]");
   const count = pooledRecords(currentState.riskRecords).length;
   if (el) {
-    el.textContent = `${count} Regular Pooled Record risk${count === 1 ? "" : "s"} out of ${currentState.riskRecords.length} total will be simulated.`;
+    el.textContent = tn("mod.pooledCount", count, { total: fmtInt(currentState.riskRecords.length) });
   }
   if (notice) notice.hidden = count > 0;
   if (runBtn) runBtn.disabled = count === 0;
+}
+
+function localizeTrialOptions() {
+  document.querySelectorAll("[data-mc-trials] option").forEach((o) => {
+    o.textContent = fmtInt(Number(o.value));
+  });
 }
 
 function getSelectedPhases() {
@@ -52,14 +79,50 @@ function wirePhaseCheckboxes() {
   });
 }
 
+// Threats / opportunities included in the run, then each excluded group,
+// plus an explicit statement when High Impact risks were left out.
+function renderScope(scope) {
+  const table = document.querySelector("[data-mc-scope-table]");
+  const notes = document.querySelector("[data-mc-scope-notes]");
+  if (!table || !notes) return;
+  const row = (label, records, cls = "") => {
+    const c = countTypes(records);
+    return `<tr class="${cls}"><td>${label}</td><td>${fmtInt(c.threats)}</td><td>${fmtInt(c.opportunities)}</td><td><strong>${fmtInt(c.total)}</strong></td></tr>`;
+  };
+  const statuses = [...new Set(scope.notOpen.map((r) => r.status))].map((s) => tv("status", s)).join(", ");
+  const excluded = [
+    scope.highImpact.length ? row(t("mod.scope.excludedHighImpact"), scope.highImpact) : "",
+    scope.benchmark.length ? row(t("mod.scope.excludedBenchmark"), scope.benchmark) : "",
+    scope.notOpen.length ? row(t("mod.scope.excludedStatus", { statuses }), scope.notOpen) : "",
+  ].join("");
+  table.innerHTML = `
+    <thead><tr><th></th><th>${t("mod.scope.threats")}</th><th>${t("mod.scope.opportunities")}</th><th>${t("mod.scope.total")}</th></tr></thead>
+    <tbody>
+      ${row(t("mod.scope.included"), scope.included, "scope-included")}
+      ${excluded}
+    </tbody>
+  `;
+
+  const hi = countTypes(scope.highImpact);
+  notes.innerHTML = hi.total
+    ? `<div class="notice notice-warning" style="margin-top: var(--space-3);">
+        <span aria-hidden="true">&#9888;&#65039;</span>
+        <p style="margin:0;">${tn("mod.scope.highImpactNote", hi.total, {
+          threats: tn("rr.summary.threats", hi.threats),
+          opportunities: tn("rr.summary.opportunities", hi.opportunities),
+        })}</p>
+      </div>`
+    : `<p style="font-size:0.85rem; margin-top: var(--space-2);">${t("mod.scope.noHighImpact")}</p>`;
+}
+
 function renderTable(runs, phases) {
   const table = document.querySelector("[data-mc-table]");
   if (!table) return;
-  const cols = ["", "Min", ...PERCENTILE_STEPS.map((p) => `P${String(p).padStart(2, "0")}`), "Max"];
+  const cols = ["", t("dist.min"), ...PERCENTILE_STEPS.map((p) => `P${String(p).padStart(2, "0")}`), t("dist.max")];
   const rows = phases.map((phase) => {
     const { summary } = runs[phase];
     const values = [
-      PHASE_META[phase].label,
+      phaseLabel(phase),
       summary.min,
       ...PERCENTILE_STEPS.map((p) => summary.percentiles[`P${String(p).padStart(2, "0")}`]),
       summary.max,
@@ -72,13 +135,42 @@ function renderTable(runs, phases) {
   `;
 }
 
+function renderResults() {
+  if (!lastRun) return;
+  const { runs, phases, trials, ranAt, scope, binWidth, domainMin, domainMax } = lastRun;
+  const series = phases.map((phase) => {
+    const { sorted } = runs[phase];
+    return {
+      label: phaseLabel(phase),
+      color: PHASE_META[phase].color,
+      dash: PHASE_META[phase].dash,
+      histogram: histogram(sorted, BIN_COUNT, domainMin, domainMax),
+      mean: runs[phase].mean,
+      stdev: runs[phase].stdev,
+      trials,
+      binWidth,
+      sorted,
+    };
+  });
+
+  document.querySelector("[data-mc-results]").hidden = false;
+  document.querySelector("[data-mc-run-meta]").textContent = t("mod.runMeta", {
+    trials: fmtInt(trials),
+    phases: phases.map(phaseLabel).join(" / "),
+    date: new Date(ranAt).toLocaleString(locale()),
+  });
+  renderScope(scope);
+  renderDistributionChart(document.querySelector("[data-mc-chart]"), series);
+  renderTable(runs, phases);
+}
+
 async function runSimulation() {
   const phases = getSelectedPhases();
   const trials = Number(document.querySelector("[data-mc-trials]").value);
   const runBtn = document.querySelector("[data-run-simulation]");
 
   runBtn.disabled = true;
-  runBtn.textContent = "Running…";
+  runBtn.textContent = t("mod.running");
   // Let the button label repaint before the (synchronous, CPU-bound) run.
   await new Promise((r) => setTimeout(r, 20));
 
@@ -94,36 +186,20 @@ async function runSimulation() {
   const domainMax = Math.max(...phases.map((p) => runs[p].sorted[runs[p].sorted.length - 1] ?? 0));
   const binWidth = (domainMax - domainMin || 1) / BIN_COUNT;
 
-  const series = phases.map((phase) => {
-    const { sorted, summary } = runs[phase];
+  for (const phase of phases) {
+    const { sorted } = runs[phase];
     const m = mean(sorted);
-    const sd = stdev(sorted, m);
-    const hist = histogram(sorted, BIN_COUNT, domainMin, domainMax);
     runs[phase].curve = curvePoints(sorted, 200).map((p) => p.value);
     runs[phase].mean = m;
-    runs[phase].stdev = sd;
-    return {
-      label: PHASE_META[phase].label,
-      color: PHASE_META[phase].color,
-      dash: PHASE_META[phase].dash,
-      histogram: hist,
-      mean: m,
-      stdev: sd,
-      trials,
-      binWidth,
-      sorted,
-    };
-  });
+    runs[phase].stdev = stdev(sorted, m);
+  }
 
   const ranAt = new Date().toISOString();
-  document.querySelector("[data-mc-results]").hidden = false;
-  document.querySelector("[data-mc-run-meta]").textContent =
-    `${trials.toLocaleString()} trials · ${phases.map((p) => PHASE_META[p].label).join(" & ")} · ${new Date(ranAt).toLocaleString()}`;
-  renderDistributionChart(document.querySelector("[data-mc-chart]"), series);
-  renderTable(runs, phases);
+  lastRun = { runs, phases, trials, ranAt, scope: modelScope(currentState.riskRecords), binWidth, domainMin, domainMax };
+  renderResults();
 
   runBtn.disabled = false;
-  runBtn.textContent = "Run simulation";
+  runBtn.textContent = t("mod.runButton");
 
   // Persist a subsampled curve per phase (<=200 points), not the raw
   // trials array — xlsx cells cap out around 32,767 characters, and
@@ -143,12 +219,13 @@ async function runSimulation() {
 
 function wire() {
   wirePhaseCheckboxes();
+  localizeTrialOptions();
   document.querySelector("[data-run-simulation]")?.addEventListener("click", () => {
     runSimulation().catch((err) => {
       console.error(err);
       const runBtn = document.querySelector("[data-run-simulation]");
       runBtn.disabled = false;
-      runBtn.textContent = "Run simulation";
+      runBtn.textContent = t("mod.runButton");
     });
   });
 }
@@ -156,5 +233,10 @@ function wire() {
 onRegisterChange((state) => {
   currentState = state;
   updatePooledCount();
+});
+onLangChange(() => {
+  updatePooledCount();
+  localizeTrialOptions();
+  renderResults();
 });
 wire();

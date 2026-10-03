@@ -5,10 +5,13 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2DF5MS2G7H"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-2DF5MS2G7H');</script>
   <meta charset="utf-8">
-  <script>(function(){try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t;}}catch(e){}})();</script>
+  <script>(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme-preference');if(t==='light'||t==='dark'){d.dataset.theme=t;}var l=localStorage.getItem('lang-preference')||(navigator.language||'').slice(0,2).toLowerCase();if(l==='pt'||l==='es'){d.lang=l;d.setAttribute('data-i18n-pending','');}}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Risk and Contingency — Project Risk Register &amp; Monte Carlo</title>
-  <meta name="description" content="Manage a project risk register, calculate pre- and post-mitigation EMV and run Monte Carlo contingency modelling, all against an Excel file on your own machine.">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/images/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <title data-i18n="meta.home.title">Risk and Contingency — Project Risk Register &amp; Monte Carlo</title>
+  <meta name="description" data-i18n-attr="content:meta.home.description" content="Manage a project risk register, calculate pre- and post-mitigation EMV and run Monte Carlo contingency modelling, all against an Excel file on your own machine.">
   <link rel="canonical" href="https://riskandcontingency.com/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Risk and Contingency">
@@ -60,23 +63,24 @@
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/shell.css">
+  <script type="module" src="/js/i18n/i18n.js"></script>
 </head>
 <body data-page="home">
   <header class="app-header">
     <div class="app-header-inner">
       <a class="app-brand" href="/index.html">
-        <span class="app-brand-mark" aria-hidden="true">R&amp;C</span>
-        Risk &amp; Contingency
+        <img class="app-brand-logo" src="/images/logo-light.png" alt="R&amp;C" width="68" height="28">
+        <span class="app-brand-name">Risk &amp; Contingency</span>
       </a>
-      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">&#9776;</button>
-      <nav class="app-nav" aria-label="Primary">
-        <a href="/index.html" data-nav="home">Home</a>
-        <a href="/risk-register.html" data-nav="risk-register">Risk Register</a>
-        <a href="/modelling.html" data-nav="modelling">Modelling</a>
-        <a href="/reporting.html" data-nav="reporting">Risk Reporting</a>
-        <a href="/contingency.html" data-nav="contingency">Contingency</a>
-        <a href="/configuration.html" data-nav="configuration">Configuration</a>
-        <a href="/about.html" data-nav="about">About</a>
+      <button class="app-nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation" data-i18n-attr="aria-label:header.toggleNav">&#9776;</button>
+      <nav class="app-nav" aria-label="Primary" data-i18n-attr="aria-label:header.primaryNav">
+        <a href="/index.html" data-nav="home" data-i18n="nav.home">Home</a>
+        <a href="/risk-register.html" data-nav="risk-register" data-i18n="nav.riskRegister">Risk Register</a>
+        <a href="/modelling.html" data-nav="modelling" data-i18n="nav.modelling">Modelling</a>
+        <a href="/reporting.html" data-nav="reporting" data-i18n="nav.reporting">Risk Reporting</a>
+        <a href="/contingency.html" data-nav="contingency" data-i18n="nav.contingency">Contingency</a>
+        <a href="/configuration.html" data-nav="configuration" data-i18n="nav.configuration">Configuration</a>
+        <a href="/about.html" data-nav="about" data-i18n="nav.about">About</a>
       </nav>
       <div class="app-header-actions">
         <span class="status-pill" data-connection-pill data-state="checking">
@@ -84,85 +88,93 @@
           <span data-connection-label>Checking&hellip;</span>
         </span>
         <button class="btn btn-accent btn-sm" type="button" data-connection-action hidden>Connect folder</button>
-        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden>Disconnect</button>
-        <label class="theme-toggle" title="Toggle dark mode">
+        <button class="btn btn-ghost btn-sm" type="button" data-connection-disconnect hidden data-i18n="header.disconnect">Disconnect</button>
+        <label class="theme-toggle" title="Toggle dark mode" data-i18n-attr="title:header.toggleTheme">
           <input type="checkbox" data-theme-toggle class="visually-hidden">
           <span class="theme-toggle-track" aria-hidden="true">
             <span class="theme-toggle-thumb"></span>
           </span>
-          <span class="visually-hidden">Toggle dark mode</span>
+          <span class="visually-hidden" data-i18n="header.toggleTheme">Toggle dark mode</span>
         </label>
       </div>
     </div>
   </header>
 
   <main class="app-main">
-    <div class="page-header">
-      <span class="eyebrow">Risk &amp; Contingency Management</span>
-      <h1>A project risk register that lives on your machine, not in someone else's cloud</h1>
-      <p>Record, assess and respond to project risks under a Risk Breakdown Structure, calculate EMV pre- and post‑mitigation, and report on exposure — all reading and writing directly to an Excel workbook in a folder you choose. No accounts, no server, no uploads.</p>
+    <div class="page-header home-hero">
+      <div class="home-hero-logo">
+        <img src="/images/logo.png" alt="R&amp;C — Risk &amp; Contingency" width="290" height="120" data-logo-for="light-bg">
+        <img src="/images/logo-light.png" alt="R&amp;C — Risk &amp; Contingency" width="290" height="120" data-logo-for="dark-bg">
+      </div>
+      <div>
+        <span class="eyebrow" data-i18n="home.eyebrow">Risk &amp; Contingency Management</span>
+        <h1 data-i18n="home.title">A project risk register that lives on your machine, not in someone else's cloud</h1>
+        <p data-i18n="home.lead">Record, assess and respond to project risks under a Risk Breakdown Structure, calculate EMV pre- and post‑mitigation, and report on exposure — all reading and writing directly to an Excel workbook in a folder you choose. No accounts, no server, no uploads.</p>
+      </div>
     </div>
 
     <div id="unsupported-notice" class="notice notice-warning" data-unsupported-notice hidden style="margin-bottom: var(--space-5);">
       <span aria-hidden="true">&#9888;&#65039;</span>
       <div>
-        <strong>Folder connection isn't available in this browser.</strong>
-        <p style="margin: 4px 0 0;">This tool reads and writes your risk register directly on disk using the File System Access API, currently supported in Chrome, Edge and Opera. Open this page in one of those browsers to connect a folder.</p>
+        <strong data-i18n="home.unsupported.title">Folder connection isn't available in this browser.</strong>
+        <p style="margin: 4px 0 0;" data-i18n="home.unsupported.body">This tool reads and writes your risk register directly on disk using the File System Access API, currently supported in Chrome, Edge and Opera. Open this page in one of those browsers to connect a folder.</p>
       </div>
     </div>
 
     <section class="card" style="margin-bottom: var(--space-6);" data-requires-no-connection>
-      <h2 style="margin-bottom: var(--space-2);">Connect your risk register folder</h2>
-      <p>Choose a folder on this device to store your project workbooks. The app will read the Excel risk register from it, and write every change straight back — the folder is your single source of truth.</p>
+      <h2 style="margin-bottom: var(--space-2);" data-i18n="home.connect.title">Connect your risk register folder</h2>
+      <p data-i18n="home.connect.body">Choose a folder on this device to store your project workbooks. The app will read the Excel risk register from it, and write every change straight back — the folder is your single source of truth.</p>
       <button class="btn btn-primary" type="button" data-connection-action>Connect folder</button>
     </section>
 
     <section class="card" style="margin-bottom: var(--space-6);" data-requires-connection hidden>
-      <h2 style="margin-bottom: var(--space-2);">Folder connected</h2>
-      <p>Your risk register folder is connected. Head to the Risk Register to create or edit risk records, or Configuration to set up your Risk Breakdown Structure, impact areas and risk owners.</p>
+      <h2 style="margin-bottom: var(--space-2);" data-i18n="home.connected.title">Folder connected</h2>
+      <p data-i18n="home.connected.body">Your risk register folder is connected. Head to the Risk Register to create or edit risk records, or Configuration to set up your Risk Breakdown Structure, impact areas and risk owners.</p>
     </section>
 
     <section style="margin-bottom: var(--space-6);" data-setup-sequence></section>
 
     <div class="card-grid" style="margin-bottom: var(--space-6);">
       <div class="card">
-        <span class="eyebrow">01 &middot; Risk Register</span>
-        <h3>Create and manage risk records</h3>
-        <p>Log risks against the Risk Breakdown Structure with owner, cause, description and effects; assess pre- and post‑mitigation likelihood, cost, knock-on and schedule impact as single point, uniform or triangular ranges; plan response actions.</p>
-        <a class="btn btn-secondary btn-sm" href="/risk-register.html">Open Risk Register &rarr;</a>
+        <span class="eyebrow" data-i18n="home.card.register.eyebrow">01 · Risk Register</span>
+        <h3 data-i18n="home.card.register.title">Create and manage risk records</h3>
+        <p data-i18n="home.card.register.body">Log risks against the Risk Breakdown Structure with owner, cause, description, effects and status; assess pre- and post‑mitigation likelihood, cost, knock-on and schedule impact as single point, uniform or triangular ranges; plan response actions.</p>
+        <a class="btn btn-secondary btn-sm" href="/risk-register.html" data-i18n="home.card.register.cta">Open Risk Register →</a>
       </div>
       <div class="card">
-        <span class="eyebrow">02 &middot; Modelling</span>
-        <h3>Run the risk model</h3>
-        <p>Monte Carlo simulation of Total Cost across every Regular Pooled Record risk, weighted by Likelihood — outputs a cost distribution and percentile table.</p>
-        <a class="btn btn-secondary btn-sm" href="/modelling.html">Open Modelling &rarr;</a>
+        <span class="eyebrow" data-i18n="home.card.modelling.eyebrow">02 · Modelling</span>
+        <h3 data-i18n="home.card.modelling.title">Run the risk model</h3>
+        <p data-i18n="home.card.modelling.body">Monte Carlo simulation of Total Cost across every open Regular Pooled Record risk, weighted by Likelihood — outputs a cost distribution and percentile table.</p>
+        <a class="btn btn-secondary btn-sm" href="/modelling.html" data-i18n="home.card.modelling.cta">Open Modelling →</a>
       </div>
       <div class="card">
-        <span class="eyebrow">03 &middot; Risk Reporting</span>
-        <h3>Rank and report exposure</h3>
-        <p>List every risk record and rank the top risks by EMV, maximum cost impact, schedule exposure or maximum schedule impact.</p>
-        <a class="btn btn-secondary btn-sm" href="/reporting.html">Open Risk Reporting &rarr;</a>
+        <span class="eyebrow" data-i18n="home.card.reporting.eyebrow">03 · Risk Reporting</span>
+        <h3 data-i18n="home.card.reporting.title">Summarise and map exposure</h3>
+        <p data-i18n="home.card.reporting.body">An automatic summary of the register — risks by type and status, and what mitigation achieves — plus the 5×5 Risk Assessment Matrix.</p>
+        <a class="btn btn-secondary btn-sm" href="/reporting.html" data-i18n="home.card.reporting.cta">Open Risk Reporting →</a>
       </div>
       <div class="card">
-        <span class="eyebrow">04 &middot; Contingency</span>
-        <h3>Compare budget to modelled cost</h3>
-        <p>Enter your available budget and see how it compares to the Monte Carlo results from Modelling.</p>
-        <a class="btn btn-secondary btn-sm" href="/contingency.html">Open Contingency &rarr;</a>
+        <span class="eyebrow" data-i18n="home.card.contingency.eyebrow">04 · Contingency</span>
+        <h3 data-i18n="home.card.contingency.title">Compare budget to modelled cost</h3>
+        <p data-i18n="home.card.contingency.body">Enter your available budget and see how it compares to the Monte Carlo results from Modelling.</p>
+        <a class="btn btn-secondary btn-sm" href="/contingency.html" data-i18n="home.card.contingency.cta">Open Contingency →</a>
       </div>
       <div class="card">
-        <span class="eyebrow">05 &middot; Configuration</span>
-        <h3>Set up projects and reference data</h3>
-        <p>Define the Risk Breakdown Structure per project, impact areas, risk owners and QHSE levels used across the Risk Register.</p>
-        <a class="btn btn-secondary btn-sm" href="/configuration.html">Open Configuration &rarr;</a>
+        <span class="eyebrow" data-i18n="home.card.configuration.eyebrow">05 · Configuration</span>
+        <h3 data-i18n="home.card.configuration.title">Set up projects and reference data</h3>
+        <p data-i18n="home.card.configuration.body">Define the Risk Breakdown Structure per project, impact areas, risk owners and QHSE levels used across the Risk Register.</p>
+        <a class="btn btn-secondary btn-sm" href="/configuration.html" data-i18n="home.card.configuration.cta">Open Configuration →</a>
       </div>
     </div>
   </main>
 
   <footer class="app-footer">
-    Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.
+    <img class="app-footer-logo" src="/images/logo.png" alt="R&amp;C" width="58" height="24" data-logo-for="light-bg">
+    <img class="app-footer-logo" src="/images/logo-light.png" alt="R&amp;C" width="58" height="24" data-logo-for="dark-bg">
+    <span data-i18n="footer.text">Risk &amp; Contingency &mdash; runs entirely in your browser. Your risk register stays in the folder you choose; nothing is uploaded.</span>
   </footer>
 
-  <script src="/js/vendor/xlsx.full.min.js"></script>
+  <script defer src="/js/vendor/xlsx.full.min.js"></script>
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/setup-sequence.js"></script>

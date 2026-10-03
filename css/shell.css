@@ -37,17 +37,12 @@
   opacity: 0.92;
 }
 
-.app-brand-mark {
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
-  background: var(--color-accent);
-  color: #2a1e05;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.78rem;
+/* The R&C logo (images/logo-light.png: light letters for the navy
+   header, in both themes). */
+.app-brand-logo {
+  display: block;
+  height: 28px;
+  width: auto;
   flex: none;
 }
 
@@ -95,6 +90,68 @@
   border-radius: var(--radius-sm);
   padding: 6px 10px;
   cursor: pointer;
+}
+
+/* Language switch (built by js/i18n/i18n.js). Flags are inline SVG,
+   never emoji — Windows has no flag emoji and shows "US"/"BR"/"ES". */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(244, 246, 248, 0.08);
+  border: 1px solid rgba(244, 246, 248, 0.22);
+  flex: none;
+}
+
+.lang-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(244, 246, 248, 0.75);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.lang-switch-btn:hover {
+  background: rgba(244, 246, 248, 0.12);
+  color: var(--color-text-on-primary);
+}
+
+.lang-switch-btn.is-active {
+  background: var(--color-accent);
+  color: #1f1604;
+}
+
+.lang-switch-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.lang-flag {
+  display: inline-flex;
+  width: 18px;
+  height: 12px;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  flex: none;
+}
+
+.lang-flag svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* Theme toggle switch */
@@ -166,16 +223,86 @@
   text-align: center;
   color: var(--color-text-subtle);
   font-size: 0.78rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.app-footer-logo {
+  height: 22px;
+  width: auto;
+}
+
+/* Logo variants: dark letters on light backgrounds, light letters on
+   dark ones — same theme logic as tokens.css (explicit choice wins over
+   the OS setting). */
+[data-logo-for="dark-bg"] {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [data-logo-for="light-bg"] {
+    display: none;
+  }
+  :root:not([data-theme="light"]) [data-logo-for="dark-bg"] {
+    display: inline-block;
+  }
+}
+
+:root[data-theme="dark"] [data-logo-for="light-bg"] {
+  display: none;
+}
+
+:root[data-theme="dark"] [data-logo-for="dark-bg"] {
+  display: inline-block;
+}
+
+/* Home hero: logo beside the headline, stacked on narrow screens. */
+.home-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.home-hero-logo img {
+  width: 220px;
+  height: auto;
+}
+
+@media (max-width: 760px) {
+  .home-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .home-hero-logo img {
+    width: 150px;
+  }
 }
 
 @media (max-width: 860px) {
   .app-header-inner {
     gap: var(--space-3);
-    padding: 0 var(--space-3);
+    padding: 8px var(--space-3);
   }
 
   .app-brand {
     font-size: 0.9rem;
+  }
+
+  .app-brand-name {
+    display: none;
+  }
+
+  .lang-switch-btn {
+    padding: 4px 6px;
+  }
+
+  .lang-code {
+    display: none;
   }
 
   .app-header-actions {

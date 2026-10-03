@@ -97,3 +97,19 @@ ol {
 [hidden] {
   display: none !important;
 }
+
+/* Set by the inline <head> script when a saved/browser language isn't
+   English: keeps the English source text from flashing before
+   js/i18n/i18n.js translates the page (it removes the attribute). The
+   animation is a failsafe — if the script never runs, the page still
+   appears after 1.5s. */
+html[data-i18n-pending] body {
+  visibility: hidden;
+  animation: i18n-reveal 0s linear 1.5s forwards;
+}
+
+@keyframes i18n-reveal {
+  to {
+    visibility: visible;
+  }
+}

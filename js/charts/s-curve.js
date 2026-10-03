@@ -6,11 +6,7 @@
 // median crosshair.
 import { curvePoints } from "../storage/monte-carlo.js";
 import { niceTicks } from "./axis.js";
-
-function fmtNumber(n) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+import { t, fmtInt as fmtNumber } from "../i18n/i18n.js";
 
 // Keeps an edge label inside the plot instead of clipping at the SVG edge.
 function labelAnchor(x, left, right) {
@@ -76,12 +72,12 @@ export function renderSCurve(container, sorted, summary, options = {}) {
   const refLine = referenceLine
     ? `
       <line x1="${xOf(referenceLine.value)}" y1="${padTop}" x2="${xOf(referenceLine.value)}" y2="${height - padBottom}" stroke="var(--color-danger)" stroke-width="2" />
-      <text x="${xOf(referenceLine.value)}" y="${padTop - 4}" text-anchor="${labelAnchor(xOf(referenceLine.value), padLeft, width - padRight)}" font-size="11" fill="var(--color-danger)">${referenceLine.label ?? "Reference"}</text>
+      <text x="${xOf(referenceLine.value)}" y="${padTop - 4}" text-anchor="${labelAnchor(xOf(referenceLine.value), padLeft, width - padRight)}" font-size="11" fill="var(--color-danger)">${referenceLine.label ?? t("chart.scurve.reference")}</text>
     `
     : "";
 
   container.innerHTML = `
-    <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;" role="img" aria-label="Cumulative probability curve" data-sc-svg>
+    <svg viewBox="0 0 ${width} ${height}" style="width:100%;height:auto;display:block;" role="img" aria-label="${t("chart.scurve.aria")}" data-sc-svg>
       ${yGridlines}
       <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
       <line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
@@ -93,7 +89,7 @@ export function renderSCurve(container, sorted, summary, options = {}) {
       <rect data-sc-hover-target x="${padLeft}" y="${padTop}" width="${plotW}" height="${plotH}" fill="transparent" />
     </svg>
     <div data-sc-tooltip class="notice" style="display:none; position:absolute; pointer-events:none; font-size:0.78rem; padding: 6px 10px;"></div>
-    <p style="font-size:0.78rem; color: var(--color-text-subtle); margin-top: var(--space-2);">Simulated cost (x-axis) vs. cumulative probability of being at or below that cost (y-axis). Dashed line marks the median (P50)${referenceLine ? `; solid red line marks ${referenceLine.label ?? "the reference value"}.` : "."}</p>
+    <p style="font-size:0.78rem; color: var(--color-text-subtle); margin-top: var(--space-2);">${referenceLine ? t("chart.scurve.captionRef", { label: referenceLine.label ?? t("chart.scurve.reference") }) : t("chart.scurve.caption")}</p>
   `;
 
   wireHover(container, points, xOf, yOf, padLeft, width - padRight, fmtNumber);
@@ -138,7 +134,7 @@ function wireHover(container, points, xOf, yOf, minX, maxX, fmtNumber) {
     tooltip.style.display = "block";
     tooltip.style.left = `${(px / 640) * 100}%`;
     tooltip.style.top = `${(py / 300) * 100}%`;
-    tooltip.textContent = `${fmtNumber(p.value)} at P${p.cumulative.toFixed(0)}`;
+    tooltip.textContent = t("chart.scurve.tooltip", { value: fmtNumber(p.value), p: p.cumulative.toFixed(0) });
   });
 
   target.addEventListener("mouseleave", () => {

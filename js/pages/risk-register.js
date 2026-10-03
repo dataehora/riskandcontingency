@@ -15,26 +15,23 @@ import {
   expectedValue,
   DIMENSIONS,
 } from "../storage/register-store.js";
-import { RECORD_TYPES, riskIdError } from "../storage/workbook.js";
+import {
+  RECORD_TYPES,
+  RISK_TYPES,
+  RISK_STATUSES,
+  REVIEW_STATUSES,
+  POOLED_RECORD_TYPE,
+  riskIdError,
+} from "../storage/workbook.js";
+import { t, tn, tv, fmtNum, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
-const DIMENSION_LABELS = {
-  likelihood: "Likelihood",
-  costImpact: "Direct Cost",
-  knockOn: "Knock On",
-  scheduleImpact: "Schedule",
-};
-const DIMENSION_UNITS = {
-  likelihood: "%, 1–100",
-  costImpact: "currency",
-  knockOn: "currency, indirect/downstream cost",
-  scheduleImpact: "days",
-};
 const DIMENSION_BOUNDS = { likelihood: { min: 1, max: 100 } };
 // Required in Pre-mitigation: a risk isn't really assessed without these.
 // Knock On and every Post-mitigation group are optional (a new risk may
 // not have mitigation assessed yet, or no knock-on effect at all).
 const REQUIRED_GROUPS = new Set(["pre:likelihood", "pre:costImpact", "pre:scheduleImpact"]);
 
+// Stored values (English, in the workbook); labels come from tv("strategy", s).
 const STRATEGIES = {
   Threat: ["Eliminate", "Mitigate", "Transfer", "Monitor/Accept"],
   Opportunity: ["Exploit", "Enhance", "Share", "Monitor/Accept"],
@@ -49,12 +46,10 @@ let currentState = getRegisterState();
 let viewMode = "emv"; // emv | cost | schedule | qhse
 let sortState = { key: null, direction: "asc" };
 
-const VIEW_MODES = [
-  { key: "emv", label: "EMV" },
-  { key: "cost", label: "Cost" },
-  { key: "schedule", label: "Schedule" },
-  { key: "qhse", label: "QHSE" },
-];
+const ALL = "__all__";
+const filters = { search: "", status: ALL, riskType: ALL, recordType: ALL, impactArea: ALL };
+
+const VIEW_MODES = ["emv", "cost", "schedule", "qhse"];
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -63,8 +58,7 @@ function escapeHtml(str) {
 }
 
 function fmtNumber(n) {
-  if (!Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return fmtNum(n, 2);
 }
 
 function els() {
@@ -72,41 +66,53 @@ function els() {
     listView: document.querySelector('[data-view="list"]'),
     formView: document.querySelector('[data-view="form"]'),
     recordsBody: document.querySelector("[data-records-body]"),
-    recordsTable: document.querySelector("[data-records-table]"),
     recordsEmpty: document.querySelector("[data-records-empty]"),
+    listWrap: document.querySelector("[data-records-list-wrap]"),
     form: document.querySelector("[data-record-form]"),
     assessmentSections: document.querySelector("[data-assessment-sections]"),
     actionsList: document.querySelector("[data-actions-list]"),
   };
 }
 
+function riskTypeBadge(riskType) {
+  return `<span class="badge ${riskType === "Threat" ? "badge-high" : "badge-low"}">${escapeHtml(tv("riskType", riskType))}</span>`;
+}
+
+function statusBadgeClass(status) {
+  if (status === "Open") return "badge-open";
+  if (REVIEW_STATUSES.includes(status)) return "badge-medium";
+  return "badge-neutral";
+}
+
+function statusBadge(status) {
+  return `<span class="badge ${statusBadgeClass(status)}" style="white-space:nowrap;">${escapeHtml(tv("status", status))}</span>`;
+}
+
 // --- List view ----------------------------------------------------------
-const BASE_COLUMNS = [
-  { key: "id", label: "ID", sort: (r) => r.id, render: (r) => `<span style="white-space:nowrap;">${escapeHtml(r.id)}</span>` },
-  { key: "title", label: "Title", sort: (r) => r.title.toLowerCase(), render: (r) => escapeHtml(r.title) },
-  {
-    key: "riskType",
-    label: "Type",
-    sort: (r) => r.riskType,
-    render: (r) => `<span class="badge ${r.riskType === "Threat" ? "badge-high" : "badge-low"}">${escapeHtml(r.riskType)}</span>`,
-  },
-  { key: "recordType", label: "Record Type", sort: (r) => r.recordType, render: (r) => escapeHtml(r.recordType) },
-  { key: "impactArea", label: "Impact Area", sort: (r) => r.impactArea, render: (r) => escapeHtml(r.impactArea) },
-  { key: "owner", label: "Owner", sort: (r) => r.owner, render: (r) => escapeHtml(r.owner) },
-];
+function baseColumns() {
+  return [
+    { key: "id", label: t("rr.col.id"), sort: (r) => r.id, render: (r) => `<span style="white-space:nowrap;">${escapeHtml(r.id)}</span>` },
+    { key: "title", label: t("rr.col.title"), sort: (r) => r.title.toLowerCase(), render: (r) => escapeHtml(r.title) },
+    { key: "riskType", label: t("rr.col.type"), sort: (r) => tv("riskType", r.riskType), render: (r) => riskTypeBadge(r.riskType) },
+    { key: "status", label: t("rr.col.status"), sort: (r) => RISK_STATUSES.indexOf(r.status), render: (r) => statusBadge(r.status) },
+    { key: "recordType", label: t("rr.col.recordType"), sort: (r) => tv("recordType", r.recordType), render: (r) => escapeHtml(tv("recordType", r.recordType)) },
+    { key: "impactArea", label: t("rr.col.impactArea"), sort: (r) => r.impactArea, render: (r) => escapeHtml(r.impactArea) },
+    { key: "owner", label: t("rr.col.owner"), sort: (r) => r.owner, render: (r) => escapeHtml(r.owner) },
+  ];
+}
 
 function likelihoodColumns() {
   return [
     {
       key: "preLikelihood",
-      label: "Pre Likelihood",
+      label: t("rr.col.preLikelihood"),
       highlight: true,
       sort: (r) => expectedValue(r.pre.likelihood),
       render: (r) => `${fmtNumber(expectedValue(r.pre.likelihood))}%`,
     },
     {
       key: "postLikelihood",
-      label: "Post Likelihood",
+      label: t("rr.col.postLikelihood"),
       highlight: true,
       sort: (r) => expectedValue(r.post.likelihood),
       render: (r) => `${fmtNumber(expectedValue(r.post.likelihood))}%`,
@@ -115,49 +121,118 @@ function likelihoodColumns() {
 }
 
 function modeColumns(mode) {
+  const L = (key) => t(`rr.col.${key}`);
   if (mode === "cost") {
     return [
       ...likelihoodColumns(),
-      { key: "preCostMin", label: "Pre Min", highlight: true, sort: (r) => totalCostRange(r.pre).min, render: (r) => fmtNumber(totalCostRange(r.pre).min) },
-      { key: "preCostMl", label: "Pre ML", highlight: true, sort: (r) => totalCostRange(r.pre).ev, render: (r) => fmtNumber(totalCostRange(r.pre).ev) },
-      { key: "preCostMax", label: "Pre Max", highlight: true, sort: (r) => totalCostRange(r.pre).max, render: (r) => fmtNumber(totalCostRange(r.pre).max) },
-      { key: "postCostMin", label: "Post Min", highlight: true, sort: (r) => totalCostRange(r.post).min, render: (r) => fmtNumber(totalCostRange(r.post).min) },
-      { key: "postCostMl", label: "Post ML", highlight: true, sort: (r) => totalCostRange(r.post).ev, render: (r) => fmtNumber(totalCostRange(r.post).ev) },
-      { key: "postCostMax", label: "Post Max", highlight: true, sort: (r) => totalCostRange(r.post).max, render: (r) => fmtNumber(totalCostRange(r.post).max) },
+      { key: "preCostMin", label: L("preMin"), highlight: true, sort: (r) => totalCostRange(r.pre).min, render: (r) => fmtNumber(totalCostRange(r.pre).min) },
+      { key: "preCostMl", label: L("preMl"), highlight: true, sort: (r) => totalCostRange(r.pre).ev, render: (r) => fmtNumber(totalCostRange(r.pre).ev) },
+      { key: "preCostMax", label: L("preMax"), highlight: true, sort: (r) => totalCostRange(r.pre).max, render: (r) => fmtNumber(totalCostRange(r.pre).max) },
+      { key: "postCostMin", label: L("postMin"), highlight: true, sort: (r) => totalCostRange(r.post).min, render: (r) => fmtNumber(totalCostRange(r.post).min) },
+      { key: "postCostMl", label: L("postMl"), highlight: true, sort: (r) => totalCostRange(r.post).ev, render: (r) => fmtNumber(totalCostRange(r.post).ev) },
+      { key: "postCostMax", label: L("postMax"), highlight: true, sort: (r) => totalCostRange(r.post).max, render: (r) => fmtNumber(totalCostRange(r.post).max) },
     ];
   }
   if (mode === "schedule") {
     const dashOr = (v) => (v == null ? "—" : fmtNumber(v));
     return [
       ...likelihoodColumns(),
-      { key: "preSchedMin", label: "Pre Min", highlight: true, sort: (r) => r.pre.scheduleImpact.min ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.min) },
-      { key: "preSchedMl", label: "Pre ML", highlight: true, sort: (r) => r.pre.scheduleImpact.ml ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.ml) },
-      { key: "preSchedMax", label: "Pre Max", highlight: true, sort: (r) => r.pre.scheduleImpact.max ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.max) },
-      { key: "postSchedMin", label: "Post Min", highlight: true, sort: (r) => r.post.scheduleImpact.min ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.min) },
-      { key: "postSchedMl", label: "Post ML", highlight: true, sort: (r) => r.post.scheduleImpact.ml ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.ml) },
-      { key: "postSchedMax", label: "Post Max", highlight: true, sort: (r) => r.post.scheduleImpact.max ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.max) },
+      { key: "preSchedMin", label: L("preMin"), highlight: true, sort: (r) => r.pre.scheduleImpact.min ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.min) },
+      { key: "preSchedMl", label: L("preMl"), highlight: true, sort: (r) => r.pre.scheduleImpact.ml ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.ml) },
+      { key: "preSchedMax", label: L("preMax"), highlight: true, sort: (r) => r.pre.scheduleImpact.max ?? -Infinity, render: (r) => dashOr(r.pre.scheduleImpact.max) },
+      { key: "postSchedMin", label: L("postMin"), highlight: true, sort: (r) => r.post.scheduleImpact.min ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.min) },
+      { key: "postSchedMl", label: L("postMl"), highlight: true, sort: (r) => r.post.scheduleImpact.ml ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.ml) },
+      { key: "postSchedMax", label: L("postMax"), highlight: true, sort: (r) => r.post.scheduleImpact.max ?? -Infinity, render: (r) => dashOr(r.post.scheduleImpact.max) },
     ];
   }
   if (mode === "qhse") {
     return [
       ...likelihoodColumns(),
-      { key: "preQhse", label: "Pre QHSE", highlight: true, sort: (r) => r.pre.qhse ?? "", render: (r) => escapeHtml(r.pre.qhse ?? "—") },
-      { key: "postQhse", label: "Post QHSE", highlight: true, sort: (r) => r.post.qhse ?? "", render: (r) => escapeHtml(r.post.qhse ?? "—") },
+      { key: "preQhse", label: L("preQhse"), highlight: true, sort: (r) => r.pre.qhse ?? "", render: (r) => escapeHtml(r.pre.qhse ?? "—") },
+      { key: "postQhse", label: L("postQhse"), highlight: true, sort: (r) => r.post.qhse ?? "", render: (r) => escapeHtml(r.post.qhse ?? "—") },
     ];
   }
   // emv (default)
   return [
-    { key: "preEmv", label: "Pre EMV", highlight: true, sort: (r) => r.computed.pre.emv, render: (r) => fmtNumber(r.computed.pre.emv) },
-    { key: "postEmv", label: "Post EMV", highlight: true, sort: (r) => r.computed.post.emv, render: (r) => fmtNumber(r.computed.post.emv) },
+    { key: "preEmv", label: L("preEmv"), highlight: true, sort: (r) => r.computed.pre.emv, render: (r) => fmtNumber(r.computed.pre.emv) },
+    { key: "postEmv", label: L("postEmv"), highlight: true, sort: (r) => r.computed.post.emv, render: (r) => fmtNumber(r.computed.post.emv) },
   ];
 }
 
 function currentColumns() {
-  return [...BASE_COLUMNS, ...modeColumns(viewMode)];
+  return [...baseColumns(), ...modeColumns(viewMode)];
+}
+
+// --- Filters --------------------------------------------------------------
+function filtersActive() {
+  return !!filters.search || ["status", "riskType", "recordType", "impactArea"].some((k) => filters[k] !== ALL);
+}
+
+function filteredRecords() {
+  const q = filters.search.trim().toLowerCase();
+  return currentState.riskRecords.filter((r) => {
+    if (filters.status !== ALL && r.status !== filters.status) return false;
+    if (filters.riskType !== ALL && r.riskType !== filters.riskType) return false;
+    if (filters.recordType !== ALL && r.recordType !== filters.recordType) return false;
+    if (filters.impactArea !== ALL && r.impactArea !== filters.impactArea) return false;
+    if (q) {
+      const haystack = [r.id, r.title, r.owner, r.rbsCategory, r.impactArea, r.description].join(" ").toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+// options: [{ value, label }]. Keeps the current filter if still offered.
+function fillFilterSelect(key, options, allLabel) {
+  const select = document.querySelector(`[data-list-filter="${key}"]`);
+  if (!select) return;
+  if (filters[key] !== ALL && !options.some((o) => o.value === filters[key])) filters[key] = ALL;
+  select.innerHTML =
+    `<option value="${ALL}">${escapeHtml(allLabel)}</option>` +
+    options.map((o) => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("");
+  select.value = filters[key];
+}
+
+function renderFilters() {
+  fillFilterSelect("status", RISK_STATUSES.map((s) => ({ value: s, label: tv("status", s) })), t("rr.filter.allStatuses"));
+  fillFilterSelect("riskType", RISK_TYPES.map((s) => ({ value: s, label: tv("riskType", s) })), t("rr.filter.allTypes"));
+  fillFilterSelect("recordType", RECORD_TYPES.map((s) => ({ value: s, label: tv("recordType", s) })), t("rr.filter.allRecordTypes"));
+  const impactAreas = [
+    ...new Set([...currentState.impactAreas.map((i) => i.name), ...currentState.riskRecords.map((r) => r.impactArea).filter(Boolean)]),
+  ];
+  fillFilterSelect("impactArea", impactAreas.map((v) => ({ value: v, label: v })), t("rr.filter.allImpactAreas"));
+  const search = document.querySelector('[data-list-filter="search"]');
+  if (search && document.activeElement !== search) search.value = filters.search;
+  const clear = document.querySelector("[data-clear-filters]");
+  if (clear) clear.hidden = !filtersActive();
+}
+
+// "Showing 3 of 12 risk records · 2 threats, 1 opportunity · 2 open"
+function summaryText(records) {
+  const total = currentState.riskRecords.length;
+  const threats = records.filter((r) => r.riskType === "Threat").length;
+  const open = records.filter((r) => r.status === "Open").length;
+  const count = filtersActive()
+    ? t("rr.summary.filtered", { shown: fmtInt(records.length), total: tn("rr.summary.records", total) })
+    : tn("rr.summary.records", total);
+  const parts = [count];
+  if (records.length) {
+    parts.push(`${tn("rr.summary.threats", threats)}, ${tn("rr.summary.opportunities", records.length - threats)}`);
+    parts.push(tn("rr.summary.open", open));
+  }
+  return parts.join(" · ");
+}
+
+function renderSummaries(records) {
+  const text = summaryText(records);
+  document.querySelectorAll("[data-records-summary]").forEach((el) => {
+    el.textContent = text;
+  });
 }
 
 function sortedRecords() {
-  const records = [...currentState.riskRecords];
+  const records = filteredRecords();
   if (!sortState.key) return records;
   const col = currentColumns().find((c) => c.key === sortState.key);
   if (!col) return records;
@@ -176,7 +251,7 @@ function renderModeToggle() {
   if (!el) return;
   el.innerHTML = VIEW_MODES.map(
     (m) =>
-      `<button type="button" class="btn btn-sm ${viewMode === m.key ? "btn-primary" : "btn-secondary"}" data-view-mode="${m.key}">${m.label}</button>`
+      `<button type="button" class="btn btn-sm ${viewMode === m ? "btn-primary" : "btn-secondary"}" data-view-mode="${m}">${t(`rr.view.${m}`)}</button>`
   ).join("");
 }
 
@@ -199,32 +274,37 @@ function renderTableHead() {
 }
 
 function renderTableBody() {
-  const { recordsBody, recordsTable, recordsEmpty } = els();
+  const { recordsBody, recordsEmpty, listWrap } = els();
   if (!recordsBody) return;
+  const total = currentState.riskRecords.length;
+  if (recordsEmpty) recordsEmpty.hidden = total > 0;
+  if (listWrap) listWrap.hidden = total === 0;
+
   const records = sortedRecords();
-
-  if (recordsEmpty) recordsEmpty.hidden = records.length > 0;
-  if (recordsTable) recordsTable.hidden = records.length === 0;
-
   const columns = currentColumns();
-  recordsBody.innerHTML = records
-    .map(
-      (r) => `
+  recordsBody.innerHTML = records.length
+    ? records
+        .map(
+          (r) => `
     <tr data-row-id="${escapeHtml(r.id)}">
       ${columns.map((col) => `<td class="${col.highlight ? "col-highlight" : ""}">${col.render(r)}</td>`).join("")}
       <td style="white-space:nowrap;">
-        <button type="button" class="btn btn-ghost btn-sm" data-duplicate-record="${escapeHtml(r.id)}">Duplicate</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${escapeHtml(r.id)}">Delete</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-duplicate-record="${escapeHtml(r.id)}">${t("rr.duplicate")}</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-delete-record="${escapeHtml(r.id)}">${t("common.delete")}</button>
       </td>
     </tr>
   `
-    )
-    .join("");
+        )
+        .join("")
+    : `<tr><td colspan="${columns.length + 1}" class="table-empty">${t("rr.filter.noMatch")}</td></tr>`;
   renderTableFoot(columns, records);
+  renderSummaries(records);
+  const clear = document.querySelector("[data-clear-filters]");
+  if (clear) clear.hidden = !filtersActive();
 }
 
 // EMV view only: net totals (threats positive, opportunities negative)
-// across every record in the list.
+// across every record currently listed (i.e. after filters).
 function renderTableFoot(columns, records) {
   const tfoot = document.querySelector("[data-records-tfoot]");
   if (!tfoot) return;
@@ -237,7 +317,7 @@ function renderTableFoot(columns, records) {
   const firstTotal = columns.findIndex((c) => c.key in totals);
   tfoot.innerHTML = `
     <tr>
-      <td colspan="${firstTotal}">Total EMV (${records.length} risk${records.length === 1 ? "" : "s"}, net of opportunities)</td>
+      <td colspan="${firstTotal}">${escapeHtml(tn("rr.totalEmv", records.length))}</td>
       ${columns
         .slice(firstTotal)
         .map((c) => `<td class="${c.highlight ? "col-highlight" : ""}">${c.key in totals ? fmtNumber(totals[c.key]) : ""}</td>`)
@@ -253,16 +333,19 @@ function renderIdRepairs() {
   const repairs = currentState.idRepairs ?? [];
   el.hidden = repairs.length === 0;
   if (!repairs.length) return;
-  const why = { missing: "had no ID", duplicate: "duplicated another record's ID", invalid: "had an invalid ID" };
   el.innerHTML = `
     <span aria-hidden="true">&#9888;&#65039;</span>
     <div>
-      <p style="margin:0 0 4px;"><strong>Some risk IDs in the workbook needed fixing.</strong> Every risk record must have a unique ID, so these were given new ones. The fix is written to the workbook with your next save.</p>
+      <p style="margin:0 0 4px;"><strong>${t("rr.repairs.title")}</strong> ${t("rr.repairs.body")}</p>
       <ul style="margin:0; padding-left: 1.2em;">
         ${repairs
           .map(
             (r) =>
-              `<li>“${escapeHtml(r.title)}” ${why[r.reason]}${r.from ? ` (${escapeHtml(r.from)})` : ""} → now <strong>${escapeHtml(r.to)}</strong>${r.reason === "duplicate" ? " (its response actions stay with the first record that used the ID)" : ""}</li>`
+              `<li>${t(`rr.repairs.${r.reason}`, {
+                title: `“${escapeHtml(r.title)}”`,
+                from: escapeHtml(r.from),
+                to: `<strong>${escapeHtml(r.to)}</strong>`,
+              })}</li>`
           )
           .join("")}
       </ul>
@@ -272,6 +355,7 @@ function renderIdRepairs() {
 
 function renderList() {
   renderIdRepairs();
+  renderFilters();
   renderModeToggle();
   renderTableHead();
   renderTableBody();
@@ -287,9 +371,15 @@ function populateOptions(select, items, placeholder, value) {
   const options = items.map((i) => i.name);
   if (value && !options.includes(value)) options.push(value);
   select.innerHTML =
-    `<option value="">${placeholder}</option>` +
+    `<option value="">${escapeHtml(placeholder)}</option>` +
     options.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
   select.value = value ?? "";
+}
+
+// Fixed enum select: stored value, translated label.
+function populateEnum(select, values, group, value) {
+  select.innerHTML = values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(tv(group, v))}</option>`).join("");
+  if (value != null) select.value = value;
 }
 
 // --- Assessment (distribution) groups -------------------------------------
@@ -300,13 +390,13 @@ function distGroupHtml(phase, dim) {
   return `
     <div class="dist-group" data-phase="${phase}" data-dim="${dim}">
       <div class="dist-group-header">
-        <h4>${DIMENSION_LABELS[dim]}${required ? " *" : ""}</h4>
-        <span class="dist-group-unit">${DIMENSION_UNITS[dim]}</span>
+        <h4>${t(`dim.${dim}`)}${required ? " *" : ""}</h4>
+        <span class="dist-group-unit">${t(`dim.${dim}.unit`)}</span>
       </div>
       <div class="dist-inputs">
-        <label>Min<input type="number" step="any" data-cell="min"></label>
-        <label>Most Likely<input type="number" step="any" data-cell="ml"></label>
-        <label>Max<input type="number" step="any" data-cell="max"></label>
+        <label>${t("dist.min")}<input type="number" step="any" data-cell="min"></label>
+        <label>${t("dist.ml")}<input type="number" step="any" data-cell="ml"></label>
+        <label>${t("dist.max")}<input type="number" step="any" data-cell="max"></label>
       </div>
       <div class="dist-feedback" data-feedback></div>
       ${showsMax ? `<div class="dist-computed" data-computed></div>` : ""}
@@ -319,7 +409,7 @@ function qhseGroupHtml(phase) {
     <div class="qhse-group" data-phase="${phase}">
       <div class="dist-group-header">
         <h4>QHSE</h4>
-        <span class="dist-group-unit">qualitative</span>
+        <span class="dist-group-unit">${t("dim.qhse.unit")}</span>
       </div>
       <select data-qhse-select></select>
     </div>
@@ -327,34 +417,29 @@ function qhseGroupHtml(phase) {
 }
 
 function assessmentSectionHtml(phase) {
-  const title = phase === "pre" ? "Pre-mitigation assessment" : "Post-mitigation assessment";
-  const hint =
-    phase === "pre"
-      ? "Enter Most Likely only for a single point, Min &amp; Max only for a uniform range, or Min, Most Likely &amp; Max for a triangular range."
-      : "Optional — leave blank until a response has been assessed.";
   return `
     <div class="card" style="margin-bottom: var(--space-5);" data-assessment-phase="${phase}">
-      <h3>${title}</h3>
-      <p>${hint}</p>
+      <h3>${t(`rr.assessment.${phase}.title`)}</h3>
+      <p>${t(`rr.assessment.${phase}.hint`)}</p>
 
       ${distGroupHtml(phase, "likelihood")}
 
       <div class="total-cost-block">
         <div class="dist-group-header">
-          <h4>Total Cost</h4>
-          <span class="dist-group-unit">Direct Cost + Knock On, computed</span>
+          <h4>${t("dim.totalCost")}</h4>
+          <span class="dist-group-unit">${t("dim.totalCost.unit")}</span>
         </div>
         <div class="assessment-summary">
           <div class="stat-tile">
-            <div class="stat-label">Min</div>
+            <div class="stat-label">${t("dist.min")}</div>
             <div class="stat-value" data-total-cost="min">—</div>
           </div>
           <div class="stat-tile">
-            <div class="stat-label">Expected</div>
+            <div class="stat-label">${t("dist.expected")}</div>
             <div class="stat-value" data-total-cost="ev">—</div>
           </div>
           <div class="stat-tile">
-            <div class="stat-label">Max</div>
+            <div class="stat-label">${t("dist.max")}</div>
             <div class="stat-value" data-total-cost="max">—</div>
           </div>
           <div class="stat-tile">
@@ -396,11 +481,10 @@ function updateDistGroup(groupEl) {
 
   const feedback = groupEl.querySelector("[data-feedback]");
   if (result.empty) {
-    feedback.textContent = required ? "Required." : "";
+    feedback.textContent = required ? t("rr.required") : "";
     feedback.removeAttribute("data-valid");
   } else if (result.valid) {
-    const label = { "single-point": "Single point", uniform: "Uniform", triangular: "Triangular" }[result.type];
-    feedback.textContent = label;
+    feedback.textContent = t(`dist.type.${result.type}`);
     feedback.dataset.valid = "true";
   } else {
     feedback.textContent = result.message;
@@ -410,10 +494,13 @@ function updateDistGroup(groupEl) {
   const computedEl = groupEl.querySelector("[data-computed]");
   if (computedEl) {
     const computed = calculateAssessment(draft[phase]);
-    if (dim === "costImpact") computedEl.textContent = `Max Direct Cost: ${fmtNumber(computed.maxDirectCost)}`;
-    if (dim === "knockOn") computedEl.textContent = `Max Knock On: ${fmtNumber(computed.maxKnockOn)}`;
+    if (dim === "costImpact") computedEl.textContent = t("rr.computed.maxDirectCost", { value: fmtNumber(computed.maxDirectCost) });
+    if (dim === "knockOn") computedEl.textContent = t("rr.computed.maxKnockOn", { value: fmtNumber(computed.maxKnockOn) });
     if (dim === "scheduleImpact")
-      computedEl.textContent = `Max Schedule: ${fmtNumber(computed.maxSchedule)} · Schedule Exposure: ${fmtNumber(computed.scheduleExposure)}`;
+      computedEl.textContent = t("rr.computed.schedule", {
+        max: fmtNumber(computed.maxSchedule),
+        exposure: fmtNumber(computed.scheduleExposure),
+      });
   }
 
   updateSummary(phase);
@@ -441,7 +528,7 @@ function fillQhseGroup(phase) {
   const groupEl = document.querySelector(`.qhse-group[data-phase="${phase}"]`);
   if (!groupEl) return;
   const select = groupEl.querySelector("[data-qhse-select]");
-  populateOptions(select, currentState.qhseLevels, "Select QHSE level…", draft[phase].qhse);
+  populateOptions(select, currentState.qhseLevels, t("rr.select.qhse"), draft[phase].qhse);
   select.addEventListener("change", () => {
     draft[phase].qhse = select.value || null;
   });
@@ -452,20 +539,20 @@ function actionRowHtml(action) {
   const strategies = STRATEGIES[draft.riskType] ?? STRATEGIES.Threat;
   return `
     <div class="action-row" data-action-id="${escapeHtml(action.id)}">
-      <div><label>Action ID</label><div class="action-id" title="Assigned automatically as Risk ID-A-number">${action.id.startsWith("local-") ? "New (on save)" : escapeHtml(action.id)}</div></div>
-      <div><label>Action Title</label><input type="text" data-action-field="title" value="${escapeHtml(action.title)}"></div>
-      <div><label>Action Owner</label>
+      <div><label>${t("rr.action.id")}</label><div class="action-id" title="${escapeHtml(t("rr.action.idHint"))}">${action.id.startsWith("local-") ? t("rr.action.newId") : escapeHtml(action.id)}</div></div>
+      <div><label>${t("rr.action.title")}</label><input type="text" data-action-field="title" value="${escapeHtml(action.title)}"></div>
+      <div><label>${t("rr.action.owner")}</label>
         <select data-action-field="owner" data-options="owners"></select>
       </div>
-      <div><label>Strategy</label>
+      <div><label>${t("rr.action.strategy")}</label>
         <select data-action-field="strategy">
-          <option value="">Select…</option>
-          ${strategies.map((s) => `<option value="${s}" ${action.strategy === s ? "selected" : ""}>${s}</option>`).join("")}
+          <option value="">${t("rr.select.generic")}</option>
+          ${strategies.map((s) => `<option value="${s}" ${action.strategy === s ? "selected" : ""}>${escapeHtml(tv("strategy", s))}</option>`).join("")}
         </select>
       </div>
-      <div><label>Due Date</label><input type="date" data-action-field="dueDate" value="${escapeHtml(action.dueDate)}"></div>
-      <div><label>Cost</label><input type="number" step="any" data-action-field="cost" value="${action.cost ?? 0}"></div>
-      <div><button type="button" class="btn btn-ghost btn-sm" data-remove-action="${escapeHtml(action.id)}">Remove</button></div>
+      <div><label>${t("rr.action.dueDate")}</label><input type="date" data-action-field="dueDate" value="${escapeHtml(action.dueDate)}"></div>
+      <div><label>${t("rr.action.cost")}</label><input type="number" step="any" data-action-field="cost" value="${action.cost ?? 0}"></div>
+      <div><button type="button" class="btn btn-ghost btn-sm" data-remove-action="${escapeHtml(action.id)}">${t("common.remove")}</button></div>
     </div>
   `;
 }
@@ -475,14 +562,14 @@ function renderActions() {
   if (!actionsList) return;
   actionsList.innerHTML = draft.actions.length
     ? draft.actions.map(actionRowHtml).join("")
-    : `<p style="color: var(--color-text-subtle); font-size: 0.85rem;">No response actions yet.</p>`;
+    : `<p style="color: var(--color-text-subtle); font-size: 0.85rem;">${t("rr.response.none")}</p>`;
 
   actionsList.querySelectorAll("[data-action-field]").forEach((input) => {
     const row = input.closest("[data-action-id]");
     const id = row.dataset.actionId;
     if (input.dataset.actionField === "owner") {
       const action = draft.actions.find((a) => a.id === id);
-      populateOptions(input, currentState.owners, "Select owner…", action?.owner);
+      populateOptions(input, currentState.owners, t("rr.select.owner"), action?.owner);
     }
     input.addEventListener("input", () => {
       const action = draft.actions.find((a) => a.id === id);
@@ -511,6 +598,19 @@ function buildAssessmentSections() {
   });
 }
 
+// Explains, next to Status / Record Type, when this record won't be in
+// the Monte Carlo model (only Open + Regular Pooled Record are).
+function updateStatusHint() {
+  const el = document.querySelector("[data-status-hint]");
+  const form = els().form;
+  if (!el || !form) return;
+  const status = form.querySelector('[data-field="status"]').value;
+  const recordType = form.querySelector('[data-field="recordType"]').value;
+  const modelled = status === "Open" && recordType === POOLED_RECORD_TYPE;
+  el.textContent = modelled ? t("rr.statusHint.modelled") : t("rr.statusHint.notModelled");
+  el.dataset.valid = modelled ? "true" : "";
+}
+
 function renderForm() {
   const { form, formView, listView } = els();
   holdAutoRefresh(true);
@@ -521,15 +621,17 @@ function renderForm() {
   form.querySelector('[data-field="id"]').value = draft.id ?? suggestRiskId();
   updateIdFeedback();
   form.querySelector('[data-field="title"]').value = draft.title;
-  form.querySelector('[data-field="riskType"]').value = draft.riskType;
-  form.querySelector('[data-field="recordType"]').value = draft.recordType;
+  populateEnum(form.querySelector('[data-field="riskType"]'), RISK_TYPES, "riskType", draft.riskType);
+  populateEnum(form.querySelector('[data-field="recordType"]'), RECORD_TYPES, "recordType", draft.recordType);
+  populateEnum(form.querySelector('[data-field="status"]'), RISK_STATUSES, "status", draft.status);
   form.querySelector('[data-field="description"]').value = draft.description;
   form.querySelector('[data-field="cause"]').value = draft.cause;
   form.querySelector('[data-field="effect"]').value = draft.effect;
+  updateStatusHint();
 
-  populateOptions(form.querySelector('[data-field="owner"]'), currentState.owners, "Select owner…", draft.owner);
-  populateOptions(form.querySelector('[data-field="impactArea"]'), currentState.impactAreas, "Select impact area…", draft.impactArea);
-  populateOptions(form.querySelector('[data-field="rbsCategory"]'), currentState.rbs, "Select RBS category…", draft.rbsCategory);
+  populateOptions(form.querySelector('[data-field="owner"]'), currentState.owners, t("rr.select.owner"), draft.owner);
+  populateOptions(form.querySelector('[data-field="impactArea"]'), currentState.impactAreas, t("rr.select.impactArea"), draft.impactArea);
+  populateOptions(form.querySelector('[data-field="rbsCategory"]'), currentState.rbs, t("rr.select.rbs"), draft.rbsCategory);
 
   buildAssessmentSections();
   for (const phase of ["pre", "post"]) {
@@ -574,7 +676,7 @@ function duplicateRecord(id) {
   if (!record) return;
   draft = JSON.parse(JSON.stringify(record));
   draft.id = null;
-  draft.title = `${draft.title} (Copy)`;
+  draft.title = t("rr.copyTitle", { title: draft.title });
   draft.lastActionNumber = 0;
   draft.createdAt = "";
   draft.updatedAt = "";
@@ -596,9 +698,8 @@ function updateIdFeedback() {
   const error = riskIdError(id, currentState.riskRecords, formOriginalId);
   el.dataset.valid = error ? "false" : "true";
   if (error) el.textContent = error;
-  else if (formOriginalId && id !== formOriginalId)
-    el.textContent = `Renames ${formOriginalId} → ${id}; its action IDs become ${id}-A-… on save.`;
-  else el.textContent = formOriginalId ? "Unique ID." : "Suggested next ID — you can change it, but it must be unique.";
+  else if (formOriginalId && id !== formOriginalId) el.textContent = t("rr.id.renames", { from: formOriginalId, to: id });
+  else el.textContent = formOriginalId ? t("rr.id.unique") : t("rr.id.suggested");
   return error;
 }
 
@@ -614,19 +715,27 @@ function requiredGroupsMissing() {
   });
 }
 
+// Copies the Details fields (everything but the ID) into the draft.
+// Assessment cells and actions are synced into the draft as they're typed.
+function readDetailsIntoDraft() {
+  const { form } = els();
+  const val = (field) => form.querySelector(`[data-field="${field}"]`).value;
+  draft.title = val("title").trim();
+  draft.riskType = val("riskType");
+  draft.recordType = val("recordType");
+  draft.status = val("status");
+  draft.description = val("description");
+  draft.cause = val("cause");
+  draft.effect = val("effect");
+  draft.owner = val("owner");
+  draft.impactArea = val("impactArea");
+  draft.rbsCategory = val("rbsCategory");
+}
+
 async function submitForm(event) {
   event.preventDefault();
-  const { form } = els();
   draft.id = idFieldValue();
-  draft.title = form.querySelector('[data-field="title"]').value.trim();
-  draft.riskType = form.querySelector('[data-field="riskType"]').value;
-  draft.recordType = form.querySelector('[data-field="recordType"]').value;
-  draft.description = form.querySelector('[data-field="description"]').value;
-  draft.cause = form.querySelector('[data-field="cause"]').value;
-  draft.effect = form.querySelector('[data-field="effect"]').value;
-  draft.owner = form.querySelector('[data-field="owner"]').value;
-  draft.impactArea = form.querySelector('[data-field="impactArea"]').value;
-  draft.rbsCategory = form.querySelector('[data-field="rbsCategory"]').value;
+  readDetailsIntoDraft();
 
   const errorBox = document.querySelector("[data-form-error]");
   const idError = updateIdFeedback();
@@ -636,18 +745,17 @@ async function submitForm(event) {
     return;
   }
   if (!draft.title) {
-    errorBox.textContent = "Risk Title is required.";
+    errorBox.textContent = t("rr.error.title");
     errorBox.hidden = false;
     return;
   }
   if (requiredGroupsMissing()) {
-    errorBox.textContent =
-      "Pre-mitigation Likelihood, Direct Cost and Schedule are required.";
+    errorBox.textContent = t("rr.error.required");
     errorBox.hidden = false;
     return;
   }
   if (formHasErrors()) {
-    errorBox.textContent = "Fix the highlighted assessment fields before saving.";
+    errorBox.textContent = t("rr.error.fields");
     errorBox.hidden = false;
     return;
   }
@@ -665,8 +773,7 @@ async function submitForm(event) {
     // Blocked by a conflict — the file changed on disk since this tab
     // loaded it. Stay on the form (draft isn't lost) and point at the
     // conflict banner rather than silently pretending it saved.
-    errorBox.textContent =
-      "This risk register changed elsewhere since you loaded it, so this save was blocked to avoid overwriting that change. Use the banner at the top of the page to reload the latest version, then re-enter this record.";
+    errorBox.textContent = t("rr.error.conflict");
     errorBox.hidden = false;
     return;
   }
@@ -677,7 +784,7 @@ async function submitForm(event) {
   // than duplicates.
   draft = JSON.parse(JSON.stringify(saved));
   renderForm();
-  showSaveToast(`Saved ${saved.id} — “${saved.title}” at ${new Date().toLocaleTimeString()}.`);
+  showSaveToast(t("rr.saved", { id: saved.id, title: saved.title, time: new Date().toLocaleTimeString(locale()) }));
 }
 
 let toastTimer = null;
@@ -692,15 +799,22 @@ function showSaveToast(message) {
   }, 4000);
 }
 
-function populateRecordTypeOptions() {
-  const select = document.querySelector('[data-field="recordType"]');
-  if (!select) return;
-  select.innerHTML = RECORD_TYPES.map((t) => `<option value="${t}">${t}</option>`).join("");
+// Language switched: rebuild the open form's generated parts without
+// losing anything typed (ID field included — it may be mid-rename).
+function relabelForm() {
+  const idValue = idFieldValue();
+  const originalId = formOriginalId;
+  readDetailsIntoDraft();
+  renderForm();
+  formOriginalId = originalId;
+  document.querySelector('[data-field="id"]').value = idValue;
+  updateIdFeedback();
+  const errorBox = document.querySelector("[data-form-error]");
+  if (errorBox) errorBox.hidden = true;
 }
 
 function wire() {
   const { form } = els();
-  populateRecordTypeOptions();
   document.querySelector("[data-new-record]")?.addEventListener("click", startNewRecord);
   document.querySelectorAll("[data-load-template]").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -713,7 +827,7 @@ function wire() {
     if (dupBtn) return duplicateRecord(dupBtn.dataset.duplicateRecord);
     const delBtn = event.target.closest("[data-delete-record]");
     if (delBtn) {
-      if (confirm("Delete this risk record? This cannot be undone.")) {
+      if (confirm(t("rr.confirmDelete"))) {
         await deleteRiskRecord(delBtn.dataset.deleteRecord);
       }
       return;
@@ -745,6 +859,19 @@ function wire() {
     renderTableBody();
   });
 
+  document.querySelectorAll("[data-list-filter]").forEach((input) => {
+    const event = input.tagName === "SELECT" ? "change" : "input";
+    input.addEventListener(event, () => {
+      filters[input.dataset.listFilter] = input.value;
+      renderTableBody();
+    });
+  });
+  document.querySelector("[data-clear-filters]")?.addEventListener("click", () => {
+    Object.assign(filters, { search: "", status: ALL, riskType: ALL, recordType: ALL, impactArea: ALL });
+    renderFilters();
+    renderTableBody();
+  });
+
   document.querySelectorAll("[data-cancel-form]").forEach((btn) =>
     btn.addEventListener("click", showList)
   );
@@ -761,10 +888,16 @@ function wire() {
     draft.riskType = e.target.value;
     renderActions();
   });
+  form?.querySelector('[data-field="status"]')?.addEventListener("change", updateStatusHint);
+  form?.querySelector('[data-field="recordType"]')?.addEventListener("change", updateStatusHint);
 }
 
 onRegisterChange((state) => {
   currentState = state;
   if (!draft) renderList();
+});
+onLangChange(() => {
+  if (draft) relabelForm();
+  else renderList();
 });
 wire();

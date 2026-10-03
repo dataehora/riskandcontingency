@@ -4,7 +4,8 @@
 // only offered resolution — this app is a single-editor-at-a-time tool
 // by design (see the About page's FAQ), so there's no merge to attempt,
 // only "don't silently overwrite what changed."
-import { onRegisterChange } from "./storage/register-store.js";
+import { onRegisterChange, getRegisterState } from "./storage/register-store.js";
+import { t, onLangChange } from "./i18n/i18n.js";
 
 function showConflictBanner() {
   if (document.querySelector("[data-conflict-banner]")) return;
@@ -17,10 +18,10 @@ function showConflictBanner() {
   banner.innerHTML = `
     <span aria-hidden="true">&#9888;&#65039;</span>
     <div style="flex:1;">
-      <strong>This risk register file changed elsewhere.</strong>
-      <p style="margin:4px 0 0;">Someone (or another tab) saved a change to it since you loaded it. Your last save here was blocked to avoid overwriting that change. Reload to see the latest version — any unsaved edit on this page will be lost.</p>
+      <strong>${t("conflict.title")}</strong>
+      <p style="margin:4px 0 0;">${t("conflict.body")}</p>
     </div>
-    <button type="button" class="btn btn-primary btn-sm" data-conflict-reload style="flex:none;">Reload latest</button>
+    <button type="button" class="btn btn-primary btn-sm" data-conflict-reload style="flex:none;">${t("conflict.reload")}</button>
   `;
   main.insertBefore(banner, main.firstChild);
   banner.querySelector("[data-conflict-reload]").addEventListener("click", () => location.reload());
@@ -33,4 +34,8 @@ function hideConflictBanner() {
 onRegisterChange((state) => {
   if (state.conflict) showConflictBanner();
   else hideConflictBanner();
+});
+onLangChange(() => {
+  hideConflictBanner();
+  if (getRegisterState().conflict) showConflictBanner();
 });
