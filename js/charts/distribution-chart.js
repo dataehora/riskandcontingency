@@ -1,4 +1,4 @@
-// Modelling chart: histogram of simulated Total Cost (bars, iterations
+// Modelling + Contingency chart: histogram of simulated Total Cost (bars, iterations
 // on the LEFT y-axis) + cumulative S-curve (0-100% on the RIGHT y-axis),
 // both on one shared cost x-axis that starts at 0 (or lower, only if the
 // run has negative totals from opportunities). A thin fitted normal
@@ -8,7 +8,15 @@
 // but per the dataviz skill's "never color alone" rule that pairing is
 // risky for red-green color blindness, so each series also gets a
 // distinct line style (solid vs. dashed) and a legend.
-import { normalPdf, curvePoints } from "../storage/monte-carlo.js";
+//
+// Options (Contingency uses them; Modelling keeps the defaults):
+//   showHistogram / showSCurve / showBell — draw those layers (default true)
+//   markers: [20, 50, 80] — percentiles marked on each series (dotted
+//            line + dot on its S-curve + "P50" label), in the series colour
+//   referenceLine: { value, label } — e.g. the available budget (red)
+// Series `sorted` may be the full sorted trials or a stored, evenly spaced
+// quantile curve — both read the same by position.
+import { normalPdf, curvePoints, percentile } from "../storage/monte-carlo.js";
 import { niceTicks, niceMax } from "./axis.js";
 import { t, fmtInt as fmtNumber } from "../i18n/i18n.js";
 
@@ -25,37 +33,39 @@ function cumulativeAt(sorted, x) {
 }
 
 // series: [{ label, color, dash, histogram, mean, stdev, trials, binWidth, sorted }]
-export function renderDistributionChart(container, series) {
+export function renderDistributionChart(container, series, options = {}) {
   if (!container) return;
   if (!series.length) {
-    container.innerHTML = "";
+    container.innerHTML = `<p class="chart-empty">${t("chart.dist.noSeries")}</p>`;
     return;
   }
+  const { showHistogram = true, showSCurve = true, showBell = true, markers = [], referenceLine = null } = options;
 
   const width = 640;
   const height = 340;
   const padLeft = 64;
   const padRight = 62;
-  const padTop = 20;
+  const padTop = options.referenceLine ? 30 : 20;
   const padBottom = 44;
   const plotW = width - padLeft - padRight;
   const plotH = height - padTop - padBottom;
 
-  const domainMin = Math.min(...series.map((s) => s.histogram[0].binStart));
-  const domainMax = Math.max(...series.map((s) => s.histogram[s.histogram.length - 1].binEnd));
+  const domainMin = Math.min(...series.map((s) => s.histogram[0].binStart), referenceLine?.value ?? Infinity);
+  const domainMax = Math.max(...series.map((s) => s.histogram[s.histogram.length - 1].binEnd), referenceLine?.value ?? -Infinity);
   const span = domainMax - domainMin || 1;
   const xOf = (v) => padLeft + ((v - domainMin) / span) * plotW;
 
   const maxCount = Math.max(1, ...series.flatMap((s) => s.histogram.map((b) => b.count)));
-  const maxBellHeight = Math.max(
-    0,
-    ...series.map((s) => (s.stdev > 0 ? normalPdf(s.mean, s.mean, s.stdev) * s.trials * s.binWidth : 0))
-  );
+  const maxBellHeight = showBell
+    ? Math.max(0, ...series.map((s) => (s.stdev > 0 ? normalPdf(s.mean, s.mean, s.stdev) * s.trials * s.binWidth : 0)))
+    : 0;
   const maxY = niceMax(Math.max(maxCount, maxBellHeight, 1), 5);
   const yOf = (c) => padTop + (1 - c / maxY) * plotH;
   const yPct = (pct) => padTop + (1 - pct / 100) * plotH;
 
-  const leftTicks = niceTicks(0, maxY, 5)
+  const leftTicks = !showHistogram
+    ? ""
+    : niceTicks(0, maxY, 5)
     .map(
       (t) => `
       <line x1="${padLeft}" y1="${yOf(t)}" x2="${width - padRight}" y2="${yOf(t)}" stroke="var(--color-border)" stroke-width="1" />
@@ -63,7 +73,9 @@ export function renderDistributionChart(container, series) {
     `
     )
     .join("");
-  const rightTicks = [0, 25, 50, 75, 100]
+  const rightTicks = !showSCurve && !markers.length
+    ? ""
+    : [0, 25, 50, 75, 100]
     .map(
       (t) => `
       <line x1="${width - padRight}" y1="${yPct(t)}" x2="${width - padRight + 4}" y2="${yPct(t)}" stroke="var(--color-border-strong)" stroke-width="1" />
@@ -81,7 +93,9 @@ export function renderDistributionChart(container, series) {
     )
     .join("");
 
-  const barsSvg = series
+  const barsSvg = !showHistogram
+    ? ""
+    : series
     .map((s) => {
       const dashAttr = s.dash ? ' stroke-dasharray="4,3"' : "";
       return s.histogram
@@ -99,7 +113,7 @@ export function renderDistributionChart(container, series) {
 
   const bellsSvg = series
     .map((s) => {
-      if (!(s.stdev > 0)) return "";
+      if (!showBell || !showHistogram || !(s.stdev > 0)) return "";
       const stepCount = 100;
       const d = Array.from({ length: stepCount + 1 }, (_, i) => {
         const x = domainMin + (span * i) / stepCount;
@@ -115,6 +129,7 @@ export function renderDistributionChart(container, series) {
   // empirical cumulative curve, then flat at 100% to the right edge.
   const sCurvesSvg = series
     .map((s) => {
+      if (!showSCurve) return "";
       const points = curvePoints(s.sorted, 200);
       if (!points.length) return "";
       const path = [
@@ -129,6 +144,38 @@ export function renderDistributionChart(container, series) {
       return `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"${dashAttr} />`;
     })
     .join("");
+
+  // Percentile markers: a dotted line up to the series' S-curve with a dot
+  // and a "P50"-style label; labels of the 2nd series sit one line lower
+  // so Pre and Post markers at similar costs don't overprint.
+  const markersSvg = series
+    .map((s, si) =>
+      markers
+        .map((p) => {
+          const value = percentile(s.sorted, p);
+          const x = xOf(value).toFixed(1);
+          const yTop = showSCurve ? yPct(p) : padTop + 12;
+          const labelY = showSCurve ? yTop - 6 - si * 12 : padTop + 10 + si * 12;
+          return `<line x1="${x}" y1="${height - padBottom}" x2="${x}" y2="${yTop.toFixed(1)}" stroke="${s.color}" stroke-width="1.25" stroke-dasharray="2,3" />
+            ${showSCurve ? `<circle cx="${x}" cy="${yTop.toFixed(1)}" r="3.5" fill="${s.color}" />` : ""}
+            <text x="${x}" y="${labelY.toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="${s.color}">P${String(p).padStart(2, "0")}</text>`;
+        })
+        .join("")
+    )
+    .join("");
+
+  const refSvg = referenceLine
+    ? `<line x1="${xOf(referenceLine.value).toFixed(1)}" y1="${padTop}" x2="${xOf(referenceLine.value).toFixed(1)}" y2="${height - padBottom}" stroke="var(--color-danger)" stroke-width="2" />
+       <text x="${xOf(referenceLine.value).toFixed(1)}" y="${padTop - 6}" text-anchor="${xOf(referenceLine.value) > width - padRight - 60 ? "end" : xOf(referenceLine.value) < padLeft + 60 ? "start" : "middle"}" font-size="11" font-weight="700" fill="var(--color-danger)">${referenceLine.label}</text>`
+    : "";
+
+  const captionParts = [
+    showHistogram ? t("chart.dist.captionBars") : "",
+    showSCurve ? t("chart.dist.captionSCurve") : "",
+    showBell && showHistogram ? t("chart.dist.captionBell") : "",
+    markers.length ? t("chart.dist.captionMarkers") : "",
+    referenceLine ? t("chart.dist.captionRef", { label: referenceLine.label }) : "",
+  ].filter(Boolean);
 
   const legend = `<div class="chart-legend">
       ${series
@@ -152,17 +199,19 @@ export function renderDistributionChart(container, series) {
       <line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" stroke="var(--color-border-strong)" stroke-width="1" />
       ${rightTicks}
       ${xTicks}
-      <text x="14" y="${padTop + plotH / 2}" transform="rotate(-90 14 ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.iterations")}</text>
-      <text x="${width - 16}" y="${padTop + plotH / 2}" transform="rotate(90 ${width - 16} ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.cumulative")}</text>
+      ${showHistogram ? `<text x="14" y="${padTop + plotH / 2}" transform="rotate(-90 14 ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.iterations")}</text>` : ""}
+      ${rightTicks ? `<text x="${width - 16}" y="${padTop + plotH / 2}" transform="rotate(90 ${width - 16} ${padTop + plotH / 2})" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.cumulative")}</text>` : ""}
       <text x="${padLeft + plotW / 2}" y="${height - 6}" text-anchor="middle" font-size="11" fill="var(--color-text-muted)">${t("chart.dist.totalCost")}</text>
       ${barsSvg}
       ${bellsSvg}
       ${sCurvesSvg}
+      ${markersSvg}
+      ${refSvg}
       <line data-dc-crosshair x1="0" y1="${padTop}" x2="0" y2="${height - padBottom}" stroke="var(--color-accent)" stroke-width="1" stroke-dasharray="3,3" opacity="0" />
       <rect data-dc-hover x="${padLeft}" y="${padTop}" width="${plotW}" height="${plotH}" fill="transparent" />
     </svg>
     <div data-dc-tooltip class="notice" style="display:none; position:absolute; pointer-events:none; font-size:0.78rem; padding: 6px 10px; white-space:nowrap;"></div>
-    <p style="font-size:0.78rem; color: var(--color-text-subtle); margin-top: var(--space-2);">${t("chart.dist.caption")}</p>
+    <p style="font-size:0.78rem; color: var(--color-text-subtle); margin-top: var(--space-2);">${captionParts.join(" ")}</p>
   `;
 
   wireHover(container, series, { xOf, domainMin, span, padLeft, plotW, width });

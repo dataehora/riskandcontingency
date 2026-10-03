@@ -1,6 +1,6 @@
 import { getRegisterState, onRegisterChange, updateSettings } from "../storage/register-store.js";
-import { FULL_PERCENTILE_STEPS, percentile, percentileKey } from "../storage/monte-carlo.js";
-import { renderSCurve } from "../charts/s-curve.js";
+import { FULL_PERCENTILE_STEPS, percentile, percentileKey, histogram } from "../storage/monte-carlo.js";
+import { renderDistributionChart } from "../charts/distribution-chart.js";
 import { renderPercentileTable, SUMMARY_LEVELS, FULL_LEVELS } from "../charts/percentile-tables.js";
 import { t, fmtInt, locale, onLangChange } from "../i18n/i18n.js";
 
@@ -12,6 +12,150 @@ let comparePhaseWired = false;
 let comparePhase = null; // user's chosen phase when a run has both
 
 const fmtNumber = fmtInt;
+
+// --- Chart options (right-hand panel) -----------------------------------
+// Pre/Post histograms + S-curves overlaid, like Modelling, plus the budget
+// line and marked percentiles. Kept per browser (a viewing preference,
+// not register data).
+const PHASE_STYLE = {
+  pre: { color: "var(--color-risk-high)", dash: false },
+  post: { color: "var(--color-risk-low)", dash: true },
+};
+const OPTIONS_KEY = "contingency-chart-options";
+const DEFAULT_OPTIONS = { phases: { pre: true, post: true }, histogram: true, scurve: true, binWidth: null, markers: [20, 50, 80] };
+const AUTO_BINS = 30;
+const MAX_BINS = 200;
+
+function loadOptions() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY) || "null");
+    if (saved && typeof saved === "object") return { ...DEFAULT_OPTIONS, ...saved, phases: { ...DEFAULT_OPTIONS.phases, ...saved.phases } };
+  } catch {
+    // ignore — fall back to defaults
+  }
+  return structuredClone(DEFAULT_OPTIONS);
+}
+
+let chartOptions = loadOptions();
+
+function saveOptions() {
+  try {
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify(chartOptions));
+  } catch {
+    // storage blocked — options just won't persist
+  }
+}
+
+// Bins over [domainMin, domainMax] at the chosen width (or AUTO_BINS equal
+// bins). Each stored curve point is an equal share of the trials, so a
+// bin's height = points in it / points x trials.
+function binning(domainMin, domainMax) {
+  const span = domainMax - domainMin || 1;
+  const width = chartOptions.binWidth > 0 ? Math.max(chartOptions.binWidth, span / MAX_BINS) : span / AUTO_BINS;
+  const count = Math.max(1, Math.ceil(span / width - 1e-9));
+  return { width, count, max: domainMin + count * width };
+}
+
+function renderChart(lastRun, budget, trials) {
+  const container = document.querySelector("[data-contingency-chart]");
+  const available = (lastRun.phases ?? []).filter((p) => lastRun.results[p]?.curve?.length);
+  const phases = available.filter((p) => chartOptions.phases[p]);
+  const curves = phases.map((p) => lastRun.results[p].curve);
+  const domainMin = Math.min(0, budget, ...curves.map((c) => c[0]));
+  const rawMax = Math.max(budget, ...curves.map((c) => c[c.length - 1]));
+  const bins = binning(domainMin, rawMax);
+  const series = phases.map((phase) => {
+    const curve = lastRun.results[phase].curve;
+    const scale = (trials || curve.length) / curve.length;
+    return {
+      label: phaseLabel(phase),
+      color: PHASE_STYLE[phase].color,
+      dash: PHASE_STYLE[phase].dash,
+      histogram: histogram(curve, bins.count, domainMin, bins.max).map((b) => ({ ...b, count: b.count * scale })),
+      trials: trials || curve.length,
+      binWidth: bins.width,
+      sorted: curve,
+    };
+  });
+  renderDistributionChart(container, series, {
+    showHistogram: chartOptions.histogram,
+    showSCurve: chartOptions.scurve,
+    showBell: false,
+    markers: chartOptions.markers,
+    referenceLine: { value: budget, label: t("cont.budget.label") },
+  });
+  renderControls(available, bins.width);
+}
+
+function renderControls(available, binWidth) {
+  const panel = document.querySelector("[data-chart-controls]");
+  if (!panel) return;
+  panel.querySelectorAll("[data-chart-phase]").forEach((box) => {
+    const phase = box.dataset.chartPhase;
+    box.closest("label").hidden = !available.includes(phase);
+    box.checked = !!chartOptions.phases[phase];
+  });
+  panel.querySelector('[data-chart-layer="histogram"]').checked = chartOptions.histogram;
+  panel.querySelector('[data-chart-layer="scurve"]').checked = chartOptions.scurve;
+  const binInput = panel.querySelector("[data-chart-bin-width]");
+  if (document.activeElement !== binInput) binInput.value = chartOptions.binWidth ?? "";
+  panel.querySelector("[data-chart-bin-note]").textContent = t(chartOptions.binWidth ? "cont.chart.binCurrent" : "cont.chart.binAutoNote", {
+    width: fmtNumber(binWidth),
+  });
+  panel.querySelector("[data-chart-markers]").innerHTML = chartOptions.markers.length
+    ? chartOptions.markers
+        .map(
+          (p) =>
+            `<span class="marker-chip">${percentileKey(p)}<button type="button" data-chart-marker-remove="${p}" aria-label="${t("cont.chart.markerRemove", { p: percentileKey(p) })}">&times;</button></span>`
+        )
+        .join("")
+    : `<span class="chart-controls-note">${t("cont.chart.noMarkers")}</span>`;
+}
+
+let chartControlsWired = false;
+function wireChartControls() {
+  if (chartControlsWired) return;
+  const panel = document.querySelector("[data-chart-controls]");
+  if (!panel) return;
+  chartControlsWired = true;
+  const update = () => {
+    saveOptions();
+    renderResults();
+  };
+  panel.addEventListener("change", (event) => {
+    const phaseBox = event.target.closest("[data-chart-phase]");
+    if (phaseBox) {
+      chartOptions.phases[phaseBox.dataset.chartPhase] = phaseBox.checked;
+      return update();
+    }
+    const layerBox = event.target.closest("[data-chart-layer]");
+    if (layerBox) {
+      chartOptions[layerBox.dataset.chartLayer] = layerBox.checked;
+      return update();
+    }
+    const bin = event.target.closest("[data-chart-bin-width]");
+    if (bin) {
+      const v = Number(bin.value);
+      chartOptions.binWidth = bin.value === "" || !(v > 0) ? null : v;
+      return update();
+    }
+  });
+  panel.addEventListener("click", (event) => {
+    const remove = event.target.closest("[data-chart-marker-remove]");
+    if (!remove) return;
+    chartOptions.markers = chartOptions.markers.filter((p) => p !== Number(remove.dataset.chartMarkerRemove));
+    update();
+  });
+  panel.querySelector("[data-chart-marker-add]").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = panel.querySelector("[data-chart-marker-input]");
+    const p = Math.round(Number(input.value));
+    if (!(p >= 1 && p <= 99)) return;
+    if (!chartOptions.markers.includes(p)) chartOptions.markers = [...chartOptions.markers, p].sort((a, b) => a - b);
+    input.value = "";
+    update();
+  });
+}
 
 function parseLastRun(settings) {
   if (!settings?.lastModelledResultsJson) return null;
@@ -97,11 +241,15 @@ function renderResults() {
   document.querySelector("[data-contingency-budget]").textContent = fmtNumber(budget);
   const percentiles = fullPercentiles(summary, curve);
   document.querySelector("[data-contingency-confidence]").textContent = confidenceLabel(summary, percentiles, budget);
-  document.querySelector("[data-contingency-headroom]").textContent = fmtNumber(budget - p50);
+  // Gap to P50 = budget - P50: negative when the budget falls short of
+  // the median modelled cost.
+  const gapEl = document.querySelector("[data-contingency-gap]");
+  const gap = budget - p50;
+  gapEl.textContent = fmtNumber(gap);
+  gapEl.style.color = gap < 0 ? "var(--color-danger)" : "var(--color-success)";
 
-  renderSCurve(document.querySelector("[data-contingency-chart]"), curve ?? [], summary, {
-    referenceLine: { value: budget, label: t("cont.budget.label") },
-  });
+  wireChartControls();
+  renderChart(lastRun, budget, Number(settings.lastModelledTrials));
 
   // Same two tables as Modelling: summary (Min, P10..P90, Max) here,
   // the full 1%-step distribution at the end of the page.

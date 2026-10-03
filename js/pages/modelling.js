@@ -20,6 +20,7 @@ const PHASE_META = {
 };
 const phaseLabel = (phase) => t(`phase.${phase}`);
 const BIN_COUNT = 30;
+const CURVE_POINTS = 500;
 
 let currentState = getRegisterState();
 // The last run on this page, kept so a language switch can redraw it.
@@ -183,7 +184,10 @@ async function runSimulation() {
   for (const phase of phases) {
     const { sorted } = runs[phase];
     const m = mean(sorted);
-    runs[phase].curve = curvePoints(sorted, 200).map((p) => p.value);
+    // 500 evenly spaced quantiles (rounded to cents): enough for
+    // Contingency to redraw the histograms at any bin size, small enough
+    // for one xlsx cell (~32k chars) with both phases.
+    runs[phase].curve = curvePoints(sorted, CURVE_POINTS).map((p) => Math.round(p.value * 100) / 100);
     runs[phase].mean = m;
     runs[phase].stdev = stdev(sorted, m);
   }
