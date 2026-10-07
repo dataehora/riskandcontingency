@@ -135,7 +135,7 @@ export default {
   "home.card.configuration.cta": "Abrir la Configuración →",
 
   // --- Risk Register ----------------------------------------------------------
-  "rr.title": "Registros de riesgo y Estructura de Desglose de Riesgos",
+  "rr.title": "Registro de Riesgos",
   "rr.lead": "Cree registros de riesgo dentro de la Estructura de Desglose de Riesgos del proyecto — responsable, causa, descripción y efectos, evaluaciones antes/después de la mitigación y acciones de respuesta, con el VME calculado automáticamente.",
   "rr.connectHint": "La creación de registros de riesgo lee y escribe en el libro de Excel de la carpeta conectada.",
   "rr.newRecord": "Nuevo registro de riesgo",
@@ -297,7 +297,7 @@ export default {
   "tpl.opportunity.action": "Reunirse previamente con la autoridad competente",
 
   // --- Modelling ----------------------------------------------------------------
-  "mod.title": "Ejecute el modelo de riesgos",
+  "mod.title": "Modelado Monte Carlo",
   "mod.lead": "Paso 4 de la secuencia de configuración — simulación Monte Carlo del Costo total de todos los riesgos abiertos del Pool de riesgos regulares, ponderada por la Probabilidad.",
   "mod.connectHint": "El modelado se ejecuta sobre el libro de Excel de la carpeta conectada.",
   "mod.run.title": "Ejecutar simulación Monte Carlo",
@@ -355,7 +355,7 @@ export default {
   "ram.error.increasing": "Los límites deben crecer de 0 a {max}, con todos los tramos mayores que cero.",
 
   // --- Risk Reporting ----------------------------------------------------------------
-  "rep.title": "Resumen del registro de riesgos y matriz de evaluación",
+  "rep.title": "Resumen Ejecutivo",
   "rep.lead": "Un resumen del registro redactado automáticamente y, a continuación, todos los riesgos en la Matriz de Evaluación de Riesgos 5×5, filtrados por Área de impacto y Tipo de registro.",
   "rep.connectHint": "Los informes se generan a partir del libro de Excel de la carpeta conectada.",
   "rep.summary.title": "Resumen Ejecutivo del Registro de Riesgos",
@@ -421,7 +421,7 @@ export default {
   "rep.ram.cell": "Celda",
 
   // --- Contingency -------------------------------------------------------------------
-  "cont.title": "Presupuesto disponible vs. costo modelado",
+  "cont.title": "Contingencia",
   "cont.lead": "Introduzca el presupuesto disponible para riesgos y compárelo con la distribución de costo Monte Carlo del Modelado.",
   "cont.connectHint": "La Contingencia compara con los resultados guardados en el libro de Excel de la carpeta conectada.",
   "cont.budget.title": "Presupuesto disponible",
@@ -443,8 +443,7 @@ export default {
   "cont.table.headroom": "Margen",
 
   // --- Configuration -------------------------------------------------------------------
-  "conf.eyebrow": "Configuración y Gestión de Datos",
-  "conf.title": "Proyectos y datos de referencia",
+  "conf.title": "Configuración del Proyecto",
   "conf.lead": "Configure la Estructura de Desglose de Riesgos, las áreas de impacto, la lista de responsables y la Matriz de Evaluación de Riesgos que se usan en el Registro de Riesgos y en el Resumen Ejecutivo. Es el paso 2 de la secuencia de configuración — antes hay que conectar una carpeta.",
   "conf.connectHint": "La configuración se guarda en el libro de Excel de la carpeta conectada.",
   "conf.empty.title": "Aún no hay configuración",

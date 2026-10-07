@@ -53,6 +53,15 @@
   flex: none;
 }
 
+/* Site name next to the logo (2026-10-07, user request) — written
+   "Risk and Contingency" so it doesn't repeat the logo's "&". */
+.app-brand-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
 .app-nav {
   grid-area: nav;
   align-self: end;
@@ -219,26 +228,23 @@
   color: var(--color-text);
 }
 
+/* Same size as the page's h1 (base.css), all bold italic: reads as the
+   highlighted header of the section (2026-10-07, user request). */
 .project-bar-inner {
   max-width: var(--content-max-width);
   margin: 0 auto;
-  padding: 10px var(--space-5);
-  font-size: 0.95rem;
-  overflow-wrap: anywhere;
-}
-
-.project-bar-label {
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.project-bar-name {
+  padding: 12px var(--space-5);
+  font-size: 1.9rem;
   font-weight: 700;
+  font-style: italic;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
 
 .project-bar-note {
   color: var(--color-text-muted);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 
 .project-bar[data-state="none"] {
@@ -246,13 +252,16 @@
 }
 
 .project-bar[data-state="none"] .project-bar-name {
-  font-weight: 600;
   color: var(--color-risk-high);
 }
 
 @media (max-width: 860px) {
   .project-bar-inner {
     padding: 8px var(--space-3);
+  }
+
+  .app-brand-name {
+    font-size: 0.95rem;
   }
 }
 

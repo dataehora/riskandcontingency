@@ -140,7 +140,7 @@ export default {
   "home.card.configuration.cta": "Open Configuration →",
 
   // --- Risk Register ----------------------------------------------------------
-  "rr.title": "Risk records & Risk Breakdown Structure",
+  "rr.title": "Risk Register",
   "rr.lead": "Create risk records under your project's Risk Breakdown Structure — owner, cause, description and effects, pre/post‑mitigation assessments, and response actions with EMV calculated automatically.",
   "rr.connectHint": "Risk record creation reads and writes to the Excel workbook in your connected folder.",
   "rr.newRecord": "New risk record",
@@ -302,7 +302,7 @@ export default {
   "tpl.opportunity.action": "Pre-brief the permitting authority",
 
   // --- Modelling ----------------------------------------------------------------
-  "mod.title": "Run the risk model",
+  "mod.title": "Monte Carlo Modelling",
   "mod.lead": "Step 4 of the setup sequence — Monte Carlo simulation of Total Cost across every open Regular Pooled Record risk, weighted by Likelihood.",
   "mod.connectHint": "Modelling runs against the Excel workbook in your connected folder.",
   "mod.run.title": "Run Monte Carlo simulation",
@@ -360,7 +360,7 @@ export default {
   "ram.error.increasing": "Boundaries must increase from 0 to {max} with every bin wider than zero.",
 
   // --- Risk Reporting ----------------------------------------------------------------
-  "rep.title": "Risk register summary & assessment matrix",
+  "rep.title": "Executive Summary",
   "rep.lead": "An automatically written summary of the register, then every risk plotted on the 5×5 Risk Assessment Matrix, filtered by Impact Area and Record Type.",
   "rep.connectHint": "Reports are generated from the Excel workbook in your connected folder.",
   "rep.summary.title": "Risk Register Executive Summary",
@@ -426,7 +426,7 @@ export default {
   "rep.ram.cell": "Cell",
 
   // --- Contingency -------------------------------------------------------------------
-  "cont.title": "Available budget vs. modelled cost",
+  "cont.title": "Contingency",
   "cont.lead": "Enter the budget available for risk, and compare it against the Monte Carlo cost distribution from Modelling.",
   "cont.connectHint": "Contingency compares against results stored in the Excel workbook in your connected folder.",
   "cont.budget.title": "Available budget",
@@ -448,8 +448,7 @@ export default {
   "cont.table.headroom": "Headroom",
 
   // --- Configuration -------------------------------------------------------------------
-  "conf.eyebrow": "Configuration & Data Management",
-  "conf.title": "Projects & reference data",
+  "conf.title": "Project Settings",
   "conf.lead": "Set up the Risk Breakdown Structure, impact areas, the list of risk owners and the Risk Assessment Matrix used across the Risk Register and the Executive Summary. This is step 2 of the setup sequence — it needs a connected folder first.",
   "conf.connectHint": "Configuration is stored in the Excel workbook in your connected folder.",
   "conf.empty.title": "No configuration yet",
