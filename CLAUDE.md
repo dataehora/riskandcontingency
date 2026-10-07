@@ -63,6 +63,12 @@ Real build underway (started 2026-09-20). Landed so far:
   tab-style nav; inline name field for baselines/modellings (no
   `prompt()`); PT terms "Registro de Risco" / "Pool de Riscos Regulares".
 
+- **2026-10-07**: **project bar** under the tabs ("Project: “<folder>”")
+  on Risk Register, Modelling, Contingency, Executive Summary and
+  Configuration; **Contact** page + tab (after About) with a Pages
+  Function that emails it; `contact@riskandcontingency.com` in every
+  footer. See "Project bar" and "Contact form" below.
+
 Still not built: Executive Summary's top-N ranking table (the summary and
 the RAM are on that page). Update this section as it ships.
 
@@ -242,6 +248,39 @@ header's gold bottom border — visually continuous with the page below.
 Under 860px the tabs become the hamburger drop-down (active item marked
 with a gold left edge) and the actions take a full second row.
 
+**Project bar** (2026-10-07, `js/shell.js` `renderProjectBar()`, CSS
+`.project-bar` in `shell.css`): a strip inserted right after
+`.app-header` on the pages in `PROJECT_BAR_PAGES` (risk-register,
+modelling, contingency, reporting, configuration — not Home, About or
+Contact), showing "Project: “<folder name>”". The connected folder *is*
+the project (one workbook per folder). Gold tint when a folder is known
+(with a "click Reconnect folder" note in the `reconnect` state), red tint
+and "no folder connected" otherwise. Keys `project.*`.
+
+**Contact form** (2026-10-07, user modelled it on Turner & Townsend's
+contact page): `contact.html` + `js/pages/contact.js` post JSON to
+**`functions/api/contact.js`** — a Cloudflare Pages Function, the
+site's only server-side code. Fields: Enquiry type, Region (selects,
+English `value`s, labels translated), First/Last name, Email, Phone
+(optional), message, consent checkbox, plus an off-screen honeypot
+(`website`). The Function re-validates (same lists — keep both in sync)
+and sends through the **Cloudflare Email Service REST API**
+(`/accounts/{id}/email/sending/send`). Sending to a *verified
+destination address* is free on every plan, so the recipient must be
+one. **Dashboard setup (not in the repo):** Email Routing enabled on
+riskandcontingency.com with `contact@` forwarding to the user's inbox
+(also makes the footer address work); Pages project → Variables and
+Secrets: `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN` (Secret, API token with
+"Email Sending: Edit"), `CONTACT_TO` (the verified destination
+address), optional `CONTACT_FROM` (default
+`noreply@riskandcontingency.com`). Without them the Function returns
+503 `not-configured` and the page shows a "couldn't send — email us at
+contact@…" fallback. The local dev server has no Functions runtime, so
+`/api/contact` 404s locally (same fallback). The `functions/` folder is
+also served as static files because the output dir is the repo root —
+harmless, it contains no secrets. The footer on every page links
+`mailto:contact@riskandcontingency.com`.
+
 **Header switches** (2026-10-03): language (`i18n.js`) and theme
 (`js/theme.js`, builds `[data-theme-switch]`: caption "Theme" + "☀ Light
 | ☾ Dark" buttons, the active one a raised gold chip, tooltip says
@@ -273,9 +312,9 @@ and one storage layer — no SPA framework, no router, no bundler.
 `index.html` (home/dashboard), `risk-register.html` (renamed from
 working-space.html 2026-09-20), `modelling.html`, `reporting.html`
 (nav label "Risk Reporting" since 2026-09-20, filename unchanged),
-`contingency.html`, `configuration.html`, `about.html`. Nav order (2026-10-04): Home,
+`contingency.html`, `configuration.html`, `about.html`, `contact.html`. Nav order (2026-10-07): Home,
 Risk Register, Modelling, Contingency, Executive Summary
-(`reporting.html`), Configuration, About. `about.html` is the only page with no connection-gated content —
+(`reporting.html`), Configuration, About, Contact. `about.html` is the only page with no connection-gated content —
 it's a static description + FAQ, always fully visible regardless of
 folder-connection state (still shares the same header/footer/theme
 shell for consistency, and still loads `shell.js`/`theme.js`/

@@ -210,6 +210,52 @@
   }
 }
 
+/* Project bar (js/shell.js): the connected folder's name right under the
+   tabs, on the working pages. Gold-tinted so it reads as context, not
+   content; red-tinted when no folder is connected. */
+.project-bar {
+  background: var(--color-accent-bg);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.project-bar-inner {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 10px var(--space-5);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.project-bar-label {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.project-bar-name {
+  font-weight: 700;
+}
+
+.project-bar-note {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.project-bar[data-state="none"] {
+  background: var(--color-risk-high-bg);
+}
+
+.project-bar[data-state="none"] .project-bar-name {
+  font-weight: 600;
+  color: var(--color-risk-high);
+}
+
+@media (max-width: 860px) {
+  .project-bar-inner {
+    padding: 8px var(--space-3);
+  }
+}
+
 .app-main {
   width: 100%;
   max-width: var(--content-max-width);
