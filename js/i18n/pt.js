@@ -104,8 +104,7 @@ export default {
   "value.strategy.Share": "Compartilhar",
 
   // --- Home -----------------------------------------------------------------
-  "home.eyebrow": "Gestão de Riscos e Contingência",
-  "home.title": "Um registro de riscos de projeto que fica na sua máquina, não na nuvem de outra pessoa",
+  "home.title": "Gestão de Riscos e Contingência",
   "home.lead": "Registre, avalie e responda aos riscos do projeto dentro de uma Estrutura Analítica dos Riscos, calcule o VME pré e pós‑mitigação e acompanhe a exposição — tudo lendo e gravando diretamente em uma planilha Excel numa pasta que você escolhe. Sem contas, sem servidor, sem uploads.",
   "home.unsupported.title": "A conexão de pastas não está disponível neste navegador.",
   "home.unsupported.body": "Esta ferramenta lê e grava seu registro de riscos diretamente no disco usando a File System Access API, hoje suportada no Chrome, Edge e Opera. Abra esta página em um desses navegadores para conectar uma pasta.",
@@ -489,8 +488,7 @@ export default {
   "conf.ram.drawError": "Não foi possível desenhar a matriz — tente recarregar a página (Ctrl+F5).",
 
   // --- About -------------------------------------------------------------------------------
-  "about.eyebrow": "Sobre",
-  "about.title": "Sobre o Risk & Contingency",
+  "about.title": "Sobre",
   "about.what.title": "O que é",
   "about.what.p1": "O Risk & Contingency é uma ferramenta no navegador para gerenciar o registro de riscos de um projeto: criar e avaliar registros de risco dentro de uma Estrutura Analítica dos Riscos, calcular o VME (Valor Monetário Esperado) pré e pós-mitigação, rodar simulações de Monte Carlo sobre os riscos agrupados e comparar um orçamento disponível com a distribuição de custo modelada.",
   "about.what.p2": "Ele roda inteiramente no seu navegador. Não há servidor, conta nem armazenamento em nuvem. Você escolhe uma pasta na sua própria máquina uma vez, e o aplicativo lê e grava uma planilha Excel de verdade (<code>risk-register.xlsx</code>) diretamente nessa pasta — a pasta, e não este site, é a única fonte da verdade dos seus dados.",
@@ -608,8 +606,7 @@ export default {
   "rr.baseline.confirmDelete": "Excluir a baseline “{name}”? Isso não pode ser desfeito.",
 
   // --- Contact page -------------------------------------------------------
-  "contact.eyebrow": "Contato",
-  "contact.title": "Fale conosco",
+  "contact.title": "Contato",
   "contact.intro": "Escolha as opções abaixo e retornaremos o contato. Só é enviado o que você digitar neste formulário — nunca o seu registro de riscos nem nada da sua pasta.",
   "contact.select": "Selecione",
   "contact.enquiry": "Tipo de contato",

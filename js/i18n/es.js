@@ -104,8 +104,7 @@ export default {
   "value.strategy.Share": "Compartir",
 
   // --- Home -----------------------------------------------------------------
-  "home.eyebrow": "Gestión de Riesgos y Contingencia",
-  "home.title": "Un registro de riesgos de proyecto que vive en su equipo, no en la nube de otro",
+  "home.title": "Gestión de Riesgos y Contingencia",
   "home.lead": "Registre, evalúe y responda a los riesgos del proyecto dentro de una Estructura de Desglose de Riesgos, calcule el VME antes y después de la mitigación e informe la exposición — todo leyendo y escribiendo directamente en un libro de Excel en la carpeta que usted elija. Sin cuentas, sin servidor, sin subidas.",
   "home.unsupported.title": "La conexión de carpetas no está disponible en este navegador.",
   "home.unsupported.body": "Esta herramienta lee y escribe su registro de riesgos directamente en el disco mediante la File System Access API, compatible hoy con Chrome, Edge y Opera. Abra esta página en uno de esos navegadores para conectar una carpeta.",
@@ -489,8 +488,7 @@ export default {
   "conf.ram.drawError": "No se pudo dibujar la matriz — pruebe a recargar la página (Ctrl+F5).",
 
   // --- About -------------------------------------------------------------------------------
-  "about.eyebrow": "Acerca de",
-  "about.title": "Acerca de Risk & Contingency",
+  "about.title": "Acerca de",
   "about.what.title": "Qué es",
   "about.what.p1": "Risk & Contingency es una herramienta en el navegador para gestionar el registro de riesgos de un proyecto: crear y evaluar registros de riesgo dentro de una Estructura de Desglose de Riesgos, calcular el VME (Valor Monetario Esperado) antes y después de la mitigación, ejecutar simulaciones Monte Carlo sobre los riesgos agrupados y comparar un presupuesto disponible con la distribución de costo modelada.",
   "about.what.p2": "Funciona íntegramente en su navegador. No hay servidor, ni cuenta, ni almacenamiento en la nube. Usted elige una vez una carpeta de su propio equipo, y la aplicación lee y escribe un libro de Excel real (<code>risk-register.xlsx</code>) directamente en esa carpeta — la carpeta, y no este sitio web, es la única fuente de verdad de sus datos.",
@@ -608,8 +606,7 @@ export default {
   "rr.baseline.confirmDelete": "¿Eliminar la línea base “{name}”? No se puede deshacer.",
 
   // --- Contact page -------------------------------------------------------
-  "contact.eyebrow": "Contacto",
-  "contact.title": "Póngase en contacto",
+  "contact.title": "Contacto",
   "contact.intro": "Elija las opciones de abajo y le responderemos. Solo se envía lo que escriba en este formulario — nunca su registro de riesgos ni nada de su carpeta.",
   "contact.select": "Seleccione",
   "contact.enquiry": "Tipo de consulta",
