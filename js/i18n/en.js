@@ -109,8 +109,7 @@ export default {
   "value.strategy.Share": "Share",
 
   // --- Home -----------------------------------------------------------------
-  "home.eyebrow": "Risk & Contingency Management",
-  "home.title": "A project risk register that lives on your machine, not in someone else's cloud",
+  "home.title": "Risk and Contingency",
   "home.lead": "Record, assess and respond to project risks under a Risk Breakdown Structure, calculate EMV pre- and post‑mitigation, and report on exposure — all reading and writing directly to an Excel workbook in a folder you choose. No accounts, no server, no uploads.",
   "home.unsupported.title": "Folder connection isn't available in this browser.",
   "home.unsupported.body": "This tool reads and writes your risk register directly on disk using the File System Access API, currently supported in Chrome, Edge and Opera. Open this page in one of those browsers to connect a folder.",
@@ -494,8 +493,7 @@ export default {
   "conf.ram.drawError": "The matrix couldn't be drawn — try reloading the page (Ctrl+F5).",
 
   // --- About -------------------------------------------------------------------------------
-  "about.eyebrow": "About",
-  "about.title": "About Risk & Contingency",
+  "about.title": "About",
   "about.what.title": "What this is",
   "about.what.p1": "Risk & Contingency is a browser-based tool for managing a project risk register: creating and assessing risk records under a Risk Breakdown Structure, calculating EMV pre- and post-mitigation, running Monte Carlo simulation across pooled risks, and comparing an available budget to the modelled cost distribution.",
   "about.what.p2": "It runs entirely in your browser. There is no server, no account, and no cloud storage. You choose a folder on your own machine once, and the app reads and writes a real Excel workbook (<code>risk-register.xlsx</code>) directly in that folder — the folder is the single source of truth for your data, not this website.",
@@ -613,8 +611,7 @@ export default {
   "rr.baseline.confirmDelete": "Delete the baseline “{name}”? This cannot be undone.",
 
   // --- Contact page -------------------------------------------------------
-  "contact.eyebrow": "Contact",
-  "contact.title": "Get in touch",
+  "contact.title": "Contact",
   "contact.intro": "Choose from the options below and we'll get back to you. Only what you type in this form is sent — never your risk register or anything in your folder.",
   "contact.select": "Please select",
   "contact.enquiry": "Enquiry type",

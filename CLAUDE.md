@@ -264,8 +264,12 @@ gold eyebrow above the h1 any more — just one title: Risk Register /
 Monte Carlo Modelling / Contingency / Executive Summary / Project
 Settings (PT: Registro de Riscos / Modelagem Monte Carlo / Contingência /
 Sumário Executivo / Configurações do Projeto). Keys `rr.title`,
-`mod.title`, `cont.title`, `rep.title`, `conf.title`. Home, About and
-Contact keep their eyebrow.
+`mod.title`, `cont.title`, `rep.title`, `conf.title`. Same for Home
+("Risk and Contingency" / PT "Gestão de Riscos e Contingência" / ES
+"Gestión de Riesgos y Contingencia"), About (About / Sobre / Acerca de)
+and Contact (Contact / Contato / Contacto) — `home.title`, `about.title`,
+`contact.title`. Only the Home area cards and the setup stepper still use
+`.eyebrow`.
 
 **Contact form** (2026-10-07, user modelled it on Turner & Townsend's
 contact page): `contact.html` + `js/pages/contact.js` post JSON to
