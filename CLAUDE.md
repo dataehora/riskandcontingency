@@ -256,6 +256,16 @@ Contact), showing "Project: “<folder name>”". The connected folder *is*
 the project (one workbook per folder). Gold tint when a folder is known
 (with a "click Reconnect folder" note in the `reconnect` state), red tint
 and "no folder connected" otherwise. Keys `project.*`.
+Text is the h1 size (1.9rem), all bold italic — user asked for it to
+read as the highlighted header of the section.
+
+**Page titles** (2026-10-07, user request): the working pages have no
+gold eyebrow above the h1 any more — just one title: Risk Register /
+Monte Carlo Modelling / Contingency / Executive Summary / Project
+Settings (PT: Registro de Riscos / Modelagem Monte Carlo / Contingência /
+Sumário Executivo / Configurações do Projeto). Keys `rr.title`,
+`mod.title`, `cont.title`, `rep.title`, `conf.title`. Home, About and
+Contact keep their eyebrow.
 
 **Contact form** (2026-10-07, user modelled it on Turner & Townsend's
 contact page): `contact.html` + `js/pages/contact.js` post JSON to
@@ -296,7 +306,11 @@ ampersand (navy header, dark mode). `[data-logo-for="light-bg"|"dark-bg"]`
 + `shell.css` pick the right one per theme. The header shows the logo
 **alone** and the footer shows logo + sentence without "Risk &
 Contingency —": the user read the brand text right after the R&C logo
-as a duplicated "&". (Earlier "duplicate logos" reports were the stale
+as a duplicated "&".
+**Update 2026-10-07 (user request):** the header now shows the logo +
+`.app-brand-name` "Risk and Contingency" (spelled with "and", not "&", so
+it doesn't repeat the logo's ampersand); the logo `<img>` has `alt=""`
+there since the text names the link. Footer unchanged. (Earlier "duplicate logos" reports were the stale
 4h CSS cache showing both theme variants at once — fixed in the
 Cloudflare dashboard on 2026-10-03, `curl -sI` now shows `no-cache` for
 JS/CSS/images.) Favicons and `og-image.png`

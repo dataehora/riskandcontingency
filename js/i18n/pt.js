@@ -135,7 +135,7 @@ export default {
   "home.card.configuration.cta": "Abrir a Configuração →",
 
   // --- Risk Register ----------------------------------------------------------
-  "rr.title": "Registros de risco e Estrutura Analítica dos Riscos",
+  "rr.title": "Registro de Riscos",
   "rr.lead": "Crie registros de risco dentro da Estrutura Analítica dos Riscos do projeto — responsável, causa, descrição e efeitos, avaliações pré/pós‑mitigação e ações de resposta, com o VME calculado automaticamente.",
   "rr.connectHint": "A criação de registros de risco lê e grava na planilha Excel da pasta conectada.",
   "rr.newRecord": "Novo registro de risco",
@@ -297,7 +297,7 @@ export default {
   "tpl.opportunity.action": "Fazer uma reunião prévia com o órgão licenciador",
 
   // --- Modelling ----------------------------------------------------------------
-  "mod.title": "Rode o modelo de riscos",
+  "mod.title": "Modelagem Monte Carlo",
   "mod.lead": "Passo 4 da sequência de configuração — simulação de Monte Carlo do Custo Total de todos os riscos abertos do Pool de Riscos Regulares, ponderada pela Probabilidade.",
   "mod.connectHint": "A modelagem roda sobre a planilha Excel da pasta conectada.",
   "mod.run.title": "Rodar simulação de Monte Carlo",
@@ -355,7 +355,7 @@ export default {
   "ram.error.increasing": "Os limites devem crescer de 0 até {max}, com todas as faixas maiores que zero.",
 
   // --- Risk Reporting ----------------------------------------------------------------
-  "rep.title": "Resumo do registro de riscos e matriz de avaliação",
+  "rep.title": "Sumário Executivo",
   "rep.lead": "Um resumo do registro escrito automaticamente e, em seguida, todos os riscos plotados na Matriz de Avaliação de Riscos 5×5, filtrados por Área de Impacto e Tipo de Registro.",
   "rep.connectHint": "Os relatórios são gerados a partir da planilha Excel da pasta conectada.",
   "rep.summary.title": "Sumário Executivo do Registro de Riscos",
@@ -421,7 +421,7 @@ export default {
   "rep.ram.cell": "Célula",
 
   // --- Contingency -------------------------------------------------------------------
-  "cont.title": "Orçamento disponível vs. custo modelado",
+  "cont.title": "Contingência",
   "cont.lead": "Informe o orçamento disponível para riscos e compare-o com a distribuição de custo do Monte Carlo da Modelagem.",
   "cont.connectHint": "A Contingência compara com os resultados gravados na planilha Excel da pasta conectada.",
   "cont.budget.title": "Orçamento disponível",
@@ -443,8 +443,7 @@ export default {
   "cont.table.headroom": "Folga",
 
   // --- Configuration -------------------------------------------------------------------
-  "conf.eyebrow": "Configuração e Gestão de Dados",
-  "conf.title": "Projetos e dados de referência",
+  "conf.title": "Configurações do Projeto",
   "conf.lead": "Configure a Estrutura Analítica dos Riscos, as áreas de impacto, a lista de responsáveis e a Matriz de Avaliação de Riscos usadas no Registro de Riscos e no Sumário Executivo. Este é o passo 2 da sequência de configuração — antes é preciso conectar uma pasta.",
   "conf.connectHint": "A configuração fica gravada na planilha Excel da pasta conectada.",
   "conf.empty.title": "Nenhuma configuração ainda",
