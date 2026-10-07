@@ -1178,3 +1178,71 @@ textarea.is-missing {
 .inline-name-row input {
   flex: 1;
 }
+
+/* Contact page (contact.html, js/pages/contact.js). */
+.contact-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.contact-message {
+  margin-top: var(--space-4);
+}
+
+.contact-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.contact-consent input {
+  margin-top: 3px;
+  flex: none;
+}
+
+.contact-consent label {
+  font-weight: 400;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* Honeypot: off-screen rather than display:none, which some bots skip. */
+.contact-hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-error {
+  margin-top: var(--space-4);
+}
+
+.contact-actions {
+  margin-top: var(--space-5);
+}
+
+.contact-success h2 {
+  color: var(--color-success);
+}
+
+.contact-aside a {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .contact-layout,
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}

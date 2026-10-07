@@ -26,6 +26,8 @@ reporting.html                    Executive Summary: automated register summary 
 contingency.html                  Available budget vs. the latest or a saved Monte Carlo run
 configuration.html                RBS / impact areas / owners / QHSE levels, required form fields, matrix bins
 about.html                        Description + FAQ (incl. the single-editor / conflict-detection design)
+contact.html                      Contact form (posts to functions/api/contact.js)
+functions/api/contact.js          Cloudflare Pages Function: emails the contact form via Cloudflare Email Service
 404.html                          Not-found page (Cloudflare Pages serves it for unknown URLs)
 images/og-image.png               1200x630 social-share preview image
 images/logo.png, logo-light.png   R&C logo (dark letters for light backgrounds / light letters for dark ones)

@@ -84,6 +84,40 @@ function renderConnectionUi(state) {
     });
 }
 
+// Project bar (2026-10-07): a strip right under the tabs naming the
+// connected folder — the folder *is* the project (one workbook per
+// folder) — so it's always clear which register a page is working on.
+// Only on the working pages; Home, About and Contact don't get one.
+const PROJECT_BAR_PAGES = ["risk-register", "modelling", "contingency", "reporting", "configuration"];
+
+function ensureProjectBar() {
+  if (!PROJECT_BAR_PAGES.includes(document.body.dataset.page)) return null;
+  let bar = document.querySelector("[data-project-bar]");
+  if (bar) return bar;
+  const header = document.querySelector(".app-header");
+  if (!header) return null;
+  bar = document.createElement("div");
+  bar.className = "project-bar";
+  bar.setAttribute("data-project-bar", "");
+  bar.setAttribute("role", "status");
+  bar.innerHTML = `<div class="project-bar-inner"><span class="project-bar-label"></span> <strong class="project-bar-name"></strong> <span class="project-bar-note"></span></div>`;
+  header.after(bar);
+  return bar;
+}
+
+function renderProjectBar(state) {
+  const bar = ensureProjectBar();
+  if (!bar) return;
+  const hasFolder = (state.status === "connected" || state.status === "reconnect") && state.folderName;
+  bar.dataset.state = hasFolder ? state.status : "none";
+  bar.querySelector(".project-bar-label").textContent = t("project.label");
+  bar.querySelector(".project-bar-name").textContent = hasFolder
+    ? `“${state.folderName}”`
+    : t("project.none");
+  bar.querySelector(".project-bar-note").textContent =
+    state.status === "reconnect" ? t("project.reconnectNote") : "";
+}
+
 function wireConnectionControls() {
   document.querySelectorAll("[data-connection-action]").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -108,8 +142,14 @@ function wireConnectionControls() {
       .forEach((el) => (el.hidden = false));
   }
 
-  onConnectionChange(renderConnectionUi);
-  onLangChange(() => renderConnectionUi(getConnectionState()));
+  onConnectionChange((state) => {
+    renderConnectionUi(state);
+    renderProjectBar(state);
+  });
+  onLangChange(() => {
+    renderConnectionUi(getConnectionState());
+    renderProjectBar(getConnectionState());
+  });
   restoreConnection();
 }
 
